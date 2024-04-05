@@ -9,6 +9,6 @@ async function bootstrap() {
   });
   const port = process.env.PORT || 3000;
   await app.listen(process.env.PORT || 3000);
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server is running on port ${port} with ${process.env.FRONTEND_URI} allowed origins.`);
 }
 bootstrap();
