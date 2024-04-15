@@ -14,9 +14,7 @@ export class SubmissionsService {
     const chefsAuth = this.configService.get('CHEFS_AUTH') || 'default_auth';
 
     if (!this.chefsAPIURL || !chefsAuth) {
-      throw new InternalServerErrorException(
-        'Environment variables CHEFS_API_URL or CHEFS_AUTH are not set',
-      );
+      throw new InternalServerErrorException('Environment variables CHEFS_API_URL or CHEFS_AUTH are not set');
     }
 
     this.axiosCHEFSInstance = axios.create({
@@ -28,9 +26,7 @@ export class SubmissionsService {
 
   async getSubmissions(formId: string): Promise<Submission[]> {
     try {
-      const { data } = await this.axiosCHEFSInstance.get(
-        `${this.chefsAPIURL}/forms/${formId}/submissions`,
-      );
+      const { data } = await this.axiosCHEFSInstance.get(`${this.chefsAPIURL}/forms/${formId}/submissions`);
       return data;
     } catch (error) {
       throw new Error(`Error getting submissions: ${error.message}`);
@@ -39,9 +35,7 @@ export class SubmissionsService {
 
   async getSubmissionById(id: string): Promise<Submission> {
     try {
-      const { data } = await this.axiosCHEFSInstance.get(
-        `${this.chefsAPIURL}/submissions/${id}`,
-      );
+      const { data } = await this.axiosCHEFSInstance.get(`${this.chefsAPIURL}/submissions/${id}`);
       return data;
     } catch (error) {
       throw new Error(`Error getting submission by id: ${error.message}`);

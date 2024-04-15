@@ -1,12 +1,6 @@
-import {
-  Controller,
-  Get,
-  Param,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Get, Param, HttpException, HttpStatus } from '@nestjs/common';
 import { SubmissionsService } from './submissions.service';
-import { Submission } from './submission.interface'; // assuming you have this interface
+import { Submission } from './submission.interface';
 
 @Controller('api/submissions')
 export class SubmissionsController {
@@ -17,10 +11,7 @@ export class SubmissionsController {
     try {
       return await this.submissionsService.getSubmissions(formId);
     } catch (error) {
-      throw new HttpException(
-        'Error getting submissions',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException('Error getting submissions', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -29,10 +20,7 @@ export class SubmissionsController {
     try {
       return await this.submissionsService.getSubmissionById(id);
     } catch (error) {
-      throw new HttpException(
-        'Error getting submission by id',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException('Error getting submission by id', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }
