@@ -10,7 +10,7 @@ import { SubmissionsService } from './api/submissions/submissions.service';
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    MongooseModule.forRoot('mongodb://localhost/nest'),
+    MongooseModule.forRoot(process.env.MONGODB_URL),
     MongooseModule.forFeature([{ name: RuleData.name, schema: RuleDataSchema }]), // import model
   ],
   controllers: [RuleDataController, SubmissionsController],
