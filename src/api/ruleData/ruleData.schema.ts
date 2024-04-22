@@ -16,6 +16,9 @@ export class RuleData {
 
   @Prop({ description: 'The ID of the form in Chefs that corresponds to this rule' })
   chefsFormId: string;
+
+  @Prop({ description: 'The API key of the CHEFS form - needed to access submissions' })
+  chefsFormAPIKey: string;
 }
 
 export const RuleDataSchema = SchemaFactory.createForClass(RuleData);

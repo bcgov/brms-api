@@ -61,4 +61,12 @@ export class RuleDataService {
       throw new Error(`Failed to delete rule data: ${error.message}`);
     }
   }
+
+  async getFormAPIKeyForFormId(chefsFormId: string): Promise<string> {
+    const ruleData = await this.ruleDataModel.findOne({ chefsFormId }).exec();
+    if (!ruleData) {
+      throw new Error(`Rule data not found for CHEFS form id: ${chefsFormId}`);
+    }
+    return ruleData.chefsFormAPIKey;
+  }
 }

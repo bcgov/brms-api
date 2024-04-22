@@ -15,10 +15,10 @@ export class SubmissionsController {
     }
   }
 
-  @Get('/:id')
-  async getSubmissionById(@Param('id') id: string): Promise<Submission> {
+  @Get('/:formId/:id')
+  async getSubmissionById(@Param('formId') formId: string, @Param('id') id: string): Promise<Submission> {
     try {
-      return await this.submissionsService.getSubmissionById(id);
+      return await this.submissionsService.getSubmissionById(formId, id);
     } catch (error) {
       throw new HttpException('Error getting submission by id', HttpStatus.INTERNAL_SERVER_ERROR);
     }
