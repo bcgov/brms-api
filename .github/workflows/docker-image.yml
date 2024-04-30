@@ -69,4 +69,4 @@ jobs:
     - name: Deploy to OpenShift
       run: |
         oc tag --source=docker timwekkenbc/sdpr-brms:latest eb0f74-test/app:latest
-        oc rollout latest dc/app
+        oc rollout latest dc/brms-api
