@@ -24,7 +24,7 @@ jobs:
       with:
         registry: artifactoryproject.artifactory.devops.gov.bc.ca
         username: ${{ secrets.ARTIFACTORY_USERNAME }}
-        password: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        password: ${{ secrets.ARTIFACTORY_API_KEY }}
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v2
