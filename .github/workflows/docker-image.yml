@@ -13,6 +13,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        push: true
+        tags: user/app:latest
+
     - name: Install CLI tools from OpenShift Mirror
       uses: redhat-actions/openshift-tools-installer@v1
       with:
@@ -34,10 +46,9 @@ jobs:
         # This exact version will install version 0.11.0 of Tekton, no other version.
         tkn: "0.11.0"
 
-    - name: Authenticate and set context
+    - name: Authenticate and set context for OpenShift
       uses: redhat-actions/oc-login@v1
       env:
-        # These can be stored in secrets, if desired.
         OPENSHIFT_NAMESPACE: eb0f74-test
   
       with:
@@ -54,3 +65,8 @@ jobs:
   
         # Optional - this sets your Kubernetes context's current namespace after logging in.
         namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+
+    - name: Deploy to OpenShift
+      run: |
+        oc tag --source=docker user/app:latest eb0f74-test/app:latest
+        oc rollout latest dc/app
