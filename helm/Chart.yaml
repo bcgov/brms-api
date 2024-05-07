@@ -1,0 +1,4 @@
+apiVersion: v2
+name: brms-api
+description: A Helm chart for deploying brms-api
+version: 0.1.0
