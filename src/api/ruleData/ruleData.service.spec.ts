@@ -19,7 +19,7 @@ export const mockServiceProviders = [
       find: jest.fn().mockReturnValue({
         exec: jest.fn().mockResolvedValue([mockRuleData]),
       }),
-      findOne: jest.fn().mockImplementation((query) => ({
+      findOne: jest.fn().mockImplementation(() => ({
         exec: jest.fn().mockResolvedValue(mockRuleData),
       })),
     }),
