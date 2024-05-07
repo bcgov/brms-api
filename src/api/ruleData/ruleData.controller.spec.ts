@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getModelToken } from '@nestjs/mongoose';
 import { RuleDataController } from './ruleData.controller';
 import { RuleDataService } from './ruleData.service';
 import { RuleData } from './ruleData.schema';
