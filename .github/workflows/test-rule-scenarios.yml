@@ -1,0 +1,19 @@
+name: Test Rule Scenarios
+
+on:
+  push:
+    branches:
+      - 'test/json-scenarios'
+
+jobs:
+  test-rule-scenarios:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Jest rule scenario tests
+        run: npm test src/testAllRules.spec.ts
