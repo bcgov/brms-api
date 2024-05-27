@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'fs';
+import { readdirSync, readFileSync, existsSync } from 'fs';
 import * as path from 'path';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DecisionsService } from './api/decisions/decisions.service';
@@ -20,13 +20,24 @@ describe('Test all rules', () => {
     if (path.extname(file) === '.json' && !file.includes('.tests.json')) {
       describe(`Testing ${file}`, () => {
         const testFile = file.replace('.json', '.tests.json');
+        const testFilePath = path.join(directoryPath, testFile);
 
-        // TODO: Check if tests file does not exist
-        const { tests } = JSON.parse(readFileSync(path.join(directoryPath, testFile), 'utf-8'));
+        // Check if tests file does not exist
+        if (!existsSync(testFilePath)) {
+          console.warn(`Test file ${testFile} does not exist.`);
+          return;
+        }
 
-        tests.forEach((test) => {
-          // TODO: Check if test is not valid (missing name, input, or output)
-          it(`Scenario: ${test?.name}`, async () => {
+        const { tests } = JSON.parse(readFileSync(testFilePath, 'utf-8'));
+
+        tests.forEach((test: { name: string; input: object; output: object }, index) => {
+          // Check if test is not valid (missing name, input, or output)
+          if (!test.name || !test.input || !test.output) {
+            console.warn(`Test at index ${index} in ${testFile} is invalid: ${JSON.stringify(test)}`);
+            return;
+          }
+
+          it(`Scenario: ${test.name}`, async () => {
             const { result } = await service.runDecision(test.input);
             expect(result).toEqual(test.output);
           });

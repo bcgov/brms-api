@@ -2,8 +2,9 @@ name: Test Rule Scenarios
 
 on:
   push:
-    branches:
-      - 'test/json-scenarios'
+    branches: '*'
+  pull_request:
+    branches: '*'
 
 jobs:
   test-rule-scenarios:
@@ -17,3 +18,6 @@ jobs:
 
       - name: Run Jest rule scenario tests
         run: npm test src/testAllRules.spec.ts
+
+      - name: Run Jest rule Excel scenario tests
+        run: npm test src/testAllRulesExcel.spec.ts
