@@ -1,0 +1,69 @@
+{
+  "tests": [{
+    "name": "Ineligible",
+    "input": {
+      "numberOfChildren": 2,
+      "familyComposition": "single",
+      "familyUnitInPayForDecember": false
+    },
+    "output": {
+      "isEligible": false
+    }
+  },
+  {
+    "name": "Single, no children",
+    "input": {
+      "numberOfChildren": 0,
+      "familyComposition": "single",
+      "familyUnitInPayForDecember": true
+    },
+    "output": {
+      "baseAmount": 60,
+      "childrenAmount": 0,
+      "isEligible": true,
+      "supplementAmount": 60
+    }
+  },
+  {
+    "name": "Single, 2 children",
+    "input": {
+      "numberOfChildren": 2,
+      "familyComposition": "single",
+      "familyUnitInPayForDecember": true
+    },
+    "output": {
+      "baseAmount": 60,
+      "childrenAmount": 40,
+      "isEligible": true,
+      "supplementAmount": 100
+    }
+  },
+  {
+    "name": "Couple, 1 child",
+    "input": {
+      "numberOfChildren": 1,
+      "familyComposition": "couple",
+      "familyUnitInPayForDecember": true
+    },
+    "output": {
+      "baseAmount": 120,
+      "childrenAmount": 20,
+      "isEligible": true,
+      "supplementAmount": 140
+    }
+  },
+  {
+    "name": "Couple, 10 children",
+    "input": {
+      "numberOfChildren": 10,
+      "familyComposition": "couple",
+      "familyUnitInPayForDecember": true
+    },
+    "output": {
+      "baseAmount": 120,
+      "childrenAmount": 200,
+      "isEligible": true,
+      "supplementAmount": 320
+    }
+  }]
+}

@@ -1,0 +1,23 @@
+name: Test Rule Scenarios
+
+on:
+  push:
+    branches: '*'
+  pull_request:
+    branches: '*'
+
+jobs:
+  test-rule-scenarios:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Jest rule scenario tests
+        run: npm test src/testAllRules.spec.ts
+
+      - name: Run Jest rule Excel scenario tests
+        run: npm test src/testAllRulesExcel.spec.ts
