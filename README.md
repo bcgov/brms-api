@@ -2,7 +2,21 @@
 
 This project is the API/Backend for the SDPR Business Rules Engine (BRE) and Business Rules Engine Management System (BRMS). It will act as a middle layer between GoRules, CHEFS, and the [frontend](https://github.com/bcgov/brms-simulator-frontend) or any other integration.
 
-## Getting it running
+## Local Development Setup
+
+### Running MongoDB Locally
+
+A local MongoDB instance is required for the project to run properly. You'll have to set this up first and create a database for it. Make note of the URL.
+
+### Setting Environment Variables
+
+Before running your application locally, you'll need some environment variables. You can create a `.env` file to do so. Set the following variables:
+
+- MONGODB_URL: The URL for connecting to the MongoDB instance you created in the previous step. Set it to something like mongodb://localhost/nest.
+- FRONTEND_URI: The URI for the frontend application. Set it to http://localhost:8080.
+- CHEFS_API_URL: The URL for the Chefs API. Set it to https://submit.digital.gov.bc.ca/app/api/v1.
+
+### Running the Application
 
 Install dependencies:
 
