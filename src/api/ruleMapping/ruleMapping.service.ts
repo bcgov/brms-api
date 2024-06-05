@@ -3,12 +3,10 @@ import { Node } from './ruleMapping.interface';
 
 @Injectable()
 export class RuleMappingService {
-  extractInputsAndOutputs(nodes: Node[]): {
+  extractInputs(nodes: Node[]): {
     inputs: any[];
-    outputs: any[];
   } {
     const inputs: any[] = [];
-    const outputs: any[] = [];
 
     nodes.forEach((node) => {
       if (node.content) {
@@ -19,16 +17,6 @@ export class RuleMappingService {
               name: inputField.name,
               type: inputField.type,
               field: inputField.field,
-            });
-          });
-        }
-        if (node.content.outputs) {
-          node.content.outputs.forEach((outputField) => {
-            outputs.push({
-              id: outputField.id,
-              name: outputField.name,
-              type: outputField.type,
-              field: outputField.field,
             });
           });
         }
@@ -43,6 +31,37 @@ export class RuleMappingService {
       }
     });
 
+    return { inputs };
+  }
+
+  extractOutputs(nodes: Node[]): {
+    outputs: any[];
+  } {
+    const outputs: any[] = [];
+    nodes.forEach((node) => {
+      if (node.content) {
+        if (node.content.outputs) {
+          node.content.outputs.forEach((outputField) => {
+            outputs.push({
+              id: outputField.id,
+              name: outputField.name,
+              type: outputField.type,
+              field: outputField.field,
+            });
+          });
+        }
+      }
+    });
+
+    return { outputs };
+  }
+
+  extractInputsAndOutputs(nodes: Node[]): {
+    inputs: any[];
+    outputs: any[];
+  } {
+    const inputs: any[] = this.extractInputs(nodes).inputs;
+    const outputs: any[] = this.extractOutputs(nodes).outputs;
     return { inputs, outputs };
   }
 
@@ -58,26 +77,24 @@ export class RuleMappingService {
     return uniqueFields;
   }
 
-  processJsonData(nodes: Node[]) {
+  extractUniqueInputs(nodes: Node[]) {
     const { inputs, outputs } = this.extractInputsAndOutputs(nodes);
-
-    const inputFields = new Set(inputs.map((inputField) => inputField.field ?? inputField.value));
+    console.log(inputs, 'now outputs', outputs, 'this is before sorting/filtering');
     const outputFields = new Set(outputs.map((outputField) => outputField.field));
-
-    const uniqueOutputFields = this.findUniqueFields(outputs, inputFields);
     const uniqueInputFields = this.findUniqueFields(inputs, outputFields);
-
-    // Printing inputs that are not also outputs with unique 'field' values
-    console.log('\nUnique Inputs');
-    Object.values(uniqueInputFields).forEach((uniqueField) => console.log(uniqueField));
-
-    // Printing outputs that are not also inputs with unique 'field' values
-    console.log('\nUnique Outputs');
-    Object.values(uniqueOutputFields).forEach((uniqueField) => console.log(uniqueField));
 
     return {
       uniqueInputs: Object.values(uniqueInputFields),
-      uniqueOutputs: Object.values(uniqueOutputFields),
     };
+  }
+
+  // generate a rule schema from a list of nodes that represent the origin inputs and all outputs of a rule
+  ruleSchema(nodes: Node[]): {
+    inputs: any[];
+    outputs: any[];
+  } {
+    const inputs: any[] = this.extractUniqueInputs(nodes).uniqueInputs;
+    const outputs: any[] = this.extractOutputs(nodes).outputs;
+    return { inputs, outputs };
   }
 }
