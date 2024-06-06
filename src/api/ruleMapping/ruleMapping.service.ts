@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Node } from './ruleMapping.interface';
+import { DocumentsService } from '../documents/documents.service';
 
 @Injectable()
 export class RuleMappingService {
@@ -16,7 +17,7 @@ export class RuleMappingService {
               id: inputField.id,
               name: inputField.name,
               type: inputField.type,
-              field: inputField.field,
+              property: inputField.field,
             });
           });
         }
@@ -24,7 +25,7 @@ export class RuleMappingService {
           node.content.expressions?.forEach((expr) => {
             inputs.push({
               key: expr.key,
-              value: expr.value,
+              property: expr.value,
             });
           });
         }
@@ -46,7 +47,7 @@ export class RuleMappingService {
               id: outputField.id,
               name: outputField.name,
               type: outputField.type,
-              field: outputField.field,
+              property: outputField.field,
             });
           });
         }
@@ -65,11 +66,16 @@ export class RuleMappingService {
     return { inputs, outputs };
   }
 
-  // Find unique fields that are not present in another set of fields
+  /**
+   * Find unique fields that are not present in another set of fields.
+   * @param fields - An array of field objects.
+   * @param otherFields - A set of field names to compare against.
+   * @returns An object containing the unique fields.
+   */
   findUniqueFields(fields: any[], otherFields: Set<string>): { [key: string]: any } {
     const uniqueFields: { [key: string]: any } = {};
     fields.forEach((field) => {
-      const fieldValue = field.field ?? field.value;
+      const fieldValue = field.property;
       if (!otherFields.has(fieldValue)) {
         uniqueFields[fieldValue] = field;
       }
@@ -79,8 +85,7 @@ export class RuleMappingService {
 
   extractUniqueInputs(nodes: Node[]) {
     const { inputs, outputs } = this.extractInputsAndOutputs(nodes);
-    console.log(inputs, 'now outputs', outputs, 'this is before sorting/filtering');
-    const outputFields = new Set(outputs.map((outputField) => outputField.field));
+    const outputFields = new Set(outputs.map((outputField) => outputField.property));
     const uniqueInputFields = this.findUniqueFields(inputs, outputFields);
 
     return {
@@ -92,9 +97,23 @@ export class RuleMappingService {
   ruleSchema(nodes: Node[]): {
     inputs: any[];
     outputs: any[];
+    inputsAndOutputsLength: string;
   } {
     const inputs: any[] = this.extractUniqueInputs(nodes).uniqueInputs;
     const outputs: any[] = this.extractOutputs(nodes).outputs;
-    return { inputs, outputs };
+
+    // Provide information about the number of inputs and outputs in the schema
+    const inputsAndOutputsLength = `Inputs: ${inputs.length}, Outputs: ${outputs.length}`;
+
+    return { inputsAndOutputsLength, inputs, outputs };
+  }
+
+  // generate a rule schema from a given local file
+  async ruleSchemaFile(filePath: string): Promise<any> {
+    const documentsService = new DocumentsService();
+    const fileContent = await documentsService.getFileContent(filePath);
+    const nodes = await JSON.parse(fileContent.toString()).nodes;
+    console.log(nodes, 'this is nodes');
+    return this.ruleSchema(nodes);
   }
 }
