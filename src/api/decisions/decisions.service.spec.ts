@@ -53,7 +53,7 @@ describe('DecisionsService', () => {
       const content = JSON.stringify({ rule: 'rule' });
       (readFile as jest.Mock).mockResolvedValue(content);
       await service.runDecisionByFile(ruleFileName, context, options);
-      expect(readFile).toHaveBeenCalledWith(`src/rules/${ruleFileName}`);
+      expect(readFile).toHaveBeenCalledWith(`rules-repo/rules/${ruleFileName}`);
       expect(mockEngine.createDecision).toHaveBeenCalledWith(content);
       expect(mockDecision.evaluate).toHaveBeenCalledWith(context, options);
     });
