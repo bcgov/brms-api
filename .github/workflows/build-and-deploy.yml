@@ -6,6 +6,7 @@ on:
       - main
       - dev
       - pipeline
+      - test/rules-repo
 
 env:
   REGISTRY: ghcr.io

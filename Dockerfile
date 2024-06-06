@@ -14,5 +14,10 @@ RUN npm ci
 # Copy the application code
 COPY . ./
 
+# Clone the rules repository
+# TODO:  -b ${BRANCH_NAME}
+# TODO: docker build --build-arg BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD) -t my-image .
+RUN git clone -b dev https://github.com/bcgov/brms-rules.git rules-repo
+
 # Start the application
 CMD ["npm", "start"]
