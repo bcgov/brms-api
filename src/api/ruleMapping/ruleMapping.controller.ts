@@ -32,7 +32,11 @@ export class RuleMappingController {
       const result = this.ruleMappingService.ruleSchema(nodes);
       return { result };
     } catch (error) {
-      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+      if (error instanceof HttpException && error.getStatus() === HttpStatus.BAD_REQUEST) {
+        throw error;
+      } else {
+        throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
     }
   }
 }
