@@ -10,7 +10,7 @@ export class RuleMappingController {
   // Map a rule file to its unique inputs, and all outputs
   @Get('/:ruleFileName')
   async getRuleFile(@Param('ruleFileName') ruleFileName: string, @Res() res: Response) {
-    const filePath = `src/rules/${ruleFileName}.json`;
+    const filePath = `src/rules/${ruleFileName}`;
     const rulemap = await this.ruleMappingService.ruleSchemaFile(filePath);
 
     try {
