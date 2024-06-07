@@ -1,9 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RuleMappingService } from './ruleMapping.service';
-import { Node, InputField, OutputField, Expression } from './ruleMapping.interface';
+import { Node } from './ruleMapping.interface';
 import { DocumentsService } from '../documents/documents.service';
-import * as fs from 'fs';
-import * as util from 'util';
 
 describe('RuleMappingService', () => {
   let service: RuleMappingService;
