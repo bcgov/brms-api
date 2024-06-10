@@ -4,61 +4,40 @@ import { DocumentsService } from '../documents/documents.service';
 
 @Injectable()
 export class RuleMappingService {
-  extractInputs(nodes: Node[]): {
-    inputs: any[];
-  } {
-    const inputs: any[] = [];
-
-    nodes.forEach((node) => {
-      if (node.content) {
-        if (node.content.inputs) {
-          node.content.inputs.forEach((inputField) => {
-            inputs.push({
-              id: inputField.id,
-              name: inputField.name,
-              type: inputField.type,
-              property: inputField.field,
-            });
-          });
-        }
-        if (node.type === 'expressionNode') {
-          node.content.expressions?.forEach((expr) => {
-            inputs.push({
-              key: expr.key,
-              property: expr.value,
-            });
-          });
-        }
+  extractInputs(nodes: Node[]): { inputs: any[] } {
+    const inputs = nodes.flatMap((node: any) => {
+      if (node.type === 'expressionNode' && node.content?.expressions) {
+        return node.content.expressions.map((expr: { key: any; value: any }) => ({
+          key: expr.key,
+          property: expr.value,
+        }));
+      } else {
+        return (node.content?.inputs || []).map((inputField: { id: any; name: any; type: any; field: any }) => ({
+          id: inputField.id,
+          name: inputField.name,
+          type: inputField.type,
+          property: inputField.field,
+        }));
       }
     });
 
     return { inputs };
   }
 
-  extractOutputs(nodes: Node[]): {
-    outputs: any[];
-  } {
-    const outputs: any[] = [];
-    nodes.forEach((node) => {
-      if (node.content) {
-        if (node.content.outputs) {
-          node.content.outputs.forEach((outputField) => {
-            outputs.push({
-              id: outputField.id,
-              name: outputField.name,
-              type: outputField.type,
-              property: outputField.field,
-            });
-          });
-        }
-        if (node.type === 'expressionNode') {
-          node.content.expressions?.forEach((expr) => {
-            outputs.push({
-              key: expr.value,
-              property: expr.key,
-            });
-          });
-        }
+  extractOutputs(nodes: Node[]): { outputs: any[] } {
+    const outputs = nodes.flatMap((node: any) => {
+      if (node.type === 'expressionNode' && node.content?.expressions) {
+        return node.content.expressions.map((expr: { value: any; key: any }) => ({
+          key: expr.value,
+          property: expr.key,
+        }));
+      } else {
+        return (node.content?.outputs || []).map((outputField: { id: any; name: any; type: any; field: any }) => ({
+          id: outputField.id,
+          name: outputField.name,
+          type: outputField.type,
+          property: outputField.field,
+        }));
       }
     });
 
