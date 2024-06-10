@@ -37,3 +37,20 @@ export interface Edge {
   sourceHandle?: string;
   targetHandle?: string;
 }
+
+export interface TraceObject {
+  [key: string]: {
+    id: string;
+    name: string;
+    input?: any;
+    output: {
+      [key: string]: any;
+    } | null;
+    performance?: string;
+    traceData?: {
+      index: number;
+      reference_map: Record<string, any>;
+      rule: Record<string, any>;
+    };
+  };
+}

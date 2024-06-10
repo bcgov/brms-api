@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Node, Edge } from './ruleMapping.interface';
+import { Node, Edge, TraceObject } from './ruleMapping.interface';
 import { DocumentsService } from '../documents/documents.service';
 
 @Injectable()
@@ -126,6 +126,34 @@ export class RuleMappingService {
     );
 
     return { inputs, outputs, finalOutputs };
+  }
+
+  // generate a schema for the outputs of a rule given the trace data
+  // evaluateOutputSchema(trace: TraceObject): any[] {
+  //   const outputs: any[] = [];
+  //   for (const traceId in trace) {
+  //     if (trace.hasOwnProperty(traceId)) {
+  //       const traceData = trace[traceId];
+  //       if (traceData.output !== null && traceData.output !== undefined) {
+  //         outputs.push(traceData.output);
+  //       }
+  //     }
+  //   }
+  //   return outputs;
+  // }
+
+  evaluateOutputSchema(trace: TraceObject): any {
+    const outputObj: any = {};
+
+    for (const traceId in trace) {
+      if (trace.hasOwnProperty(traceId)) {
+        const traceData = trace[traceId];
+        if (traceData.output !== null && traceData.output !== undefined) {
+          Object.assign(outputObj, traceData.output);
+        }
+      }
+    }
+    return outputObj;
   }
 
   // generate a rule schema from a given local file

@@ -1,6 +1,6 @@
 import { IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Edge, Node } from '../ruleMapping.interface';
+import { Edge, Node, TraceObject } from '../ruleMapping.interface';
 
 export class EvaluateRuleMappingDto {
   @IsArray()
@@ -8,4 +8,8 @@ export class EvaluateRuleMappingDto {
   @Type(() => Node)
   nodes: Node[];
   edges: Edge[];
+}
+export class EvaluateOutputsDto {
+  @ValidateNested()
+  trace: TraceObject;
 }
