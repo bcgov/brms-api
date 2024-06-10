@@ -30,17 +30,18 @@ describe('RuleMappingService', () => {
             ],
             expressions: [{ key: 'expr1', value: 'field3' }],
           },
+          id: 'testNode',
         },
         {
           type: 'expressionNode',
           content: {
             expressions: [{ key: 'expr1', value: 'field3' }],
           },
+          id: 'testNode2',
         },
       ];
 
       const result = service.extractInputs(nodes);
-      console.log('extractInputs result:', result);
       expect(result).toEqual({
         inputs: [
           { id: '1', name: 'Input1', type: 'string', property: 'field1' },
@@ -53,7 +54,6 @@ describe('RuleMappingService', () => {
     it('should handle empty nodes array', () => {
       const nodes: Node[] = [];
       const result = service.extractInputs(nodes);
-      console.log('extractInputs empty array result:', result);
       expect(result).toEqual({ inputs: [] });
     });
   });
@@ -69,11 +69,11 @@ describe('RuleMappingService', () => {
               { id: '2', name: 'Output2', type: 'number', field: 'field2' },
             ],
           },
+          id: 'testNode',
         },
       ];
 
       const result = service.extractOutputs(nodes);
-      console.log('extractOutputs result:', result);
       expect(result).toEqual({
         outputs: [
           { id: '1', name: 'Output1', type: 'string', property: 'field1' },
@@ -85,7 +85,6 @@ describe('RuleMappingService', () => {
     it('should handle empty nodes array', () => {
       const nodes: Node[] = [];
       const result = service.extractOutputs(nodes);
-      console.log('extractOutputs empty array result:', result);
       expect(result).toEqual({ outputs: [] });
     });
   });
@@ -105,17 +104,18 @@ describe('RuleMappingService', () => {
               { id: '4', name: 'Output2', type: 'number', field: 'field4' },
             ],
           },
+          id: 'testNode',
         },
         {
           type: 'expressionNode',
           content: {
             expressions: [{ key: 'expr1', value: 'field5' }],
           },
+          id: 'testNode2',
         },
       ];
 
       const result = service.extractInputsAndOutputs(nodes);
-      console.log('extractInputsAndOutputs result:', result);
       expect(result).toEqual({
         inputs: [
           { id: '1', name: 'Input1', type: 'string', property: 'field1' },
@@ -125,6 +125,7 @@ describe('RuleMappingService', () => {
         outputs: [
           { id: '3', name: 'Output1', type: 'string', property: 'field3' },
           { id: '4', name: 'Output2', type: 'number', property: 'field4' },
+          { key: 'field5', property: 'expr1' },
         ],
       });
     });
@@ -132,7 +133,6 @@ describe('RuleMappingService', () => {
     it('should handle empty nodes array', () => {
       const nodes: Node[] = [];
       const result = service.extractInputsAndOutputs(nodes);
-      console.log('extractInputsAndOutputs empty array result:', result);
       expect(result).toEqual({ inputs: [], outputs: [] });
     });
   });
@@ -162,6 +162,7 @@ describe('RuleMappingService', () => {
             ],
             outputs: [{ id: '3', name: 'Output1', type: 'string', field: 'field2' }],
           },
+          id: 'testNode',
         },
       ];
 
@@ -178,6 +179,7 @@ describe('RuleMappingService', () => {
           content: {
             outputs: [{ id: '3', name: 'Output1', type: 'string', field: 'field2' }],
           },
+          id: 'testNode',
         },
       ];
 
@@ -192,28 +194,37 @@ describe('RuleMappingService', () => {
     it('should generate a rule schema correctly', () => {
       const nodes: Node[] = [
         {
-          type: 'someType',
+          id: '1',
+          type: 'inputNode', // Assuming this node is an input node
           content: {
             inputs: [
               { id: '1', name: 'Input1', type: 'string', field: 'field1' },
               { id: '2', name: 'Input2', type: 'number', field: 'field2' },
             ],
+          },
+        },
+        {
+          id: '2',
+          type: 'outputNode', // This node is the output node
+          content: {
             outputs: [
-              { id: '3', name: 'Output1', type: 'string', field: 'field2' },
-              { id: '4', name: 'Output2', type: 'number', field: 'field3' },
+              { id: '1', name: 'Output1', type: 'string', field: 'field2' },
+              { id: '2', name: 'Output2', type: 'number', field: 'field3' },
             ],
           },
         },
       ];
 
-      const result = service.ruleSchema(nodes);
+      const edges = [{ id: '1', type: 'someType', targetId: '2', sourceId: '1' }]; // Edge connects input node to output node
+
+      const result = service.ruleSchema(nodes, edges);
       expect(result).toEqual({
-        inputsAndOutputsLength: 'Inputs: 1, Outputs: 2',
         inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
         outputs: [
-          { id: '3', name: 'Output1', type: 'string', property: 'field2' },
-          { id: '4', name: 'Output2', type: 'number', property: 'field3' },
+          { id: '1', name: 'Output1', type: 'string', property: 'field2' },
+          { id: '2', name: 'Output2', type: 'number', property: 'field3' },
         ],
+        finalOutputs: [],
       });
     });
   });
@@ -223,17 +234,32 @@ describe('RuleMappingService', () => {
       const mockFileContent = JSON.stringify({
         nodes: [
           {
-            type: 'someType',
+            id: '1',
+            type: 'inputNode', // Assuming this node is an input node
             content: {
               inputs: [
                 { id: '1', name: 'Input1', type: 'string', field: 'field1' },
                 { id: '2', name: 'Input2', type: 'number', field: 'field2' },
               ],
+            },
+          },
+          {
+            id: '2',
+            type: 'outputNode', // This node is the output node
+            content: {
               outputs: [
                 { id: '3', name: 'Output1', type: 'string', field: 'field2' },
                 { id: '4', name: 'Output2', type: 'number', field: 'field3' },
               ],
             },
+          },
+        ],
+        edges: [
+          {
+            id: '1',
+            type: 'someType',
+            targetId: '2',
+            sourceId: '1',
           },
         ],
       });
@@ -246,7 +272,7 @@ describe('RuleMappingService', () => {
 
       expect(mockGetFileContent).toHaveBeenCalledWith(filePath);
       expect(result).toEqual({
-        inputsAndOutputsLength: 'Inputs: 1, Outputs: 2',
+        finalOutputs: [],
         inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
         outputs: [
           { id: '3', name: 'Output1', type: 'string', property: 'field2' },

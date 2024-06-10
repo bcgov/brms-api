@@ -24,6 +24,16 @@ export interface NodeContent {
 }
 
 export interface Node {
+  id: any;
   type: string;
   content: NodeContent;
+}
+
+export interface Edge {
+  id: string;
+  type: string;
+  targetId: string;
+  sourceId: string;
+  sourceHandle?: string;
+  targetHandle?: string;
 }

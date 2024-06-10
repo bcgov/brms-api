@@ -68,14 +68,15 @@ describe('RuleMappingController', () => {
 
   describe('evaluateRuleMap', () => {
     it('should return the evaluated rule map', async () => {
-      const nodes = [{ type: 'someType', content: { inputs: [], outputs: [] } }];
-      const result = { inputs: [], outputs: [], inputsAndOutputsLength: 'Inputs: 0, Outputs: 0' };
+      const nodes = [{ id: '1', type: 'someType', content: { inputs: [], outputs: [] } }];
+      const edges = [{ id: '2', type: 'someType', targetId: '1', sourceId: '1' }];
+      const result = { inputs: [], outputs: [], finalOutputs: [] };
       jest.spyOn(service, 'ruleSchema').mockReturnValue(result);
 
-      const dto: EvaluateRuleMappingDto = { nodes };
+      const dto: EvaluateRuleMappingDto = { nodes, edges };
       const response = await controller.evaluateRuleMap(dto);
 
-      expect(service.ruleSchema).toHaveBeenCalledWith(nodes);
+      expect(service.ruleSchema).toHaveBeenCalledWith(nodes, edges);
       expect(response).toEqual({ result });
     });
 
@@ -88,13 +89,14 @@ describe('RuleMappingController', () => {
     });
 
     it('should handle errors properly', async () => {
-      const nodes = [{ type: 'someType', content: { inputs: [], outputs: [] } }];
+      const nodes = [{ id: '1', type: 'someType', content: { inputs: [], outputs: [] } }];
+      const edges = [{ id: '2', type: 'someType', targetId: '1', sourceId: '1' }];
       const error = new Error('Unexpected error');
       jest.spyOn(service, 'ruleSchema').mockImplementation(() => {
         throw error;
       });
 
-      const dto: EvaluateRuleMappingDto = { nodes };
+      const dto: EvaluateRuleMappingDto = { nodes, edges };
 
       await expect(controller.evaluateRuleMap(dto)).rejects.toThrow(
         new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR),

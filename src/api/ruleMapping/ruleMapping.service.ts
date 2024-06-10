@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Node } from './ruleMapping.interface';
+import { Node, Edge } from './ruleMapping.interface';
 import { DocumentsService } from '../documents/documents.service';
 
 @Injectable()
@@ -51,10 +51,40 @@ export class RuleMappingService {
             });
           });
         }
+        if (node.type === 'expressionNode') {
+          node.content.expressions?.forEach((expr) => {
+            outputs.push({
+              key: expr.value,
+              property: expr.key,
+            });
+          });
+        }
       }
     });
 
     return { outputs };
+  }
+
+  // Get the final outputs of a rule from mapping the target output nodes and the edges
+  extractfinalOutputs(
+    nodes: Node[],
+    edges: Edge[],
+  ): {
+    finalOutputs: any[];
+  } {
+    // Find the output node
+    const outputNode = nodes.find((obj) => obj.type === 'outputNode');
+
+    if (!outputNode) {
+      throw new Error('No outputNode found in the nodes array');
+    }
+
+    const outputNodeID = outputNode.id;
+    const targetEdges = edges.filter((edge) => edge.targetId === outputNodeID);
+    const targetOutputNodes = targetEdges.map((edge) => nodes.find((node) => node.id === edge.sourceId));
+    const finalOutputs: any[] = this.extractOutputs(targetOutputNodes).outputs;
+
+    return { finalOutputs };
   }
 
   extractInputsAndOutputs(nodes: Node[]): {
@@ -94,26 +124,36 @@ export class RuleMappingService {
   }
 
   // generate a rule schema from a list of nodes that represent the origin inputs and all outputs of a rule
-  ruleSchema(nodes: Node[]): {
+  ruleSchema(
+    nodes: Node[],
+    edges: Edge[],
+  ): {
     inputs: any[];
     outputs: any[];
-    inputsAndOutputsLength: string;
+    finalOutputs: any[];
   } {
     const inputs: any[] = this.extractUniqueInputs(nodes).uniqueInputs;
-    const outputs: any[] = this.extractOutputs(nodes).outputs;
+    const generalOutputs: any[] = this.extractOutputs(nodes).outputs;
+    const finalOutputs: any[] = this.extractfinalOutputs(nodes, edges).finalOutputs;
 
-    // Provide information about the number of inputs and outputs in the schema
-    const inputsAndOutputsLength = `Inputs: ${inputs.length}, Outputs: ${outputs.length}`;
+    //get unique outputs excluding final outputs
+    const outputs: any[] = generalOutputs.filter(
+      (output) =>
+        !finalOutputs.some(
+          (finalOutput) =>
+            finalOutput.id === output.id ||
+            (finalOutput.key === output.key && finalOutput.property === output.property),
+        ),
+    );
 
-    return { inputsAndOutputsLength, inputs, outputs };
+    return { inputs, outputs, finalOutputs };
   }
 
   // generate a rule schema from a given local file
   async ruleSchemaFile(filePath: string): Promise<any> {
     const documentsService = new DocumentsService();
     const fileContent = await documentsService.getFileContent(filePath);
-    const nodes = await JSON.parse(fileContent.toString()).nodes;
-    console.log(nodes, 'this is nodes');
-    return this.ruleSchema(nodes);
+    const { nodes, edges } = await JSON.parse(fileContent.toString());
+    return this.ruleSchema(nodes, edges);
   }
 }

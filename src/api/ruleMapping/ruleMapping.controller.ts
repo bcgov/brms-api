@@ -24,12 +24,12 @@ export class RuleMappingController {
 
   // Map a rule to its unique inputs, and all outputs
   @Post('/evaluate')
-  async evaluateRuleMap(@Body() { nodes }: EvaluateRuleMappingDto) {
+  async evaluateRuleMap(@Body() { nodes, edges }: EvaluateRuleMappingDto) {
     try {
       if (!nodes || !Array.isArray(nodes)) {
         throw new HttpException('Invalid request data', HttpStatus.BAD_REQUEST);
       }
-      const result = this.ruleMappingService.ruleSchema(nodes);
+      const result = this.ruleMappingService.ruleSchema(nodes, edges);
       return { result };
     } catch (error) {
       if (error instanceof HttpException && error.getStatus() === HttpStatus.BAD_REQUEST) {
