@@ -6,7 +6,7 @@ on:
       - main
       - dev
       - pipeline
-      - test/rules-repo
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -32,9 +32,16 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
+      - name: Extract current branch name
+        id: extract_branch
+        run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
+          # This is the branch name we want to use of the rules repo branch
+          # We want it to be the same as the branch we are building so they stay in sync
+          RULES_REPO_BRANCH: ${{ env.BRANCH_NAME }}
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}

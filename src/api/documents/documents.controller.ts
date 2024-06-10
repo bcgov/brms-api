@@ -8,7 +8,7 @@ export class DocumentsController {
 
   @Get('/:ruleFileName')
   async getRuleFile(@Param('ruleFileName') ruleFileName: string, @Res() res: Response) {
-    const filePath = `rules-repo/rules/${ruleFileName}`;
+    const filePath = `brms-rules/rules/${ruleFileName}`;
     const fileContent = await this.documentsService.getFileContent(filePath);
 
     try {
