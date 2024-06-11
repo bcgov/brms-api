@@ -128,32 +128,25 @@ export class RuleMappingService {
     return { inputs, outputs, finalOutputs };
   }
 
-  // generate a schema for the outputs of a rule given the trace data
-  // evaluateOutputSchema(trace: TraceObject): any[] {
-  //   const outputs: any[] = [];
-  //   for (const traceId in trace) {
-  //     if (trace.hasOwnProperty(traceId)) {
-  //       const traceData = trace[traceId];
-  //       if (traceData.output !== null && traceData.output !== undefined) {
-  //         outputs.push(traceData.output);
-  //       }
-  //     }
-  //   }
-  //   return outputs;
-  // }
-
-  evaluateOutputSchema(trace: TraceObject): any {
-    const outputObj: any = {};
-
+  // generate a schema for the inputs and outputs of a rule given the trace data of a rule run
+  evaluateRuleSchema(trace: TraceObject): {
+    input: any;
+    output: any;
+  } {
+    const output: any = {};
+    const input: any = {};
     for (const traceId in trace) {
       if (trace.hasOwnProperty(traceId)) {
         const traceData = trace[traceId];
         if (traceData.output !== null && traceData.output !== undefined) {
-          Object.assign(outputObj, traceData.output);
+          Object.assign(output, traceData.output);
+        }
+        if (traceData.input !== null && traceData.input !== undefined) {
+          Object.assign(input, traceData.input);
         }
       }
     }
-    return outputObj;
+    return { input, output };
   }
 
   // generate a rule schema from a given local file

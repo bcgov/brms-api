@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Res, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { RuleMappingService } from './ruleMapping.service';
 import { Response } from 'express';
-import { EvaluateOutputsDto, EvaluateRuleMappingDto } from './dto/evaluate-rulemapping.dto';
+import { EvaluateRuleRunSchemaDto, EvaluateRuleMappingDto } from './dto/evaluate-rulemapping.dto';
 
 @Controller('api/rulemap')
 export class RuleMappingController {
@@ -41,13 +41,13 @@ export class RuleMappingController {
   }
 
   // Map a rule to its unique inputs, and all outputs
-  @Post('/outputschema')
-  async evaluateOutputSchema(@Body() { trace }: EvaluateOutputsDto) {
+  @Post('/rulerunschema')
+  async evaluateRuleSchema(@Body() { trace }: EvaluateRuleRunSchemaDto) {
     try {
       if (!trace) {
         throw new HttpException('Invalid request data', HttpStatus.BAD_REQUEST);
       }
-      const result = this.ruleMappingService.evaluateOutputSchema(trace);
+      const result = this.ruleMappingService.evaluateRuleSchema(trace);
       return { result };
     } catch (error) {
       if (error instanceof HttpException && error.getStatus() === HttpStatus.BAD_REQUEST) {

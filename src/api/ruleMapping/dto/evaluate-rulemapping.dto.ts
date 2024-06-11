@@ -9,7 +9,7 @@ export class EvaluateRuleMappingDto {
   nodes: Node[];
   edges: Edge[];
 }
-export class EvaluateOutputsDto {
+export class EvaluateRuleRunSchemaDto {
   @ValidateNested()
   trace: TraceObject;
 }
