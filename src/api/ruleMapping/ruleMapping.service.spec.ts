@@ -18,7 +18,7 @@ describe('RuleMappingService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('extractInputs', () => {
+  describe('extractFields', () => {
     it('should extract inputs correctly', () => {
       const nodes: Node[] = [
         {
@@ -41,7 +41,7 @@ describe('RuleMappingService', () => {
         },
       ];
 
-      const result = service.extractInputs(nodes);
+      const result = service.extractFields(nodes, 'inputs');
       expect(result).toEqual({
         inputs: [
           { id: '1', name: 'Input1', type: 'string', property: 'field1' },
@@ -51,14 +51,6 @@ describe('RuleMappingService', () => {
       });
     });
 
-    it('should handle empty nodes array', () => {
-      const nodes: Node[] = [];
-      const result = service.extractInputs(nodes);
-      expect(result).toEqual({ inputs: [] });
-    });
-  });
-
-  describe('extractOutputs', () => {
     it('should extract outputs correctly', () => {
       const nodes: Node[] = [
         {
@@ -73,7 +65,7 @@ describe('RuleMappingService', () => {
         },
       ];
 
-      const result = service.extractOutputs(nodes);
+      const result = service.extractFields(nodes, 'outputs');
       expect(result).toEqual({
         outputs: [
           { id: '1', name: 'Output1', type: 'string', property: 'field1' },
@@ -84,7 +76,7 @@ describe('RuleMappingService', () => {
 
     it('should handle empty nodes array', () => {
       const nodes: Node[] = [];
-      const result = service.extractOutputs(nodes);
+      const result = service.extractFields(nodes, 'outputs');
       expect(result).toEqual({ outputs: [] });
     });
   });
@@ -120,7 +112,7 @@ describe('RuleMappingService', () => {
         { id: '2', type: 'someType', sourceId: '3', targetId: '2' },
       ];
 
-      jest.spyOn(service, 'extractOutputs').mockReturnValue({
+      jest.spyOn(service, 'extractFields').mockReturnValue({
         outputs: [
           { id: '1', name: 'Output1', type: 'string', property: 'field2' },
           { id: '2', name: 'Output2', type: 'number', property: 'field3' },
@@ -172,7 +164,7 @@ describe('RuleMappingService', () => {
 
       const edges: Edge[] = [];
 
-      jest.spyOn(service, 'extractOutputs').mockReturnValue({
+      jest.spyOn(service, 'extractFields').mockReturnValue({
         outputs: [],
       });
 
@@ -212,7 +204,7 @@ describe('RuleMappingService', () => {
         { id: '2', type: 'someType', sourceId: '1', targetId: '3' },
       ];
 
-      jest.spyOn(service, 'extractOutputs').mockReturnValue({
+      jest.spyOn(service, 'extractFields').mockReturnValue({
         outputs: [
           { id: '1', name: 'Output1', type: 'string', property: 'field2' },
           { id: '2', name: 'Output2', type: 'number', property: 'field3' },

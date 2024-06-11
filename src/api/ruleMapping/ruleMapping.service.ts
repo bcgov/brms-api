@@ -1,50 +1,29 @@
 import { Injectable } from '@nestjs/common';
-import { Node, Edge, TraceObject } from './ruleMapping.interface';
+import { Node, Edge, TraceObject, Field } from './ruleMapping.interface';
 import { DocumentsService } from '../documents/documents.service';
 
 @Injectable()
 export class RuleMappingService {
   constructor(private documentsService: DocumentsService) {}
-  // Extract all inputs from a list of nodes
-  extractInputs(nodes: Node[]): { inputs: any[] } {
-    const inputs = nodes.flatMap((node: any) => {
+  // Extract all fields from a list of nodes
+  extractFields(nodes: Node[], fieldKey: 'inputs' | 'outputs'): { [key: string]: any[] } {
+    const fields: any[] = nodes.flatMap((node: any) => {
       if (node.type === 'expressionNode' && node.content?.expressions) {
         return node.content.expressions.map((expr: { key: any; value: any }) => ({
-          key: expr.key,
-          property: expr.value,
+          key: fieldKey === 'inputs' ? expr.key : expr.value,
+          property: fieldKey === 'inputs' ? expr.value : expr.key,
         }));
       } else {
-        return (node.content?.inputs || []).map((inputField: { id: any; name: any; type: any; field: any }) => ({
-          id: inputField.id,
-          name: inputField.name,
-          type: inputField.type,
-          property: inputField.field,
+        return (node.content?.[fieldKey] || []).map((field: Field) => ({
+          id: field.id,
+          name: field.name,
+          type: field.type,
+          property: field.field,
         }));
       }
     });
 
-    return { inputs };
-  }
-
-  // Extract all outputs from a list of nodes
-  extractOutputs(nodes: Node[]): { outputs: any[] } {
-    const outputs = nodes.flatMap((node: any) => {
-      if (node.type === 'expressionNode' && node.content?.expressions) {
-        return node.content.expressions.map((expr: { value: any; key: any }) => ({
-          key: expr.value,
-          property: expr.key,
-        }));
-      } else {
-        return (node.content?.outputs || []).map((outputField: { id: any; name: any; type: any; field: any }) => ({
-          id: outputField.id,
-          name: outputField.name,
-          type: outputField.type,
-          property: outputField.field,
-        }));
-      }
-    });
-
-    return { outputs };
+    return { [fieldKey]: fields };
   }
 
   // Get the final outputs of a rule from mapping the target output nodes and the edges
@@ -66,7 +45,7 @@ export class RuleMappingService {
     // Find the edges that connect the output node to other nodes
     const targetEdges = edges.filter((edge) => edge.targetId === outputNodeID);
     const targetOutputNodes = targetEdges.map((edge) => nodes.find((node) => node.id === edge.sourceId));
-    const finalOutputs: any[] = this.extractOutputs(targetOutputNodes).outputs;
+    const finalOutputs: any[] = this.extractFields(targetOutputNodes, 'outputs').outputs;
 
     return { finalOutputs };
   }
@@ -75,8 +54,8 @@ export class RuleMappingService {
     inputs: any[];
     outputs: any[];
   } {
-    const inputs: any[] = this.extractInputs(nodes).inputs;
-    const outputs: any[] = this.extractOutputs(nodes).outputs;
+    const inputs: any[] = this.extractFields(nodes, 'inputs').inputs;
+    const outputs: any[] = this.extractFields(nodes, 'outputs').outputs;
     return { inputs, outputs };
   }
 
@@ -114,7 +93,7 @@ export class RuleMappingService {
     finalOutputs: any[];
   } {
     const inputs: any[] = this.extractUniqueInputs(nodes).uniqueInputs;
-    const generalOutputs: any[] = this.extractOutputs(nodes).outputs;
+    const generalOutputs: any[] = this.extractFields(nodes, 'outputs').outputs;
     const finalOutputs: any[] = this.extractfinalOutputs(nodes, edges).finalOutputs;
 
     //get unique outputs excluding final outputs
