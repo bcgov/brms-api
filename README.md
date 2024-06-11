@@ -16,6 +16,10 @@ Before running your application locally, you'll need some environment variables.
 - FRONTEND_URI: The URI for the frontend application. Set it to http://localhost:8080.
 - CHEFS_API_URL: The URL for the Chefs API. Set it to https://submit.digital.gov.bc.ca/app/api/v1.
 
+### Including Rules from the Rules Repository
+
+To get access to rules locally on your machine simply clone the repo at https://github.com/bcgov/brms-rules into your project. This project is set to grab rules from `brms-rules/rules`, which is the default location of rules if that project is cloned into this one.
+
 ### Running the Application
 
 Install dependencies:
