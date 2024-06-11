@@ -1,56 +1,112 @@
-export interface InputField {
+import { ZenEngineTrace } from '@gorules/zen-engine';
+
+export class Field {
   id: string;
   name: string;
   type: string;
   field: string;
+
+  constructor(id: string, name: string, type: string, field: string) {
+    this.id = id;
+    this.name = name;
+    this.type = type;
+    this.field = field;
+  }
 }
 
-export interface OutputField {
-  id: string;
-  name: string;
-  type: string;
-  field: string;
+export class InputField extends Field {
+  constructor(id: string, name: string, type: string, field: string) {
+    super(id, name, type, field);
+  }
 }
 
-export interface Expression {
+export class OutputField extends Field {
+  constructor(id: string, name: string, type: string, field: string) {
+    super(id, name, type, field);
+  }
+}
+
+export class Expression {
   key: string;
   value: string;
+
+  constructor(key: string, value: string) {
+    this.key = key;
+    this.value = value;
+  }
 }
 
-export interface NodeContent {
+export class NodeContent {
   inputs?: InputField[];
   outputs?: OutputField[];
   expressions?: Expression[];
+
+  constructor(inputs?: InputField[], outputs?: OutputField[], expressions?: Expression[]) {
+    this.inputs = inputs || [];
+    this.outputs = outputs || [];
+    this.expressions = expressions || [];
+  }
 }
 
-export interface Node {
+export class Node {
   id: any;
   type: string;
   content: NodeContent;
+
+  constructor(id: any, type: string, content: NodeContent) {
+    this.id = id;
+    this.type = type;
+    this.content = content;
+  }
 }
 
-export interface Edge {
+export class Edge {
   id: string;
   type: string;
   targetId: string;
   sourceId: string;
   sourceHandle?: string;
   targetHandle?: string;
+
+  constructor(
+    id: string,
+    type: string,
+    targetId: string,
+    sourceId: string,
+    sourceHandle?: string,
+    targetHandle?: string,
+  ) {
+    this.id = id;
+    this.type = type;
+    this.targetId = targetId;
+    this.sourceId = sourceId;
+    this.sourceHandle = sourceHandle;
+    this.targetHandle = targetHandle;
+  }
 }
 
-export interface TraceObject {
-  [key: string]: {
-    id: string;
-    name: string;
-    input?: any;
-    output: {
-      [key: string]: any;
-    } | null;
-    performance?: string;
-    traceData?: {
-      index: number;
-      reference_map: Record<string, any>;
-      rule: Record<string, any>;
-    };
-  };
+export class TraceObjectEntry implements ZenEngineTrace {
+  id: string;
+  name: string;
+  input: any;
+  output: any;
+  performance?: string;
+  traceData?: any;
+
+  constructor(id: string, name: string, input: any, output: any, performance?: string, traceData?: any) {
+    this.id = id;
+    this.name = name;
+    this.input = input;
+    this.output = output;
+    this.performance = performance;
+    this.traceData = traceData;
+  }
+}
+
+export class TraceObject {
+  [key: string]: TraceObjectEntry;
+
+  constructor(entries: { [key: string]: TraceObjectEntry }) {
+    Object.assign(this, entries);
+  }
 }
