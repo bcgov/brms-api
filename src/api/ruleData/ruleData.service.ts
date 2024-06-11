@@ -30,10 +30,14 @@ export class RuleDataService {
 
   async createRuleData(ruleData: RuleData): Promise<RuleData> {
     try {
+      if (!ruleData._id) {
+        ruleData._id = new Date().getTime().toString();
+      }
       const newRuleData = new this.ruleDataModel(ruleData);
       const response = await newRuleData.save();
       return response;
     } catch (error) {
+      console.error(error.message);
       throw new Error(`Failed to add rule data: ${error.message}`);
     }
   }

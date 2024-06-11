@@ -6,7 +6,7 @@ on:
       - main
       - dev
       - pipeline
-  workflow_dispatch:
+  workflow_dispatch: # Allows us to trigger this workflow from elsewhere (like the rules repo)
 
 env:
   REGISTRY: ghcr.io
