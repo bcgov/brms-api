@@ -4,6 +4,7 @@ import { DocumentsService } from '../documents/documents.service';
 
 @Injectable()
 export class RuleMappingService {
+  constructor(private documentsService: DocumentsService) {}
   // Extract all inputs from a list of nodes
   extractInputs(nodes: Node[]): { inputs: any[] } {
     const inputs = nodes.flatMap((node: any) => {
@@ -152,8 +153,7 @@ export class RuleMappingService {
 
   // generate a rule schema from a given local file
   async ruleSchemaFile(filePath: string): Promise<any> {
-    const documentsService = new DocumentsService();
-    const fileContent = await documentsService.getFileContent(filePath);
+    const fileContent = await this.documentsService.getFileContent(filePath);
     const { nodes, edges } = await JSON.parse(fileContent.toString());
     return this.ruleSchema(nodes, edges);
   }
