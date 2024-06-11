@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RuleMappingController } from './ruleMapping.controller';
 import { RuleMappingService } from './ruleMapping.service';
-import { EvaluateRuleMappingDto } from './dto/evaluate-rulemapping.dto';
+import { EvaluateRuleMappingDto, EvaluateRuleRunSchemaDto } from './dto/evaluate-rulemapping.dto';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
+import { TraceObject } from './ruleMapping.interface';
 
 describe('RuleMappingController', () => {
   let controller: RuleMappingController;
@@ -18,6 +19,7 @@ describe('RuleMappingController', () => {
           useValue: {
             ruleSchemaFile: jest.fn(),
             ruleSchema: jest.fn(),
+            evaluateRuleSchema: jest.fn(),
           },
         },
       ],
@@ -30,7 +32,7 @@ describe('RuleMappingController', () => {
   describe('getRuleFile', () => {
     it('should return the rule file with the correct headers', async () => {
       const ruleFileName = 'test-rule.json';
-      const filePath = `src/rules/${ruleFileName}`;
+      const filePath = `brms-rules/rules/${ruleFileName}`;
       const rulemap = { inputs: [], outputs: [] };
       jest.spyOn(service, 'ruleSchemaFile').mockResolvedValue(rulemap);
 
@@ -99,6 +101,95 @@ describe('RuleMappingController', () => {
       const dto: EvaluateRuleMappingDto = { nodes, edges };
 
       await expect(controller.evaluateRuleMap(dto)).rejects.toThrow(
+        new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR),
+      );
+    });
+  });
+
+  describe('evaluateRuleSchema', () => {
+    it('should generate a rule schema correctly', async () => {
+      const mockTraceObject: TraceObject = {
+        '1': {
+          id: '1',
+          name: 'Test Rule',
+          input: { field1: 'value1', field2: 'value2' },
+          output: { outputField1: 'outputValue1' },
+        },
+      };
+      const dto: EvaluateRuleRunSchemaDto = { trace: mockTraceObject };
+      const mockEvaluateRuleSchemaResult = {
+        input: { field1: 'value1', field2: 'value2' },
+        output: { outputField1: 'outputValue1' },
+      };
+
+      jest.spyOn(service, 'evaluateRuleSchema').mockReturnValue(mockEvaluateRuleSchemaResult);
+
+      const result = await controller.evaluateRuleSchema(dto);
+
+      expect(service.evaluateRuleSchema).toHaveBeenCalledWith(mockTraceObject);
+      expect(result).toEqual({ result: mockEvaluateRuleSchemaResult });
+    });
+
+    it('should generate a rule schema correctly with multiple nested objects', async () => {
+      const mockTraceObject: TraceObject = {
+        '1': {
+          id: '1',
+          name: 'Test Rule 1',
+          input: { field1: 'value1', field2: 'value2' },
+          output: { outputField1: 'outputValue1' },
+        },
+        '2': {
+          id: '2',
+          name: 'Test Rule 2',
+          input: { field3: 'value3', field4: 'value4' },
+          output: { outputField2: 'outputValue2' },
+        },
+        '3': {
+          id: '3',
+          name: 'Test Rule 3',
+          input: { field5: 'value5' },
+          output: { outputField3: 'outputValue3' },
+        },
+      };
+      const dto: EvaluateRuleRunSchemaDto = { trace: mockTraceObject };
+      const mockEvaluateRuleSchemaResult = {
+        input: { field1: 'value1', field2: 'value2', field3: 'value3', field4: 'value4', field5: 'value5' },
+        output: { outputField1: 'outputValue1', outputField2: 'outputValue2', outputField3: 'outputValue3' },
+      };
+
+      jest.spyOn(service, 'evaluateRuleSchema').mockReturnValue(mockEvaluateRuleSchemaResult);
+
+      const result = await controller.evaluateRuleSchema(dto);
+
+      expect(service.evaluateRuleSchema).toHaveBeenCalledWith(mockTraceObject);
+      expect(result).toEqual({ result: mockEvaluateRuleSchemaResult });
+    });
+
+    it('should handle invalid data properly', async () => {
+      const dto: EvaluateRuleRunSchemaDto = { trace: null };
+
+      await expect(controller.evaluateRuleSchema(dto)).rejects.toThrow(
+        new HttpException('Invalid request data', HttpStatus.BAD_REQUEST),
+      );
+    });
+
+    it('should handle internal server errors properly', async () => {
+      const mockTraceObject: TraceObject = {
+        '1': {
+          id: '1',
+          name: 'Test Rule',
+          input: { field1: 'value1', field2: 'value2' },
+          output: { outputField1: 'outputValue1' },
+        },
+      };
+      const dto: EvaluateRuleRunSchemaDto = { trace: mockTraceObject };
+      const error = new Error('Unexpected error');
+
+      jest.spyOn(service, 'evaluateRuleSchema').mockImplementation(() => {
+        throw error;
+      });
+
+      await expect(controller.evaluateRuleSchema(dto)).rejects.toThrow(
         new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR),
       );
     });

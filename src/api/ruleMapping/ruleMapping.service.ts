@@ -4,6 +4,7 @@ import { DocumentsService } from '../documents/documents.service';
 
 @Injectable()
 export class RuleMappingService {
+  // Extract all inputs from a list of nodes
   extractInputs(nodes: Node[]): { inputs: any[] } {
     const inputs = nodes.flatMap((node: any) => {
       if (node.type === 'expressionNode' && node.content?.expressions) {
@@ -24,6 +25,7 @@ export class RuleMappingService {
     return { inputs };
   }
 
+  // Extract all outputs from a list of nodes
   extractOutputs(nodes: Node[]): { outputs: any[] } {
     const outputs = nodes.flatMap((node: any) => {
       if (node.type === 'expressionNode' && node.content?.expressions) {
@@ -59,6 +61,8 @@ export class RuleMappingService {
     }
 
     const outputNodeID = outputNode.id;
+
+    // Find the edges that connect the output node to other nodes
     const targetEdges = edges.filter((edge) => edge.targetId === outputNodeID);
     const targetOutputNodes = targetEdges.map((edge) => nodes.find((node) => node.id === edge.sourceId));
     const finalOutputs: any[] = this.extractOutputs(targetOutputNodes).outputs;
@@ -75,12 +79,7 @@ export class RuleMappingService {
     return { inputs, outputs };
   }
 
-  /**
-   * Find unique fields that are not present in another set of fields.
-   * @param fields - An array of field objects.
-   * @param otherFields - A set of field names to compare against.
-   * @returns An object containing the unique fields.
-   */
+  // Find unique fields that are not present in another set of fields
   findUniqueFields(fields: any[], otherFields: Set<string>): { [key: string]: any } {
     const uniqueFields: { [key: string]: any } = {};
     fields.forEach((field) => {
@@ -92,6 +91,8 @@ export class RuleMappingService {
     return uniqueFields;
   }
 
+  // extract only the unique inputs from a list of nodes
+  // excludes inputs found in the outputs of other nodes
   extractUniqueInputs(nodes: Node[]) {
     const { inputs, outputs } = this.extractInputsAndOutputs(nodes);
     const outputFields = new Set(outputs.map((outputField) => outputField.property));

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RuleMappingService } from './ruleMapping.service';
-import { Node } from './ruleMapping.interface';
+import { Node, TraceObject, Edge } from './ruleMapping.interface';
 import { DocumentsService } from '../documents/documents.service';
 
 describe('RuleMappingService', () => {
@@ -89,6 +89,146 @@ describe('RuleMappingService', () => {
     });
   });
 
+  describe('extractfinalOutputs', () => {
+    it('should extract final outputs correctly when there is one output node and corresponding edges', () => {
+      const nodes: Node[] = [
+        {
+          id: '1',
+          type: 'inputNode',
+          content: {
+            inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
+          },
+        },
+        {
+          id: '2',
+          type: 'outputNode',
+          content: {
+            outputs: [{ id: '1', name: 'Output1', type: 'string', field: 'field2' }],
+          },
+        },
+        {
+          id: '3',
+          type: 'intermediateNode',
+          content: {
+            outputs: [{ id: '2', name: 'Output2', type: 'number', field: 'field3' }],
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        { id: '1', type: 'someType', sourceId: '1', targetId: '2' },
+        { id: '2', type: 'someType', sourceId: '3', targetId: '2' },
+      ];
+
+      jest.spyOn(service, 'extractOutputs').mockReturnValue({
+        outputs: [
+          { id: '1', name: 'Output1', type: 'string', property: 'field2' },
+          { id: '2', name: 'Output2', type: 'number', property: 'field3' },
+        ],
+      });
+
+      const result = service.extractfinalOutputs(nodes, edges);
+      expect(result).toEqual({
+        finalOutputs: [
+          { id: '1', name: 'Output1', type: 'string', property: 'field2' },
+          { id: '2', name: 'Output2', type: 'number', property: 'field3' },
+        ],
+      });
+    });
+
+    it('should throw an error if no outputNode is found', () => {
+      const nodes: Node[] = [
+        {
+          id: '1',
+          type: 'inputNode',
+          content: {
+            inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
+          },
+        },
+      ];
+
+      const edges: Edge[] = [{ id: '1', type: 'someType', sourceId: '1', targetId: '2' }];
+
+      expect(() => service.extractfinalOutputs(nodes, edges)).toThrow('No outputNode found in the nodes array');
+    });
+
+    it('should return an empty array if no target edges are found for the output node', () => {
+      const nodes: Node[] = [
+        {
+          id: '1',
+          type: 'inputNode',
+          content: {
+            inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
+          },
+        },
+        {
+          id: '2',
+          type: 'outputNode',
+          content: {
+            outputs: [{ id: '1', name: 'Output1', type: 'string', field: 'field2' }],
+          },
+        },
+      ];
+
+      const edges: Edge[] = [];
+
+      jest.spyOn(service, 'extractOutputs').mockReturnValue({
+        outputs: [],
+      });
+
+      const result = service.extractfinalOutputs(nodes, edges);
+      expect(result).toEqual({
+        finalOutputs: [],
+      });
+    });
+
+    it('should handle cases where there are multiple output nodes', () => {
+      const nodes: Node[] = [
+        {
+          id: '1',
+          type: 'inputNode',
+          content: {
+            inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
+          },
+        },
+        {
+          id: '2',
+          type: 'outputNode',
+          content: {
+            outputs: [{ id: '1', name: 'Output1', type: 'string', field: 'field2' }],
+          },
+        },
+        {
+          id: '3',
+          type: 'outputNode',
+          content: {
+            outputs: [{ id: '2', name: 'Output2', type: 'number', field: 'field3' }],
+          },
+        },
+      ];
+
+      const edges: Edge[] = [
+        { id: '1', type: 'someType', sourceId: '1', targetId: '2' },
+        { id: '2', type: 'someType', sourceId: '1', targetId: '3' },
+      ];
+
+      jest.spyOn(service, 'extractOutputs').mockReturnValue({
+        outputs: [
+          { id: '1', name: 'Output1', type: 'string', property: 'field2' },
+          { id: '2', name: 'Output2', type: 'number', property: 'field3' },
+        ],
+      });
+
+      const result = service.extractfinalOutputs(nodes, edges);
+      expect(result).toEqual({
+        finalOutputs: [
+          { id: '1', name: 'Output1', type: 'string', property: 'field2' },
+          { id: '2', name: 'Output2', type: 'number', property: 'field3' },
+        ],
+      });
+    });
+  });
+
   describe('extractInputsAndOutputs', () => {
     it('should extract inputs and outputs correctly', () => {
       const nodes: Node[] = [
@@ -136,6 +276,7 @@ describe('RuleMappingService', () => {
       expect(result).toEqual({ inputs: [], outputs: [] });
     });
   });
+
   describe('findUniqueFields', () => {
     it('should find unique fields', () => {
       const fields = [
@@ -225,6 +366,115 @@ describe('RuleMappingService', () => {
           { id: '2', name: 'Output2', type: 'number', property: 'field3' },
         ],
         finalOutputs: [],
+      });
+    });
+  });
+
+  describe('evaluateRuleSchema', () => {
+    it('should generate a rule schema correctly with single input and output', () => {
+      const trace: TraceObject = {
+        '1': {
+          id: '1',
+          name: 'Test Rule',
+          input: { field1: 'value1', field2: 'value2' },
+          output: { outputField1: 'outputValue1' },
+        },
+      };
+
+      const result = service.evaluateRuleSchema(trace);
+      expect(result).toEqual({
+        input: { field1: 'value1', field2: 'value2' },
+        output: { outputField1: 'outputValue1' },
+      });
+    });
+
+    it('should generate a rule schema correctly with multiple nested objects', () => {
+      const trace: TraceObject = {
+        '1': {
+          id: '1',
+          name: 'Test Rule 1',
+          input: { field1: 'value1', field2: 'value2' },
+          output: { outputField1: 'outputValue1' },
+        },
+        '2': {
+          id: '2',
+          name: 'Test Rule 2',
+          input: { field3: 'value3', field4: 'value4' },
+          output: { outputField2: 'outputValue2' },
+        },
+        '3': {
+          id: '3',
+          name: 'Test Rule 3',
+          input: { field5: 'value5' },
+          output: { outputField3: 'outputValue3' },
+        },
+      };
+
+      const result = service.evaluateRuleSchema(trace);
+      expect(result).toEqual({
+        input: {
+          field1: 'value1',
+          field2: 'value2',
+          field3: 'value3',
+          field4: 'value4',
+          field5: 'value5',
+        },
+        output: {
+          outputField1: 'outputValue1',
+          outputField2: 'outputValue2',
+          outputField3: 'outputValue3',
+        },
+      });
+    });
+
+    it('should handle cases where there is no input', () => {
+      const trace: TraceObject = {
+        '1': {
+          id: '1',
+          name: 'Test Rule',
+          input: null,
+          output: { outputField1: 'outputValue1' },
+        },
+      };
+
+      const result = service.evaluateRuleSchema(trace);
+      expect(result).toEqual({
+        input: {},
+        output: { outputField1: 'outputValue1' },
+      });
+    });
+
+    it('should handle cases where there is no output', () => {
+      const trace: TraceObject = {
+        '1': {
+          id: '1',
+          name: 'Test Rule',
+          input: { field1: 'value1', field2: 'value2' },
+          output: null,
+        },
+      };
+
+      const result = service.evaluateRuleSchema(trace);
+      expect(result).toEqual({
+        input: { field1: 'value1', field2: 'value2' },
+        output: {},
+      });
+    });
+
+    it('should handle cases where there are no inputs and outputs', () => {
+      const trace: TraceObject = {
+        '1': {
+          id: '1',
+          name: 'Test Rule',
+          input: null,
+          output: null,
+        },
+      };
+
+      const result = service.evaluateRuleSchema(trace);
+      expect(result).toEqual({
+        input: {},
+        output: {},
       });
     });
   });

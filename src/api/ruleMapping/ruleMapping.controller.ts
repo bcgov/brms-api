@@ -40,7 +40,7 @@ export class RuleMappingController {
     }
   }
 
-  // Map a rule to its unique inputs, and all outputs
+  // Map a rule to its unique inputs, and all outputs, based on the trace data of a rule run
   @Post('/rulerunschema')
   async evaluateRuleSchema(@Body() { trace }: EvaluateRuleRunSchemaDto) {
     try {
