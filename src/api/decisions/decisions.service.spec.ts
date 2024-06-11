@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DecisionsService } from './decisions.service';
+import { DecisionsService, RULES_DIRECTORY } from './decisions.service';
 import { ZenEngine, ZenDecision, ZenEvaluateOptions } from '@gorules/zen-engine';
 import { readFile } from 'fs/promises';
 
@@ -53,7 +53,7 @@ describe('DecisionsService', () => {
       const content = JSON.stringify({ rule: 'rule' });
       (readFile as jest.Mock).mockResolvedValue(content);
       await service.runDecisionByFile(ruleFileName, context, options);
-      expect(readFile).toHaveBeenCalledWith(`brms-rules/rules/${ruleFileName}`);
+      expect(readFile).toHaveBeenCalledWith(`${RULES_DIRECTORY}/${ruleFileName}`);
       expect(mockEngine.createDecision).toHaveBeenCalledWith(content);
       expect(mockDecision.evaluate).toHaveBeenCalledWith(context, options);
     });

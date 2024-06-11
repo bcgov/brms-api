@@ -1,4 +1,4 @@
-import { DocumentsService } from './documents.service'; // Adjust the path as needed
+import { DocumentsService, RULES_DIRECTORY } from './documents.service'; // Adjust the path as needed
 import { HttpException, HttpStatus } from '@nestjs/common';
 import * as fs from 'fs';
 import * as util from 'util';
@@ -29,7 +29,7 @@ describe('DocumentsService', () => {
     const result = await service.getFileContent('path/to/existing/file');
 
     expect(result).toBe(mockContent);
-    expect(readFileMock).toHaveBeenCalledWith('path/to/existing/file');
+    expect(readFileMock).toHaveBeenCalledWith(`${RULES_DIRECTORY}/path/to/existing/file`);
   });
 
   it('should throw a 500 error if reading the file fails', async () => {

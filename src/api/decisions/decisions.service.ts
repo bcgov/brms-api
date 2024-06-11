@@ -2,7 +2,7 @@ import { readFile } from 'fs/promises';
 import { Injectable } from '@nestjs/common';
 import { ZenEngine, ZenEvaluateOptions } from '@gorules/zen-engine';
 
-const RULES_DIRECTORY = 'brms-rules/rules';
+export const RULES_DIRECTORY = 'brms-rules/rules';
 
 @Injectable()
 export class DecisionsService {
