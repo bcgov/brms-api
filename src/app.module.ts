@@ -19,13 +19,7 @@ import { RuleMappingService } from './api/ruleMapping/ruleMapping.service';
     MongooseModule.forRoot(process.env.MONGODB_URL),
     MongooseModule.forFeature([{ name: RuleData.name, schema: RuleDataSchema }]),
   ],
-  controllers: [
-    RuleDataController,
-    DecisionsController,
-    DocumentsController,
-    SubmissionsController,
-    RuleMappingController,
-  ],
+  controllers: [RuleDataController, DecisionsController, DocumentsController, SubmissionsController, RuleMappingController],
   providers: [RuleDataService, DecisionsService, DocumentsService, SubmissionsService, RuleMappingService],
 })
 export class AppModule {}
