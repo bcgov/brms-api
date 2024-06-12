@@ -5,6 +5,7 @@ import { EvaluateRuleMappingDto, EvaluateRuleRunSchemaDto } from './dto/evaluate
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
 import { TraceObject } from './ruleMapping.interface';
+import { ConfigService } from '@nestjs/config';
 
 describe('RuleMappingController', () => {
   let controller: RuleMappingController;
@@ -14,6 +15,13 @@ describe('RuleMappingController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RuleMappingController],
       providers: [
+        RuleMappingService, // Actual service if needed for testing interactions
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('mocked_value'),
+          },
+        },
         {
           provide: RuleMappingService,
           useValue: {
@@ -32,7 +40,7 @@ describe('RuleMappingController', () => {
   describe('getRuleFile', () => {
     it('should return the rule file with the correct headers', async () => {
       const ruleFileName = 'test-rule.json';
-      const filePath = `brms-rules/rules/${ruleFileName}`;
+      const filePath = `undefined/${ruleFileName}`;
       const rulemap = { inputs: [], outputs: [] };
       jest.spyOn(service, 'ruleSchemaFile').mockResolvedValue(rulemap);
 

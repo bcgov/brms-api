@@ -2,13 +2,23 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RuleMappingService } from './ruleMapping.service';
 import { Node, TraceObject, Edge } from './ruleMapping.interface';
 import { DocumentsService } from '../documents/documents.service';
+import { ConfigService } from '@nestjs/config';
 
 describe('RuleMappingService', () => {
   let service: RuleMappingService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [RuleMappingService, DocumentsService],
+      providers: [
+        RuleMappingService,
+        DocumentsService,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('mocked_value'), // Replace with your mocked config values
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<RuleMappingService>(RuleMappingService);
