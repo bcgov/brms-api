@@ -2,16 +2,21 @@ import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
 import * as util from 'util';
 import * as path from 'path';
+import { ConfigService } from '@nestjs/config';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-
-export const RULES_DIRECTORY = 'brms-rules/rules';
 
 @Injectable()
 export class DocumentsService {
+  rulesDirectory: string;
+
+  constructor(private configService: ConfigService) {
+    this.rulesDirectory = this.configService.get<string>('RULES_DIRECTORY');
+  }
+
   private readFile = util.promisify(fs.readFile);
 
   // Go through the rules directory and return a list of all JSON files
-  async getAllJSONFiles(directory: string = RULES_DIRECTORY): Promise<string[]> {
+  async getAllJSONFiles(directory: string = this.rulesDirectory): Promise<string[]> {
     const jsonFiles: string[] = [];
 
     async function readDirectory(dir: string, baseDir: string) {
@@ -37,7 +42,7 @@ export class DocumentsService {
 
   // Get the content of a specific JSON file
   async getFileContent(ruleFileName: string): Promise<Buffer> {
-    const filePath = `${RULES_DIRECTORY}/${ruleFileName}`;
+    const filePath = `${this.rulesDirectory}/${ruleFileName}`;
     if (!fs.existsSync(filePath)) {
       throw new HttpException('File not found', HttpStatus.NOT_FOUND);
     }

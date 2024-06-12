@@ -1,7 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { DecisionsService, RULES_DIRECTORY } from './decisions.service';
-import { ZenEngine, ZenDecision, ZenEvaluateOptions } from '@gorules/zen-engine';
 import { readFile } from 'fs/promises';
+import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+import { ZenEngine, ZenDecision, ZenEvaluateOptions } from '@gorules/zen-engine';
+import { DecisionsService } from './decisions.service';
 
 jest.mock('fs/promises');
 
@@ -19,7 +20,7 @@ describe('DecisionsService', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [DecisionsService, { provide: ZenEngine, useValue: mockEngine }],
+      providers: [ConfigService, DecisionsService, { provide: ZenEngine, useValue: mockEngine }],
     }).compile();
 
     service = module.get<DecisionsService>(DecisionsService);
@@ -53,7 +54,7 @@ describe('DecisionsService', () => {
       const content = JSON.stringify({ rule: 'rule' });
       (readFile as jest.Mock).mockResolvedValue(content);
       await service.runDecisionByFile(ruleFileName, context, options);
-      expect(readFile).toHaveBeenCalledWith(`${RULES_DIRECTORY}/${ruleFileName}`);
+      expect(readFile).toHaveBeenCalledWith(`${service.rulesDirectory}/${ruleFileName}`);
       expect(mockEngine.createDecision).toHaveBeenCalledWith(content);
       expect(mockDecision.evaluate).toHaveBeenCalledWith(context, options);
     });
