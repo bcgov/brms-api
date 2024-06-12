@@ -1,10 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { Node, Edge, TraceObject, Field } from './ruleMapping.interface';
 import { DocumentsService } from '../documents/documents.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class RuleMappingService {
-  constructor(private documentsService: DocumentsService) {}
+  rulesDirectory: string;
+  constructor(
+    private documentsService: DocumentsService,
+    private configService: ConfigService,
+  ) {
+    this.rulesDirectory = this.configService.get<string>('RULES_DIRECTORY');
+  }
+
   // Extract all fields from a list of nodes
   extractFields(nodes: Node[], fieldKey: 'inputs' | 'outputs'): { [key: string]: any[] } {
     const fields: any[] = nodes.flatMap((node: any) => {
@@ -131,8 +139,8 @@ export class RuleMappingService {
   }
 
   // generate a rule schema from a given local file
-  async ruleSchemaFile(filePath: string): Promise<any> {
-    const fileContent = await this.documentsService.getFileContent(filePath);
+  async ruleSchemaFile(ruleFileName: string): Promise<any> {
+    const fileContent = await this.documentsService.getFileContent(ruleFileName);
     const { nodes, edges } = await JSON.parse(fileContent.toString());
     return this.ruleSchema(nodes, edges);
   }

@@ -2,24 +2,14 @@ import { Controller, Get, Param, Res, Post, Body, HttpException, HttpStatus } fr
 import { RuleMappingService } from './ruleMapping.service';
 import { Response } from 'express';
 import { EvaluateRuleRunSchemaDto, EvaluateRuleMappingDto } from './dto/evaluate-rulemapping.dto';
-import { ConfigService } from '@nestjs/config';
 @Controller('api/rulemap')
 export class RuleMappingController {
-  private rulesDirectory: string;
+  constructor(private ruleMappingService: RuleMappingService) {}
 
-  constructor(
-    private ruleMappingService: RuleMappingService,
-    private configService: ConfigService,
-  ) {}
-
-  initialize() {
-    this.rulesDirectory = this.configService.get<string>('RULES_DIRECTORY');
-  }
   // Map a rule file to its unique inputs, and all outputs
   @Get('/:ruleFileName')
   async getRuleFile(@Param('ruleFileName') ruleFileName: string, @Res() res: Response) {
-    const filePath = `${this.rulesDirectory}/${ruleFileName}`;
-    const rulemap = await this.ruleMappingService.ruleSchemaFile(filePath);
+    const rulemap = await this.ruleMappingService.ruleSchemaFile(ruleFileName);
 
     try {
       res.setHeader('Content-Type', 'application/json');
