@@ -12,6 +12,9 @@ import { SubmissionsController } from './api/submissions/submissions.controller'
 import { SubmissionsService } from './api/submissions/submissions.service';
 import { RuleMappingController } from './api/ruleMapping/ruleMapping.controller';
 import { RuleMappingService } from './api/ruleMapping/ruleMapping.service';
+import { ScenarioDataSchema } from './api/scenarioData/scenarioData.schema';
+import { ScenarioDataController } from './api/scenarioData/scenarioData.controller';
+import { ScenarioDataService } from './api/scenarioData/scenarioData.service';
 
 @Module({
   imports: [
@@ -24,7 +27,10 @@ import { RuleMappingService } from './api/ruleMapping/ruleMapping.service';
       ],
     }),
     MongooseModule.forRoot(process.env.MONGODB_URL),
-    MongooseModule.forFeature([{ name: RuleData.name, schema: RuleDataSchema }]),
+    MongooseModule.forFeature([
+      { name: RuleData.name, schema: RuleDataSchema },
+      { name: 'ScenarioData', schema: ScenarioDataSchema },
+    ]),
   ],
   controllers: [
     RuleDataController,
@@ -32,7 +38,15 @@ import { RuleMappingService } from './api/ruleMapping/ruleMapping.service';
     DocumentsController,
     SubmissionsController,
     RuleMappingController,
+    ScenarioDataController,
   ],
-  providers: [RuleDataService, DecisionsService, DocumentsService, SubmissionsService, RuleMappingService],
+  providers: [
+    RuleDataService,
+    DecisionsService,
+    DocumentsService,
+    SubmissionsService,
+    RuleMappingService,
+    ScenarioDataService,
+  ],
 })
 export class AppModule {}
