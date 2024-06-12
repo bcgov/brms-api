@@ -1,16 +1,21 @@
-import { DocumentsService } from './documents.service'; // Adjust the path as needed
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
 import * as fs from 'fs';
 import * as util from 'util';
+import { DocumentsService } from './documents.service';
 
 describe('DocumentsService', () => {
   let service: DocumentsService;
   const readFileMock = jest.fn();
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.spyOn(fs, 'existsSync').mockReturnValue(false);
     jest.spyOn(util, 'promisify').mockReturnValue(readFileMock);
-    service = new DocumentsService();
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [ConfigService, DocumentsService],
+    }).compile();
+    service = module.get<DocumentsService>(DocumentsService);
   });
 
   it('should throw a 404 error if the file does not exist', async () => {
@@ -29,7 +34,7 @@ describe('DocumentsService', () => {
     const result = await service.getFileContent('path/to/existing/file');
 
     expect(result).toBe(mockContent);
-    expect(readFileMock).toHaveBeenCalledWith('path/to/existing/file');
+    expect(readFileMock).toHaveBeenCalledWith(`${service.rulesDirectory}/path/to/existing/file`);
   });
 
   it('should throw a 500 error if reading the file fails', async () => {

@@ -1,6 +1,7 @@
+import { ObjectId } from 'mongodb';
+import { Model } from 'mongoose';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { RuleData, RuleDataDocument } from './ruleData.schema';
 
 @Injectable()
@@ -30,10 +31,15 @@ export class RuleDataService {
 
   async createRuleData(ruleData: RuleData): Promise<RuleData> {
     try {
+      if (!ruleData._id) {
+        const newRuleID = new ObjectId();
+        ruleData._id = newRuleID.toHexString();
+      }
       const newRuleData = new this.ruleDataModel(ruleData);
       const response = await newRuleData.save();
       return response;
     } catch (error) {
+      console.error(error.message);
       throw new Error(`Failed to add rule data: ${error.message}`);
     }
   }

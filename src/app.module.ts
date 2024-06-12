@@ -13,7 +13,14 @@ import { SubmissionsService } from './api/submissions/submissions.service';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true, // Make the ConfigModule globally available
+      load: [
+        () => ({
+          RULES_DIRECTORY: process.env.RULES_DIRECTORY || 'brms-rules/rules',
+        }),
+      ],
+    }),
     MongooseModule.forRoot(process.env.MONGODB_URL),
     MongooseModule.forFeature([{ name: RuleData.name, schema: RuleDataSchema }]),
   ],

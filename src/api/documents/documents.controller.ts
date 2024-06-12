@@ -6,10 +6,16 @@ import { DocumentsService } from './documents.service';
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
+  @Get('/')
+  // Get a list of all the JSON files in the rules directory
+  async getAllDocuments() {
+    return await this.documentsService.getAllJSONFiles();
+  }
+
   @Get('/:ruleFileName')
+  // Get a specific JSON file from the rules directory
   async getRuleFile(@Param('ruleFileName') ruleFileName: string, @Res() res: Response) {
-    const filePath = `src/rules/${ruleFileName}`;
-    const fileContent = await this.documentsService.getFileContent(filePath);
+    const fileContent = await this.documentsService.getFileContent(ruleFileName);
 
     try {
       res.setHeader('Content-Type', 'application/json');
