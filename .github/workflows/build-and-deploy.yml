@@ -39,13 +39,14 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          # This is the branch name we want to use of the rules repo branch
-          # We want it to be the same as the branch we are building so they stay in sync
-          RULES_REPO_BRANCH: ${{ env.BRANCH_NAME }}
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # This is the branch name we want to use of the rules repo branch
+          # We want it to be the same as the branch we are building so they stay in sync
+          build-args: |
+            RULES_REPO_BRANCH=${{ env.BRANCH_NAME }}
 
     outputs:
       image_tag: ${{ steps.meta.outputs.tags }}
