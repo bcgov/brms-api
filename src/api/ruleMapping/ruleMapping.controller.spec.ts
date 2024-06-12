@@ -40,7 +40,7 @@ describe('RuleMappingController', () => {
   describe('getRuleFile', () => {
     it('should return the rule file with the correct headers', async () => {
       const ruleFileName = 'test-rule.json';
-      const filePath = `undefined/${ruleFileName}`;
+      const filePath = `${ruleFileName}`;
       const rulemap = { inputs: [], outputs: [] };
       jest.spyOn(service, 'ruleSchemaFile').mockResolvedValue(rulemap);
 
