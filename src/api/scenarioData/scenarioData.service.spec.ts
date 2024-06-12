@@ -14,6 +14,7 @@ describe('ScenarioDataService', () => {
     _id: testObjectId,
     title: 'Test Title',
     ruleID: 'ruleID',
+    variables: [],
     goRulesJSONFilename: 'test.json',
   };
 

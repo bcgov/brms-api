@@ -2,7 +2,11 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
 export type ScenarioDataDocument = ScenarioData & Document;
-
+export interface Variable {
+  name: string;
+  value: any;
+  type: string;
+}
 @Schema()
 export class ScenarioData {
   @Prop({ required: true, description: 'The scenario ID', type: Types.ObjectId })
@@ -17,6 +21,13 @@ export class ScenarioData {
     description: 'The ID of the rule',
   })
   ruleID: string;
+
+  @Prop({
+    required: true,
+    description: 'The variables of the scenario',
+    type: [{ name: String, value: {}, type: String }],
+  })
+  variables: Variable[];
 
   @Prop({ required: true, description: 'The filename of the JSON file containing the rule' })
   goRulesJSONFilename: string;

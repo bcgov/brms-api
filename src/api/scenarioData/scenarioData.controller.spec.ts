@@ -106,6 +106,7 @@ describe('ScenarioDataController', () => {
         _id: testObjectId,
         title: 'title',
         ruleID: 'ruleID',
+        variables: [],
         goRulesJSONFilename: 'filename',
       };
       jest.spyOn(service, 'createScenarioData').mockResolvedValue(result);
@@ -121,6 +122,7 @@ describe('ScenarioDataController', () => {
           _id: testObjectId,
           title: 'title',
           ruleID: 'ruleID',
+          variables: [],
           goRulesJSONFilename: 'filename',
         }),
       ).rejects.toThrow(HttpException);
@@ -133,6 +135,7 @@ describe('ScenarioDataController', () => {
         _id: testObjectId,
         title: 'title',
         ruleID: 'rule1',
+        variables: [],
         goRulesJSONFilename: 'filename',
       };
       jest.spyOn(service, 'updateScenarioData').mockResolvedValue(result);
@@ -148,6 +151,7 @@ describe('ScenarioDataController', () => {
           _id: testObjectId,
           title: 'title',
           ruleID: 'rule1',
+          variables: [],
           goRulesJSONFilename: 'filename',
         }),
       ).rejects.toThrow(HttpException);
