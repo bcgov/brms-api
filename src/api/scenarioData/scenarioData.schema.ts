@@ -24,7 +24,7 @@ export const VariableModel = SchemaFactory.createForClass(VariableSchema);
 
 @Schema()
 export class ScenarioData {
-  @Prop({ required: true, description: 'The scenario ID', type: Types.ObjectId })
+  @Prop({ required: true, description: 'The scenario ID', type: Types.ObjectId, default: () => new Types.ObjectId() })
   _id: Types.ObjectId;
 
   @Prop({ description: 'The title of the scenario' })
