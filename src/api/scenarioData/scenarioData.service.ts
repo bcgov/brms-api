@@ -28,12 +28,27 @@ export class ScenarioDataService {
     }
   }
 
+  isValidVariableStructure(variables: any[]): boolean {
+    for (const variable of variables) {
+      if (
+        !variable ||
+        typeof variable.name !== 'string' ||
+        typeof variable.type !== 'string' ||
+        (variable.value !== null && typeof variable.value === 'undefined')
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   async createScenarioData(scenarioData: ScenarioData): Promise<ScenarioData> {
     try {
       const newScenarioData = new this.scenarioDataModel(scenarioData);
       const response = await newScenarioData.save();
       return response;
     } catch (error) {
+      console.error('Error in createScenarioData:', error);
       throw new Error(`Failed to add scenario data: ${error.message}`);
     }
   }

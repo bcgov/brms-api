@@ -7,6 +7,21 @@ export interface Variable {
   value: any;
   type: string;
 }
+
+@Schema()
+export class VariableSchema {
+  @Prop({ required: true, type: String })
+  name: string;
+
+  @Prop({ required: true, type: {} })
+  value: any;
+
+  @Prop({ required: true, type: String })
+  type: string;
+}
+
+export const VariableModel = SchemaFactory.createForClass(VariableSchema);
+
 @Schema()
 export class ScenarioData {
   @Prop({ required: true, description: 'The scenario ID', type: Types.ObjectId })
@@ -25,7 +40,7 @@ export class ScenarioData {
   @Prop({
     required: true,
     description: 'The variables of the scenario',
-    type: [{ name: String, value: {}, type: String }],
+    type: [VariableSchema],
   })
   variables: Variable[];
 
