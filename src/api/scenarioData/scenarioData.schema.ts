@@ -5,7 +5,7 @@ export type ScenarioDataDocument = ScenarioData & Document;
 export interface Variable {
   name: string;
   value: any;
-  type: string;
+  type?: string;
 }
 
 @Schema()
@@ -16,11 +16,19 @@ export class VariableSchema {
   @Prop({ required: true, type: {} })
   value: any;
 
-  @Prop({ required: true, type: String })
+  @Prop({ required: false, type: String, default: '' })
   type: string;
 }
 
-export const VariableModel = SchemaFactory.createForClass(VariableSchema);
+const VariableModelSchema = SchemaFactory.createForClass(VariableSchema);
+
+// impute the type of the value if not provided
+VariableModelSchema.pre<Variable>('save', function (next) {
+  if (!this.type) {
+    this.type = typeof this.value;
+  }
+  next();
+});
 
 @Schema()
 export class ScenarioData {
@@ -40,7 +48,7 @@ export class ScenarioData {
   @Prop({
     required: true,
     description: 'The variables of the scenario',
-    type: [VariableSchema],
+    type: [VariableModelSchema],
   })
   variables: Variable[];
 
