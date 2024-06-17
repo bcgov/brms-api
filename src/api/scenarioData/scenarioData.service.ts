@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ScenarioData, ScenarioDataDocument } from './scenarioData.schema';
 
 @Injectable()
@@ -68,10 +68,12 @@ export class ScenarioDataService {
 
   async deleteScenarioData(scenarioId: string): Promise<void> {
     try {
-      const deletedScenarioData = await this.scenarioDataModel.findOneAndDelete({ _id: scenarioId }).exec();
+      const objectId = new Types.ObjectId(scenarioId);
+      const deletedScenarioData = await this.scenarioDataModel.findOneAndDelete({ _id: objectId });
       if (!deletedScenarioData) {
         throw new Error('Scenario data not found');
       }
+      return;
     } catch (error) {
       throw new Error(`Failed to delete scenario data: ${error.message}`);
     }

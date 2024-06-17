@@ -167,42 +167,35 @@ describe('ScenarioDataService', () => {
   });
 
   describe('deleteScenarioData', () => {
-    it('should delete scenario data', async () => {
+    it('should delete scenario data successfully', async () => {
       const scenarioId = testObjectId.toString();
-      MockScenarioDataModel.findOneAndDelete = jest
-        .fn()
-        .mockReturnValue({ exec: jest.fn().mockResolvedValue(mockScenarioData) });
+      const objectId = new Types.ObjectId(scenarioId);
+      MockScenarioDataModel.findOneAndDelete = jest.fn().mockResolvedValue({ _id: objectId });
+      await expect(service.deleteScenarioData(scenarioId)).resolves.toBeUndefined();
 
-      await service.deleteScenarioData(scenarioId);
-
-      expect(MockScenarioDataModel.findOneAndDelete).toHaveBeenCalledWith({ _id: scenarioId });
+      expect(MockScenarioDataModel.findOneAndDelete).toHaveBeenCalledWith({ _id: objectId });
     });
 
     it('should throw an error if scenario data is not found', async () => {
       const scenarioId = testObjectId.toString();
+      const objectId = new Types.ObjectId(scenarioId);
 
-      MockScenarioDataModel.findOneAndDelete = jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+      MockScenarioDataModel.findOneAndDelete = jest.fn().mockResolvedValue(null);
 
-      await expect(async () => {
-        await service.deleteScenarioData(scenarioId);
-      }).rejects.toThrowError('Scenario data not found');
+      await expect(service.deleteScenarioData(scenarioId)).rejects.toThrowError('Scenario data not found');
 
-      expect(MockScenarioDataModel.findOneAndDelete).toHaveBeenCalledWith({ _id: scenarioId });
+      expect(MockScenarioDataModel.findOneAndDelete).toHaveBeenCalledWith({ _id: objectId });
     });
 
     it('should throw an error if an error occurs while deleting scenario data', async () => {
       const scenarioId = testObjectId.toString();
+      const objectId = new Types.ObjectId(scenarioId);
       const errorMessage = 'DB Error';
-
-      MockScenarioDataModel.findOneAndDelete = jest
-        .fn()
-        .mockReturnValue({ exec: jest.fn().mockRejectedValue(new Error(errorMessage)) });
-
-      await expect(async () => {
-        await service.deleteScenarioData(scenarioId);
-      }).rejects.toThrowError(`Failed to delete scenario data: ${errorMessage}`);
-
-      expect(MockScenarioDataModel.findOneAndDelete).toHaveBeenCalledWith({ _id: scenarioId });
+      MockScenarioDataModel.findOneAndDelete = jest.fn().mockRejectedValue(new Error(errorMessage));
+      await expect(service.deleteScenarioData(scenarioId)).rejects.toThrowError(
+        `Failed to delete scenario data: ${errorMessage}`,
+      );
+      expect(MockScenarioDataModel.findOneAndDelete).toHaveBeenCalledWith({ _id: objectId });
     });
   });
 
