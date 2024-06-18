@@ -1,4 +1,4 @@
-import { Controller, Post, Param, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Query, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { DecisionsService } from './decisions.service';
 import { EvaluateDecisionDto, EvaluateDecisionWithContentDto } from './dto/evaluate-decision.dto';
 
@@ -15,9 +15,9 @@ export class DecisionsController {
     }
   }
 
-  @Post('/evaluate/:ruleFileName')
+  @Post('/evaluateByFile')
   async evaluateDecisionByFile(
-    @Param('ruleFileName') ruleFileName: string,
+    @Query('ruleFileName') ruleFileName: string,
     @Body() { context, trace }: EvaluateDecisionDto,
   ) {
     try {
