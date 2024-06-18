@@ -1,10 +1,13 @@
-import { readFile } from 'fs/promises';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ZenEngine, ZenDecision, ZenEvaluateOptions } from '@gorules/zen-engine';
 import { DecisionsService } from './decisions.service';
+import { readFileSafely } from '../../utils/readFile';
 
-jest.mock('fs/promises');
+jest.mock('../../utils/readFile', () => ({
+  readFileSafely: jest.fn(),
+  FileNotFoundError: jest.fn(),
+}));
 
 describe('DecisionsService', () => {
   let service: DecisionsService;
@@ -52,9 +55,9 @@ describe('DecisionsService', () => {
       const context = {};
       const options: ZenEvaluateOptions = { trace: false };
       const content = JSON.stringify({ rule: 'rule' });
-      (readFile as jest.Mock).mockResolvedValue(content);
+      (readFileSafely as jest.Mock).mockResolvedValue(content);
       await service.runDecisionByFile(ruleFileName, context, options);
-      expect(readFile).toHaveBeenCalledWith(`${service.rulesDirectory}/${ruleFileName}`);
+      expect(readFileSafely).toHaveBeenCalledWith(service.rulesDirectory, ruleFileName);
       expect(mockEngine.createDecision).toHaveBeenCalledWith(content);
       expect(mockDecision.evaluate).toHaveBeenCalledWith(context, options);
     });
@@ -63,7 +66,7 @@ describe('DecisionsService', () => {
       const ruleFileName = 'rule';
       const context = {};
       const options: ZenEvaluateOptions = { trace: false };
-      (readFile as jest.Mock).mockRejectedValue(new Error('Error'));
+      (readFileSafely as jest.Mock).mockRejectedValue(new Error('Error'));
       await expect(service.runDecisionByFile(ruleFileName, context, options)).rejects.toThrow(
         'Failed to run decision: Error',
       );

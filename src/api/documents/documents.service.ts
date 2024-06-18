@@ -1,9 +1,8 @@
-import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
-import * as util from 'util';
 import * as path from 'path';
 import { ConfigService } from '@nestjs/config';
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { readFileSafely, FileNotFoundError } from '../../utils/readFile';
 
 @Injectable()
 export class DocumentsService {
@@ -12,8 +11,6 @@ export class DocumentsService {
   constructor(private configService: ConfigService) {
     this.rulesDirectory = this.configService.get<string>('RULES_DIRECTORY');
   }
-
-  private readFile = util.promisify(fs.readFile);
 
   // Go through the rules directory and return a list of all JSON files
   async getAllJSONFiles(directory: string = this.rulesDirectory): Promise<string[]> {
@@ -42,16 +39,14 @@ export class DocumentsService {
 
   // Get the content of a specific JSON file
   async getFileContent(ruleFileName: string): Promise<Buffer> {
-    const filePath = `${this.rulesDirectory}/${ruleFileName}`;
-    if (!fs.existsSync(filePath)) {
-      throw new HttpException('File not found', HttpStatus.NOT_FOUND);
-    }
-
     try {
-      const fileContent = await this.readFile(filePath);
-      return fileContent;
+      return await readFileSafely(this.rulesDirectory, ruleFileName);
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (error instanceof FileNotFoundError) {
+        throw new HttpException('File not found', HttpStatus.NOT_FOUND);
+      } else {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
     }
   }
 }
