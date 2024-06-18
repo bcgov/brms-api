@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Post, Body, Put, Delete, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Put, Delete, HttpException, HttpStatus, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { ScenarioDataService } from './scenarioData.service';
 import { ScenarioData } from './scenarioData.schema';
 
@@ -69,6 +70,18 @@ export class ScenarioDataController {
       await this.scenarioDataService.deleteScenarioData(scenarioId);
     } catch (error) {
       throw new HttpException('Error deleting scenario data', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Get('/evaluation/:goRulesJSONFilename')
+  async getCSVForRuleRun(@Param('goRulesJSONFilename') goRulesJSONFilename: string, @Res() res: Response) {
+    const fileContent = await this.scenarioDataService.getCSVForRuleRun(goRulesJSONFilename);
+    try {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=${goRulesJSONFilename.replace(/\.json$/, '.csv')}`);
+      res.send(fileContent);
+    } catch (error) {
+      throw new HttpException('Error getting scenarios by rule ID', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }
