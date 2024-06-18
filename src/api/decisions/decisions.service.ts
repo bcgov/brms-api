@@ -1,7 +1,7 @@
-import { readFile } from 'fs/promises';
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { ZenEngine, ZenEvaluateOptions } from '@gorules/zen-engine';
 import { ConfigService } from '@nestjs/config';
+import { readFileSafely, FileNotFoundError } from '../../utils/readFile';
 
 @Injectable()
 export class DecisionsService {
@@ -24,10 +24,14 @@ export class DecisionsService {
 
   async runDecisionByFile(ruleFileName: string, context: object, options: ZenEvaluateOptions) {
     try {
-      const content = await readFile(`${this.rulesDirectory}/${ruleFileName}`);
+      const content = await readFileSafely(this.rulesDirectory, ruleFileName);
       return this.runDecision(content, context, options);
     } catch (error) {
-      throw new Error(`Failed to run decision: ${error.message}`);
+      if (error instanceof FileNotFoundError) {
+        throw new HttpException('Rule not found', HttpStatus.NOT_FOUND);
+      } else {
+        throw new HttpException(`Failed to run decision: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
     }
   }
 }
