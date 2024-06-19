@@ -4,19 +4,14 @@ import { Model, Types } from 'mongoose';
 import { ScenarioData, ScenarioDataDocument } from './scenarioData.schema';
 import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
-import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class ScenarioDataService {
-  // constructor(@InjectModel(ScenarioData.name) private scenarioDataModel: Model<ScenarioDataDocument>) {}
-  rulesDirectory: string;
   constructor(
     private decisionsService: DecisionsService,
     private ruleMappingService: RuleMappingService,
-    private configService: ConfigService,
+
     @InjectModel(ScenarioData.name) private scenarioDataModel: Model<ScenarioDataDocument>,
-  ) {
-    this.rulesDirectory = this.configService.get<string>('RULES_DIRECTORY');
-  }
+  ) {}
 
   async getAllScenarioData(): Promise<ScenarioData[]> {
     try {

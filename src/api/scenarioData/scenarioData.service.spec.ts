@@ -3,6 +3,10 @@ import { ScenarioDataService } from './scenarioData.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Types, Model } from 'mongoose';
 import { ScenarioData, ScenarioDataDocument } from './scenarioData.schema';
+import { DecisionsService } from '../decisions/decisions.service';
+import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
+import { ConfigService } from '@nestjs/config';
+import { DocumentsService } from '../documents/documents.service';
 
 describe('ScenarioDataService', () => {
   let service: ScenarioDataService;
@@ -29,10 +33,19 @@ describe('ScenarioDataService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        DecisionsService,
+        RuleMappingService,
         ScenarioDataService,
         {
           provide: getModelToken(ScenarioData.name),
           useValue: MockScenarioDataModel,
+        },
+        DocumentsService,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('mocked_value'), // Replace with your mocked config values
+          },
         },
       ],
     }).compile();
