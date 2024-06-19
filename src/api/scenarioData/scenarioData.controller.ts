@@ -79,9 +79,9 @@ export class ScenarioDataController {
     try {
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename=${goRulesJSONFilename.replace(/\.json$/, '.csv')}`);
-      res.send(fileContent);
+      res.status(HttpStatus.OK).send(fileContent);
     } catch (error) {
-      throw new HttpException('Error getting scenarios by rule ID', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException('Error generating CSV for rule run', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

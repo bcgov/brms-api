@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ScenarioDataController } from './scenarioData.controller';
 import { ScenarioDataService } from './scenarioData.service';
 import { ScenarioData } from './scenarioData.schema';
-import { HttpException } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Types } from 'mongoose';
 
 describe('ScenarioDataController', () => {
@@ -19,6 +19,7 @@ describe('ScenarioDataController', () => {
     createScenarioData: jest.fn(),
     updateScenarioData: jest.fn(),
     deleteScenarioData: jest.fn(),
+    getCSVForRuleRun: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -169,6 +170,54 @@ describe('ScenarioDataController', () => {
       jest.spyOn(service, 'deleteScenarioData').mockRejectedValue(new Error('Service error'));
 
       await expect(controller.deleteScenarioData(testObjectId.toHexString())).rejects.toThrow(HttpException);
+    });
+  });
+
+  describe('getCSVForRuleRun', () => {
+    it('should return CSV content with correct headers', async () => {
+      const goRulesJSONFilename = 'test.json';
+      const csvContent = `Scenario,Input: familyComposition,Input: numberOfChildren,Output: isEligible,Output: baseAmount
+Scenario 1,single,,true,
+Scenario 2,couple,3,,200`;
+
+      jest.spyOn(service, 'getCSVForRuleRun').mockResolvedValue(csvContent);
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+        setHeader: jest.fn(),
+      };
+
+      await controller.getCSVForRuleRun(goRulesJSONFilename, mockResponse as any);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.OK);
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
+      expect(mockResponse.setHeader).toHaveBeenCalledWith(
+        'Content-Disposition',
+        `attachment; filename=${goRulesJSONFilename.replace(/\.json$/, '.csv')}`,
+      );
+      expect(mockResponse.send).toHaveBeenCalledWith(csvContent);
+    });
+
+    it('should throw an error if service fails', async () => {
+      const errorMessage = 'Error generating CSV for rule run';
+      const goRulesJSONFilename = 'test.json';
+      jest.spyOn(service, 'getCSVForRuleRun').mockRejectedValue(new Error(errorMessage));
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      };
+
+      await expect(async () => {
+        await controller.getCSVForRuleRun(goRulesJSONFilename, mockResponse as any);
+      }).rejects.toThrow(Error);
+
+      try {
+        await controller.getCSVForRuleRun(goRulesJSONFilename, mockResponse as any);
+      } catch (error) {
+        expect(error.message).toBe('Error generating CSV for rule run');
+      }
     });
   });
 });
