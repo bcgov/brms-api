@@ -101,6 +101,11 @@ export class ScenarioDataService {
     }
   }
 
+  /**
+   * Runs decisions for multiple scenarios based on the provided rules JSON file.
+   * Retrieves scenarios, retrieves rule schema, and executes decisions for each scenario.
+   * Maps inputs and outputs from decision traces to structured results.
+   */
   async runDecisionsForScenarios(goRulesJSONFilename: string): Promise<{ [scenarioId: string]: any }> {
     const scenarios = await this.getScenariosByFilename(goRulesJSONFilename);
     const ruleSchema = await this.ruleMappingService.ruleSchemaFile(goRulesJSONFilename);
@@ -110,6 +115,26 @@ export class ScenarioDataService {
       const schema = type === 'input' ? ruleSchema.inputs : ruleSchema.finalOutputs;
       const item = schema.find((item: any) => item.id === id);
       return item ? item.property : null;
+    };
+
+    const mapTraceToResult = (trace: any, type: 'input' | 'output') => {
+      const result: { [key: string]: any } = {};
+      const schema = type === 'input' ? ruleSchema.inputs : ruleSchema.finalOutputs;
+
+      for (const [key, value] of Object.entries(trace)) {
+        const property = getPropertyById(key, type);
+        if (property) {
+          result[property] = value;
+        } else {
+          // Direct match without id
+          const directMatch = schema.find((item: any) => item.property === key);
+          if (directMatch) {
+            result[directMatch.property] = value;
+          }
+        }
+      }
+
+      return result;
     };
 
     for (const scenario of scenarios) {
@@ -125,45 +150,20 @@ export class ScenarioDataService {
           { trace: true },
         );
 
-        // Map inputs and outputs based on the trace
         const scenarioResult = { inputs: {}, outputs: {} };
-        for (const trace of Object.values(decisionResult.trace)) {
-          // Map inputs
-          if (trace.input) {
-            for (const [key, value] of Object.entries(trace.input)) {
-              const property = getPropertyById(key, 'input');
-              if (property) {
-                scenarioResult.inputs[property] = value;
-              } else {
-                // Direct match without id
-                const directMatch = ruleSchema.inputs.find((input: any) => input.property === key);
-                if (directMatch) {
-                  scenarioResult.inputs[directMatch.property] = value;
-                }
-              }
-            }
-          }
 
-          // Map outputs
+        // Map inputs and outputs based on the trace
+        for (const trace of Object.values(decisionResult.trace)) {
+          if (trace.input) {
+            Object.assign(scenarioResult.inputs, mapTraceToResult(trace.input, 'input'));
+          }
           if (trace.output) {
-            for (const [key, value] of Object.entries(trace.output)) {
-              const property = getPropertyById(key, 'output');
-              if (property) {
-                scenarioResult.outputs[property] = value;
-              } else {
-                // Direct match without id
-                const directMatch = ruleSchema.finalOutputs.find((output: any) => output.property === key);
-                if (directMatch) {
-                  scenarioResult.outputs[directMatch.property] = value;
-                }
-              }
-            }
+            Object.assign(scenarioResult.outputs, mapTraceToResult(trace.output, 'output'));
           }
         }
 
         results[scenario.title.toString()] = scenarioResult;
       } catch (error) {
-        // Handle errors if needed
         console.error(`Error running decision for scenario ${scenario._id}: ${error.message}`);
         results[scenario._id.toString()] = { error: error.message };
       }
@@ -172,6 +172,11 @@ export class ScenarioDataService {
     return results;
   }
 
+  /**
+   * Generates a CSV string based on the results of running decisions for scenarios.
+   * Retrieves scenario results, extracts unique input and output keys, and maps them to CSV rows.
+   * Constructs CSV headers and rows based on input and output keys.
+   */
   async getCSVForRuleRun(goRulesJSONFilename: string): Promise<string> {
     const ruleRunResults = await this.runDecisionsForScenarios(goRulesJSONFilename);
     const inputKeys = Array.from(
@@ -186,11 +191,13 @@ export class ScenarioDataService {
       ...inputKeys.map((key) => `Input: ${key}`),
       ...outputKeys.map((key) => `Output: ${key}`),
     ];
-    const rows = Object.entries(ruleRunResults).map(([scenarioName, scenarioData]) => [
-      scenarioName,
-      ...inputKeys.map((key) => (scenarioData.inputs[key] !== undefined ? scenarioData.inputs[key] : '')),
-      ...outputKeys.map((key) => (scenarioData.outputs[key] !== undefined ? scenarioData.outputs[key] : '')),
-    ]);
+    const rows = Object.entries(ruleRunResults).map(([scenarioName, scenarioData]) => {
+      const inputs = inputKeys.map((key) => (scenarioData.inputs[key] !== undefined ? scenarioData.inputs[key] : ''));
+      const outputs = outputKeys.map((key) =>
+        scenarioData.outputs[key] !== undefined ? scenarioData.outputs[key] : '',
+      );
+      return [scenarioName, ...inputs, ...outputs];
+    });
 
     const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
     return csvContent;
