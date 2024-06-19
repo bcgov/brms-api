@@ -7,7 +7,6 @@ import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
 import { ConfigService } from '@nestjs/config';
 import { DocumentsService } from '../documents/documents.service';
-import { ZenEngine, ZenEngineResponse } from '@gorules/zen-engine';
 
 describe('ScenarioDataService', () => {
   let service: ScenarioDataService;
@@ -404,6 +403,101 @@ describe('ScenarioDataService', () => {
           outputs: { isEligible: true },
         },
       });
+    });
+  });
+
+  describe('getCSVForRuleRun', () => {
+    it('should generate a CSV with correct headers and data', async () => {
+      const goRulesJSONFilename = 'test.json';
+      const ruleRunResults = {
+        'Scenario 1': {
+          inputs: { familyComposition: 'single', numberOfChildren: 2 },
+          outputs: { isEligible: true, baseAmount: 100 },
+        },
+        'Scenario 2': {
+          inputs: { familyComposition: 'couple', numberOfChildren: 3 },
+          outputs: { isEligible: false, baseAmount: 200 },
+        },
+      };
+
+      jest.spyOn(service, 'runDecisionsForScenarios').mockResolvedValue(ruleRunResults);
+
+      const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename);
+
+      const expectedCsvContent = `Scenario,Input: familyComposition,Input: numberOfChildren,Output: isEligible,Output: baseAmount\nScenario 1,single,2,true,100\nScenario 2,couple,3,false,200`;
+
+      expect(csvContent.trim()).toBe(expectedCsvContent.trim());
+    });
+
+    it('should generate a CSV with missing inputs/outputs filled as empty strings', async () => {
+      const goRulesJSONFilename = 'test.json';
+      const ruleRunResults = {
+        'Scenario 1': {
+          inputs: { familyComposition: 'single' },
+          outputs: { isEligible: true },
+        },
+        'Scenario 2': {
+          inputs: { familyComposition: 'couple', numberOfChildren: 3 },
+          outputs: { baseAmount: 200 },
+        },
+      };
+
+      jest.spyOn(service, 'runDecisionsForScenarios').mockResolvedValue(ruleRunResults);
+
+      const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename);
+
+      const expectedCsvContent = `Scenario,Input: familyComposition,Input: numberOfChildren,Output: isEligible,Output: baseAmount\nScenario 1,single,,true,\nScenario 2,couple,3,,200`;
+
+      expect(csvContent.trim()).toBe(expectedCsvContent.trim());
+    });
+
+    it('should generate a CSV with only one scenario', async () => {
+      const goRulesJSONFilename = 'test.json';
+      const ruleRunResults = {
+        'Scenario 1': {
+          inputs: { familyComposition: 'single', numberOfChildren: 2 },
+          outputs: { isEligible: true, baseAmount: 100 },
+        },
+      };
+
+      jest.spyOn(service, 'runDecisionsForScenarios').mockResolvedValue(ruleRunResults);
+
+      const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename);
+
+      const expectedCsvContent = `Scenario,Input: familyComposition,Input: numberOfChildren,Output: isEligible,Output: baseAmount\nScenario 1,single,2,true,100`;
+
+      expect(csvContent.trim()).toBe(expectedCsvContent.trim());
+    });
+
+    it('should generate an empty CSV if no scenarios are present', async () => {
+      const goRulesJSONFilename = 'test.json';
+      const ruleRunResults = {};
+
+      jest.spyOn(service, 'runDecisionsForScenarios').mockResolvedValue(ruleRunResults);
+
+      const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename);
+
+      const expectedCsvContent = `Scenario`;
+
+      expect(csvContent.trim()).toBe(expectedCsvContent.trim());
+    });
+
+    it('should handle scenarios with no variables or outputs', async () => {
+      const goRulesJSONFilename = 'test.json';
+      const ruleRunResults = {
+        'Scenario 1': {
+          inputs: {},
+          outputs: {},
+        },
+      };
+
+      jest.spyOn(service, 'runDecisionsForScenarios').mockResolvedValue(ruleRunResults);
+
+      const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename);
+
+      const expectedCsvContent = `Scenario\nScenario 1`;
+
+      expect(csvContent.trim()).toBe(expectedCsvContent.trim());
     });
   });
 });
