@@ -7,9 +7,12 @@ import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
 import { ConfigService } from '@nestjs/config';
 import { DocumentsService } from '../documents/documents.service';
+import { ZenEngine, ZenEngineResponse } from '@gorules/zen-engine';
 
 describe('ScenarioDataService', () => {
   let service: ScenarioDataService;
+  let decisionsService: DecisionsService;
+  let ruleMappingService: RuleMappingService;
   let model: Model<ScenarioDataDocument>;
 
   const testObjectId = new Types.ObjectId();
@@ -51,6 +54,8 @@ describe('ScenarioDataService', () => {
     }).compile();
 
     service = module.get<ScenarioDataService>(ScenarioDataService);
+    decisionsService = module.get<DecisionsService>(DecisionsService);
+    ruleMappingService = module.get<RuleMappingService>(RuleMappingService);
     model = module.get<Model<ScenarioDataDocument>>(getModelToken(ScenarioData.name));
   });
 
@@ -265,6 +270,140 @@ describe('ScenarioDataService', () => {
       }).rejects.toThrowError(`Error getting scenarios by filename: ${errorMessage}`);
 
       expect(MockScenarioDataModel.find).toHaveBeenCalledWith({ goRulesJSONFilename });
+    });
+  });
+  describe('runDecisionsForScenarios', () => {
+    it('should run decisions for scenarios and map inputs/outputs correctly', async () => {
+      const goRulesJSONFilename = 'test.json';
+      const scenarios = [
+        {
+          _id: testObjectId,
+          title: 'Scenario 1',
+          variables: [{ name: 'familyComposition', value: 'single' }],
+          ruleID: 'ruleID',
+          goRulesJSONFilename: 'test.json',
+        },
+        {
+          _id: testObjectId,
+          title: 'Scenario 2',
+          variables: [{ name: 'numberOfChildren', value: 2 }],
+          ruleID: 'ruleID',
+          goRulesJSONFilename: 'test.json',
+        },
+      ];
+      const ruleSchema = {
+        inputs: [
+          { id: 'id1', name: 'Family Composition', property: 'familyComposition' },
+          { id: 'id2', name: 'Number of Children', property: 'numberOfChildren' },
+        ],
+        finalOutputs: [
+          { id: 'id3', name: 'Is Eligible', property: 'isEligible' },
+          { id: 'id4', name: 'Base Amount', property: 'baseAmount' },
+        ],
+      };
+      const decisionResult = {
+        performance: '0.7',
+        result: { status: 'pass' },
+        trace: {
+          trace1: {
+            id: 'trace1',
+            name: 'trace1',
+            input: { familyComposition: 'single' },
+            output: { isEligible: true },
+          },
+          trace2: {
+            id: 'trace2',
+            name: 'trace2',
+            input: { numberOfChildren: 2 },
+            output: { baseAmount: 100 },
+            performance: '0.7',
+          },
+        },
+      };
+
+      jest.spyOn(service, 'getScenariosByFilename').mockResolvedValue(scenarios);
+      jest.spyOn(ruleMappingService, 'ruleSchemaFile').mockResolvedValue(ruleSchema);
+      jest.spyOn(decisionsService, 'runDecisionByFile').mockResolvedValue(decisionResult);
+
+      const results = await service.runDecisionsForScenarios(goRulesJSONFilename);
+
+      expect(results).toEqual({
+        'Scenario 1': {
+          inputs: { familyComposition: 'single', numberOfChildren: 2 },
+          outputs: { baseAmount: 100, isEligible: true },
+        },
+        'Scenario 2': {
+          inputs: { familyComposition: 'single', numberOfChildren: 2 },
+          outputs: { baseAmount: 100, isEligible: true },
+        },
+      });
+    });
+    it('should handle errors in decision execution', async () => {
+      const goRulesJSONFilename = 'test.json';
+      const scenarios = [
+        {
+          _id: testObjectId,
+          title: 'Scenario 1',
+          variables: [{ name: 'familyComposition', value: 'single' }],
+          ruleID: 'ruleID',
+          goRulesJSONFilename: 'test.json',
+        },
+      ];
+      const ruleSchema = {
+        inputs: [{ id: 'id1', name: 'Family Composition', property: 'familyComposition' }],
+        finalOutputs: [{ id: 'id3', name: 'Is Eligible', property: 'isEligible' }],
+      };
+
+      jest.spyOn(service, 'getScenariosByFilename').mockResolvedValue(scenarios);
+      jest.spyOn(ruleMappingService, 'ruleSchemaFile').mockResolvedValue(ruleSchema);
+      jest.spyOn(decisionsService, 'runDecisionByFile').mockRejectedValue(new Error('Decision execution error'));
+
+      const results = await service.runDecisionsForScenarios(goRulesJSONFilename);
+      expect(results).toEqual({
+        [testObjectId.toString()]: { error: 'Decision execution error' },
+      });
+    });
+
+    it('should handle scenarios with no variables', async () => {
+      const goRulesJSONFilename = 'test.json';
+      const scenarios = [
+        {
+          _id: testObjectId,
+          title: 'Scenario 1',
+          variables: [],
+          ruleID: 'ruleID',
+          goRulesJSONFilename: 'test.json',
+        },
+      ];
+      const ruleSchema = {
+        inputs: [],
+        finalOutputs: [{ id: 'id3', name: 'Is Eligible', property: 'isEligible' }],
+      };
+      const decisionResult = {
+        performance: '0.7',
+        result: { status: 'pass' },
+        trace: {
+          trace1: {
+            id: 'trace1',
+            name: 'trace1',
+            input: {},
+            output: { isEligible: true },
+          },
+        },
+      };
+
+      jest.spyOn(service, 'getScenariosByFilename').mockResolvedValue(scenarios);
+      jest.spyOn(ruleMappingService, 'ruleSchemaFile').mockResolvedValue(ruleSchema);
+      jest.spyOn(decisionsService, 'runDecisionByFile').mockResolvedValue(decisionResult);
+
+      const results = await service.runDecisionsForScenarios(goRulesJSONFilename);
+
+      expect(results).toEqual({
+        'Scenario 1': {
+          inputs: {},
+          outputs: { isEligible: true },
+        },
+      });
     });
   });
 });
