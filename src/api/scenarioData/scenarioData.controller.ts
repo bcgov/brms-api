@@ -13,8 +13,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import * as csvParser from 'csv-parser';
-import * as fastCsv from 'fast-csv';
 import { Response } from 'express';
 import { ScenarioDataService } from './scenarioData.service';
 import { ScenarioData } from './scenarioData.schema';
