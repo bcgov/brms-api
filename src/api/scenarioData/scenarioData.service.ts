@@ -98,7 +98,6 @@ export class ScenarioDataService {
     newScenarios?: ScenarioData[],
   ): Promise<{ [scenarioId: string]: any }> {
     const scenarios = newScenarios || (await this.getScenariosByFilename(goRulesJSONFilename));
-    console.log(scenarios, 'this is scenarios input');
     const ruleSchema = await this.ruleMappingService.ruleSchemaFile(goRulesJSONFilename);
     const results: { [scenarioId: string]: any } = {};
 
@@ -154,7 +153,6 @@ export class ScenarioDataService {
         }
 
         results[scenario.title.toString()] = scenarioResult;
-        console.log(scenarioResult, 'scenario result');
       } catch (error) {
         console.error(`Error running decision for scenario ${scenario._id}: ${error.message}`);
         results[scenario._id.toString()] = { error: error.message };

@@ -119,7 +119,6 @@ export class ScenarioDataController {
     @Res() res: Response,
     @Param('goRulesJSONFilename') goRulesJSONFilename: string,
   ) {
-    // console.log(file);
     if (!file) {
       throw new HttpException('No file uploaded', HttpStatus.BAD_REQUEST);
     }
@@ -127,11 +126,8 @@ export class ScenarioDataController {
     try {
       const scenarios = await this.scenarioDataService.processProvidedScenarios(goRulesJSONFilename, file);
       const csvContent = await this.scenarioDataService.getCSVForRuleRun(goRulesJSONFilename, scenarios);
-      console.log(csvContent, 'this is csv content');
-
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename=processed_data.csv`);
-      //   res.status(HttpStatus.OK).send(scenarios);
       res.status(HttpStatus.OK).send(csvContent);
     } catch (error) {
       throw new HttpException('Error processing CSV file', HttpStatus.INTERNAL_SERVER_ERROR);
