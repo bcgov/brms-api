@@ -16,6 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { ScenarioDataService } from './scenarioData.service';
 import { ScenarioData } from './scenarioData.schema';
+import { CreateScenarioDto } from './dto/create-scenario.dto';
 
 @Controller('api/scenario')
 export class ScenarioDataController {
@@ -58,8 +59,15 @@ export class ScenarioDataController {
   }
 
   @Post()
-  async createScenarioData(@Body() scenarioData: ScenarioData): Promise<ScenarioData> {
+  async createScenarioData(@Body() createScenarioDto: CreateScenarioDto): Promise<ScenarioData> {
     try {
+      const scenarioData: ScenarioData = {
+        _id: undefined!,
+        title: createScenarioDto.title,
+        ruleID: createScenarioDto.ruleID,
+        variables: createScenarioDto.variables,
+        goRulesJSONFilename: createScenarioDto.goRulesJSONFilename,
+      };
       return await this.scenarioDataService.createScenarioData(scenarioData);
     } catch (error) {
       throw new HttpException('Error creating scenario data', HttpStatus.INTERNAL_SERVER_ERROR);
@@ -69,9 +77,16 @@ export class ScenarioDataController {
   @Put('/:scenarioId')
   async updateScenarioData(
     @Param('scenarioId') scenarioId: string,
-    @Body() scenarioData: ScenarioData,
+    @Body() updateScenarioDto: CreateScenarioDto,
   ): Promise<ScenarioData> {
     try {
+      const scenarioData: ScenarioData = {
+        _id: undefined!,
+        title: updateScenarioDto.title,
+        ruleID: updateScenarioDto.ruleID,
+        variables: updateScenarioDto.variables,
+        goRulesJSONFilename: updateScenarioDto.goRulesJSONFilename,
+      };
       return await this.scenarioDataService.updateScenarioData(scenarioId, scenarioData);
     } catch (error) {
       throw new HttpException('Error updating scenario data', HttpStatus.INTERNAL_SERVER_ERROR);

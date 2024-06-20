@@ -5,6 +5,7 @@ import { ScenarioData, ScenarioDataDocument, Variable } from './scenarioData.sch
 import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
 import * as csvParser from 'csv-parser';
+import { RuleSchema, RuleRunResults } from './scenarioData.interface';
 @Injectable()
 export class ScenarioDataService {
   constructor(
@@ -98,7 +99,7 @@ export class ScenarioDataService {
     newScenarios?: ScenarioData[],
   ): Promise<{ [scenarioId: string]: any }> {
     const scenarios = newScenarios || (await this.getScenariosByFilename(goRulesJSONFilename));
-    const ruleSchema = await this.ruleMappingService.ruleSchemaFile(goRulesJSONFilename);
+    const ruleSchema: RuleSchema = await this.ruleMappingService.ruleSchemaFile(goRulesJSONFilename);
     const results: { [scenarioId: string]: any } = {};
 
     const getPropertyById = (id: string, type: 'input' | 'output') => {
@@ -168,7 +169,7 @@ export class ScenarioDataService {
    * Constructs CSV headers and rows based on input and output keys.
    */
   async getCSVForRuleRun(goRulesJSONFilename: string, newScenarios?: ScenarioData[]): Promise<string> {
-    const ruleRunResults = await this.runDecisionsForScenarios(goRulesJSONFilename, newScenarios);
+    const ruleRunResults: RuleRunResults = await this.runDecisionsForScenarios(goRulesJSONFilename, newScenarios);
     const inputKeys = Array.from(
       new Set(Object.values(ruleRunResults).flatMap((scenario) => Object.keys(scenario.inputs))),
     );

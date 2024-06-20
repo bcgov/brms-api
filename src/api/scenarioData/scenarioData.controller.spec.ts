@@ -5,6 +5,7 @@ import { ScenarioData } from './scenarioData.schema';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { Response } from 'express';
+import { VariableClass, CreateScenarioDto } from './dto/create-scenario.dto';
 
 describe('ScenarioDataController', () => {
   let controller: ScenarioDataController;
@@ -112,23 +113,37 @@ describe('ScenarioDataController', () => {
         variables: [],
         goRulesJSONFilename: 'filename',
       };
+
+      // Adjusting variables to use VariableClass instances
+      const variables: VariableClass[] = [
+        { name: 'variable1', value: 'value1', type: 'string' },
+        { name: 'variable2', value: 123, type: 'number' },
+      ];
+
       jest.spyOn(service, 'createScenarioData').mockResolvedValue(result);
 
-      expect(await controller.createScenarioData(result)).toBe(result);
+      const dto: CreateScenarioDto = {
+        title: result.title,
+        ruleID: result.ruleID,
+        variables: variables,
+        goRulesJSONFilename: result.goRulesJSONFilename,
+      };
+
+      expect(await controller.createScenarioData(dto)).toBe(result);
     });
 
     it('should throw an error if service fails', async () => {
-      jest.spyOn(service, 'createScenarioData').mockRejectedValue(new Error('Service error'));
+      const errorMessage = 'Service error';
+      jest.spyOn(service, 'createScenarioData').mockRejectedValue(new Error(errorMessage));
 
-      await expect(
-        controller.createScenarioData({
-          _id: testObjectId,
-          title: 'title',
-          ruleID: 'ruleID',
-          variables: [],
-          goRulesJSONFilename: 'filename',
-        }),
-      ).rejects.toThrow(HttpException);
+      const dto: CreateScenarioDto = {
+        title: 'title',
+        ruleID: 'ruleID',
+        variables: [],
+        goRulesJSONFilename: 'filename',
+      };
+
+      await expect(controller.createScenarioData(dto)).rejects.toThrow(HttpException);
     });
   });
 
@@ -137,27 +152,35 @@ describe('ScenarioDataController', () => {
       const result: ScenarioData = {
         _id: testObjectId,
         title: 'title',
-        ruleID: 'rule1',
+        ruleID: 'ruleID',
         variables: [],
         goRulesJSONFilename: 'filename',
       };
+
       jest.spyOn(service, 'updateScenarioData').mockResolvedValue(result);
 
-      expect(await controller.updateScenarioData(testObjectId.toHexString(), result)).toBe(result);
+      const dto: CreateScenarioDto = {
+        title: result.title,
+        ruleID: result.ruleID,
+        variables: [],
+        goRulesJSONFilename: result.goRulesJSONFilename,
+      };
+
+      expect(await controller.updateScenarioData(testObjectId.toHexString(), dto)).toBe(result);
     });
 
     it('should throw an error if service fails', async () => {
-      jest.spyOn(service, 'updateScenarioData').mockRejectedValue(new Error('Service error'));
+      const errorMessage = 'Service error';
+      jest.spyOn(service, 'updateScenarioData').mockRejectedValue(new Error(errorMessage));
 
-      await expect(
-        controller.updateScenarioData(testObjectId.toHexString(), {
-          _id: testObjectId,
-          title: 'title',
-          ruleID: 'rule1',
-          variables: [],
-          goRulesJSONFilename: 'filename',
-        }),
-      ).rejects.toThrow(HttpException);
+      const dto: CreateScenarioDto = {
+        title: 'title',
+        ruleID: 'ruleID',
+        variables: [],
+        goRulesJSONFilename: 'filename',
+      };
+
+      await expect(controller.updateScenarioData(testObjectId.toHexString(), dto)).rejects.toThrow(HttpException);
     });
   });
 
