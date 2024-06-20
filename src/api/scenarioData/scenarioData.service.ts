@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { ScenarioData, ScenarioDataDocument } from './scenarioData.schema';
+import { ScenarioData, ScenarioDataDocument, Variable, VariableSchema } from './scenarioData.schema';
 import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
+import * as csvParser from 'csv-parser';
 @Injectable()
 export class ScenarioDataService {
   constructor(
@@ -92,8 +93,12 @@ export class ScenarioDataService {
    * Retrieves scenarios, retrieves rule schema, and executes decisions for each scenario.
    * Maps inputs and outputs from decision traces to structured results.
    */
-  async runDecisionsForScenarios(goRulesJSONFilename: string): Promise<{ [scenarioId: string]: any }> {
-    const scenarios = await this.getScenariosByFilename(goRulesJSONFilename);
+  async runDecisionsForScenarios(
+    goRulesJSONFilename: string,
+    newScenarios?: ScenarioData[],
+  ): Promise<{ [scenarioId: string]: any }> {
+    const scenarios = newScenarios || (await this.getScenariosByFilename(goRulesJSONFilename));
+    console.log(scenarios, 'this is scenarios input');
     const ruleSchema = await this.ruleMappingService.ruleSchemaFile(goRulesJSONFilename);
     const results: { [scenarioId: string]: any } = {};
 
@@ -149,6 +154,7 @@ export class ScenarioDataService {
         }
 
         results[scenario.title.toString()] = scenarioResult;
+        console.log(scenarioResult, 'scenario result');
       } catch (error) {
         console.error(`Error running decision for scenario ${scenario._id}: ${error.message}`);
         results[scenario._id.toString()] = { error: error.message };
@@ -163,8 +169,8 @@ export class ScenarioDataService {
    * Retrieves scenario results, extracts unique input and output keys, and maps them to CSV rows.
    * Constructs CSV headers and rows based on input and output keys.
    */
-  async getCSVForRuleRun(goRulesJSONFilename: string): Promise<string> {
-    const ruleRunResults = await this.runDecisionsForScenarios(goRulesJSONFilename);
+  async getCSVForRuleRun(goRulesJSONFilename: string, newScenarios?: ScenarioData[]): Promise<string> {
+    const ruleRunResults = await this.runDecisionsForScenarios(goRulesJSONFilename, newScenarios);
     const inputKeys = Array.from(
       new Set(Object.values(ruleRunResults).flatMap((scenario) => Object.keys(scenario.inputs))),
     );
@@ -187,5 +193,76 @@ export class ScenarioDataService {
 
     const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
     return csvContent;
+  }
+
+  async processProvidedScenarios(goRulesJSONFilename: string, csvContent: string): Promise<ScenarioData[]> {
+    const parsedData = await this.parseCSV(csvContent);
+    const headers = parsedData[0];
+    const inputKeys = headers
+      .filter((header) => header.startsWith('Input: '))
+      .map((header) => header.replace('Input: ', ''));
+    const outputKeys = headers
+      .filter((header) => header.startsWith('Output: '))
+      .map((header) => header.replace('Output: ', ''));
+
+    const scenarios: ScenarioData[] = [];
+
+    for (let i = 1; i < parsedData.length; i++) {
+      const row = parsedData[i];
+      const scenarioTitle = row[0];
+
+      function formatValue(value: string): boolean | number | string {
+        // Check for boolean values
+        if (value.toLowerCase() === 'true') {
+          return true;
+        } else if (value.toLowerCase() === 'false') {
+          return false;
+        }
+        // Check for number values
+        const numberValue = parseFloat(value);
+        if (!isNaN(numberValue)) {
+          return numberValue;
+        }
+        // Default to string
+        return value;
+      }
+
+      const inputs: Variable[] = inputKeys.map((key, index) => ({
+        name: key,
+        value: formatValue(row[index + 1]),
+        type: typeof formatValue(row[index + 1]),
+      }));
+
+      const outputs: { [key: string]: any } = {};
+      outputKeys.forEach((key, index) => {
+        outputs[key] = row[inputKeys.length + 1 + index];
+      });
+
+      const scenario: ScenarioData = {
+        _id: new Types.ObjectId(),
+        title: scenarioTitle,
+        ruleID: '',
+        variables: inputs,
+        goRulesJSONFilename: goRulesJSONFilename,
+      };
+
+      scenarios.push(scenario);
+    }
+
+    return scenarios;
+  }
+
+  async parseCSV(file): Promise<string[][]> {
+    return new Promise((resolve, reject) => {
+      const results: string[][] = [];
+      const stream = csvParser({ headers: false });
+
+      stream.on('data', (data) => results.push(Object.values(data)));
+      stream.on('end', () => resolve(results));
+      stream.on('error', (error) => reject(error));
+
+      stream.write(file.buffer);
+      stream.end();
+    });
   }
 }

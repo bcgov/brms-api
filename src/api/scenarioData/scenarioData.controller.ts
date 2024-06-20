@@ -1,4 +1,20 @@
-import { Controller, Get, Param, Post, Body, Put, Delete, HttpException, HttpStatus, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Post,
+  Body,
+  Put,
+  Delete,
+  HttpException,
+  HttpStatus,
+  Res,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as csvParser from 'csv-parser';
+import * as fastCsv from 'fast-csv';
 import { Response } from 'express';
 import { ScenarioDataService } from './scenarioData.service';
 import { ScenarioData } from './scenarioData.schema';
@@ -82,6 +98,43 @@ export class ScenarioDataController {
       res.status(HttpStatus.OK).send(fileContent);
     } catch (error) {
       throw new HttpException('Error generating CSV for rule run', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Get('/run-decisions/:goRulesJSONFilename')
+  async runDecisionsForScenarios(
+    @Param('goRulesJSONFilename') goRulesJSONFilename: string,
+  ): Promise<{ [scenarioId: string]: any }> {
+    try {
+      return await this.scenarioDataService.runDecisionsForScenarios(goRulesJSONFilename);
+    } catch (error) {
+      throw new HttpException('Error running scenario decisions', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('/evaluation/upload/:goRulesJSONFilename')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadCSVAndProcess(
+    @UploadedFile() file,
+    @Res() res: Response,
+    @Param('goRulesJSONFilename') goRulesJSONFilename: string,
+  ) {
+    // console.log(file);
+    if (!file) {
+      throw new HttpException('No file uploaded', HttpStatus.BAD_REQUEST);
+    }
+
+    try {
+      const scenarios = await this.scenarioDataService.processProvidedScenarios(goRulesJSONFilename, file);
+      const csvContent = await this.scenarioDataService.getCSVForRuleRun(goRulesJSONFilename, scenarios);
+      console.log(csvContent, 'this is csv content');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=processed_data.csv`);
+      //   res.status(HttpStatus.OK).send(scenarios);
+      res.status(HttpStatus.OK).send(csvContent);
+    } catch (error) {
+      throw new HttpException('Error processing CSV file', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }
