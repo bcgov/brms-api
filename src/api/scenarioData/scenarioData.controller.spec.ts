@@ -4,6 +4,7 @@ import { ScenarioDataService } from './scenarioData.service';
 import { ScenarioData } from './scenarioData.schema';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Types } from 'mongoose';
+import { Response } from 'express';
 
 describe('ScenarioDataController', () => {
   let controller: ScenarioDataController;
@@ -20,6 +21,7 @@ describe('ScenarioDataController', () => {
     updateScenarioData: jest.fn(),
     deleteScenarioData: jest.fn(),
     getCSVForRuleRun: jest.fn(),
+    processProvidedScenarios: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -218,6 +220,102 @@ Scenario 2,couple,3,,200`;
       } catch (error) {
         expect(error.message).toBe('Error generating CSV for rule run');
       }
+    });
+  });
+  describe('uploadCSVAndProcess', () => {
+    it('should throw an error if no file is uploaded', async () => {
+      const res: Partial<Response> = {
+        setHeader: jest.fn(),
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      };
+
+      await expect(controller.uploadCSVAndProcess(undefined, res as Response, 'test.json')).rejects.toThrow(
+        HttpException,
+      );
+
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.setHeader).not.toHaveBeenCalled();
+      expect(res.send).not.toHaveBeenCalled();
+    });
+
+    it('should process the CSV and return processed data', async () => {
+      const csvContent = Buffer.from('Title,Input: Age\nScenario 1,25\nScenario 2,30');
+      const file: Express.Multer.File = {
+        buffer: csvContent,
+        fieldname: '',
+        originalname: '',
+        encoding: '',
+        mimetype: '',
+        size: 0,
+        stream: null,
+        destination: '',
+        filename: '',
+        path: '',
+      };
+
+      const scenarios = [
+        {
+          _id: new Types.ObjectId(),
+          title: 'Scenario 1',
+          ruleID: '',
+          variables: [{ name: 'Age', value: 25, type: 'number' }],
+          goRulesJSONFilename: 'test.json',
+        },
+      ];
+
+      const csvResult = 'Processed CSV Content';
+
+      mockScenarioDataService.processProvidedScenarios.mockResolvedValue(scenarios);
+      mockScenarioDataService.getCSVForRuleRun.mockResolvedValue(csvResult);
+
+      const res: Partial<Response> = {
+        setHeader: jest.fn(),
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      };
+
+      await controller.uploadCSVAndProcess(file, res as Response, 'test.json');
+
+      expect(service.processProvidedScenarios).toHaveBeenCalledWith('test.json', file);
+      expect(service.getCSVForRuleRun).toHaveBeenCalledWith('test.json', scenarios);
+      expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
+      expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename=processed_data.csv');
+      expect(res.status).toHaveBeenCalledWith(HttpStatus.OK);
+      expect(res.send).toHaveBeenCalledWith(csvResult);
+    });
+
+    it('should handle errors during processing', async () => {
+      const csvContent = Buffer.from('Title,Input: Age\nScenario 1,25\nScenario 2,30');
+      const file: Express.Multer.File = {
+        buffer: csvContent,
+        fieldname: '',
+        originalname: '',
+        encoding: '',
+        mimetype: '',
+        size: 0,
+        stream: null,
+        destination: '',
+        filename: '',
+        path: '',
+      };
+
+      mockScenarioDataService.processProvidedScenarios.mockRejectedValue(new Error('Mocked error'));
+
+      const res: Partial<Response> = {
+        setHeader: jest.fn(),
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      };
+
+      await expect(controller.uploadCSVAndProcess(file, res as Response, 'test.json')).rejects.toThrow(
+        new HttpException('Error processing CSV file', HttpStatus.INTERNAL_SERVER_ERROR),
+      );
+
+      expect(service.processProvidedScenarios).toHaveBeenCalledWith('test.json', file);
+      expect(res.setHeader).not.toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalledWith(HttpStatus.OK);
+      expect(res.send).not.toHaveBeenCalled();
     });
   });
 });
