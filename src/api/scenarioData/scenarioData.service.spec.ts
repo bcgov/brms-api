@@ -7,6 +7,8 @@ import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
 import { ConfigService } from '@nestjs/config';
 import { DocumentsService } from '../documents/documents.service';
+import * as csvParser from 'csv-parser';
+import { Readable } from 'stream';
 
 describe('ScenarioDataService', () => {
   let service: ScenarioDataService;
@@ -498,6 +500,33 @@ describe('ScenarioDataService', () => {
       const expectedCsvContent = `Scenario\nScenario 1`;
 
       expect(csvContent.trim()).toBe(expectedCsvContent.trim());
+    });
+  });
+
+  describe('parseCSV', () => {
+    it('should parse a CSV file and return the parsed data as a 2D array', async () => {
+      const fileBuffer = Buffer.from('a,b,c\n1,2,3\n4,5,6\n');
+      const file: Express.Multer.File = {
+        buffer: fileBuffer,
+        fieldname: '',
+        originalname: '',
+        encoding: '',
+        mimetype: '',
+        size: 0,
+        stream: null,
+        destination: '',
+        filename: '',
+        path: '',
+      };
+
+      const expectedOutput = [
+        ['a', 'b', 'c'],
+        ['1', '2', '3'],
+        ['4', '5', '6'],
+      ];
+
+      const result = await service.parseCSV(file);
+      expect(result).toEqual(expectedOutput);
     });
   });
 });
