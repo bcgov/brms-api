@@ -2,13 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ScenarioDataService } from './scenarioData.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Types, Model } from 'mongoose';
-import { ScenarioData, ScenarioDataDocument, Variable } from './scenarioData.schema';
+import { ScenarioData, ScenarioDataDocument } from './scenarioData.schema';
 import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
 import { ConfigService } from '@nestjs/config';
 import { DocumentsService } from '../documents/documents.service';
-import * as csvParser from 'csv-parser';
-import { Readable } from 'stream';
 
 describe('ScenarioDataService', () => {
   let service: ScenarioDataService;
