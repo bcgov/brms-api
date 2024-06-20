@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { ScenarioData, ScenarioDataDocument, Variable, VariableSchema } from './scenarioData.schema';
+import { ScenarioData, ScenarioDataDocument, Variable } from './scenarioData.schema';
 import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
 import * as csvParser from 'csv-parser';
@@ -193,48 +193,60 @@ export class ScenarioDataService {
     return csvContent;
   }
 
-  async processProvidedScenarios(goRulesJSONFilename: string, csvContent: string): Promise<ScenarioData[]> {
+  async parseCSV(file: Express.Multer.File | undefined): Promise<string[][]> {
+    return new Promise((resolve, reject) => {
+      const results: string[][] = [];
+      const stream = csvParser({ headers: false });
+
+      stream.on('data', (data) => results.push(Object.values(data)));
+      stream.on('end', () => resolve(results));
+      stream.on('error', (error) => reject(error));
+
+      stream.write(file.buffer);
+      stream.end();
+    });
+  }
+
+  /**
+   * Processes a CSV file containing scenario data and returns an array of ScenarioData objects based on the inputs.
+   * @param goRulesJSONFilename The name of the Go rules JSON file.
+   * @param csvContent The CSV file content.
+   * @returns An array of ScenarioData objects.
+   */
+  async processProvidedScenarios(
+    goRulesJSONFilename: string,
+    csvContent: Express.Multer.File,
+  ): Promise<ScenarioData[]> {
     const parsedData = await this.parseCSV(csvContent);
     const headers = parsedData[0];
     const inputKeys = headers
       .filter((header) => header.startsWith('Input: '))
       .map((header) => header.replace('Input: ', ''));
-    const outputKeys = headers
-      .filter((header) => header.startsWith('Output: '))
-      .map((header) => header.replace('Output: ', ''));
 
     const scenarios: ScenarioData[] = [];
+
+    function formatValue(value: string): boolean | number | string {
+      if (value.toLowerCase() === 'true') {
+        return true;
+      } else if (value.toLowerCase() === 'false') {
+        return false;
+      }
+      const numberValue = parseFloat(value);
+      if (!isNaN(numberValue)) {
+        return numberValue;
+      }
+      return value;
+    }
 
     for (let i = 1; i < parsedData.length; i++) {
       const row = parsedData[i];
       const scenarioTitle = row[0];
-
-      function formatValue(value: string): boolean | number | string {
-        // Check for boolean values
-        if (value.toLowerCase() === 'true') {
-          return true;
-        } else if (value.toLowerCase() === 'false') {
-          return false;
-        }
-        // Check for number values
-        const numberValue = parseFloat(value);
-        if (!isNaN(numberValue)) {
-          return numberValue;
-        }
-        // Default to string
-        return value;
-      }
 
       const inputs: Variable[] = inputKeys.map((key, index) => ({
         name: key,
         value: formatValue(row[index + 1]),
         type: typeof formatValue(row[index + 1]),
       }));
-
-      const outputs: { [key: string]: any } = {};
-      outputKeys.forEach((key, index) => {
-        outputs[key] = row[inputKeys.length + 1 + index];
-      });
 
       const scenario: ScenarioData = {
         _id: new Types.ObjectId(),
@@ -248,19 +260,5 @@ export class ScenarioDataService {
     }
 
     return scenarios;
-  }
-
-  async parseCSV(file: Express.Multer.File): Promise<string[][]> {
-    return new Promise((resolve, reject) => {
-      const results: string[][] = [];
-      const stream = csvParser({ headers: false });
-
-      stream.on('data', (data) => results.push(Object.values(data)));
-      stream.on('end', () => resolve(results));
-      stream.on('error', (error) => reject(error));
-
-      stream.write(file.buffer);
-      stream.end();
-    });
   }
 }
