@@ -115,7 +115,7 @@ export class ScenarioDataController {
   @Post('/evaluation/upload/:goRulesJSONFilename')
   @UseInterceptors(FileInterceptor('file'))
   async uploadCSVAndProcess(
-    @UploadedFile() file,
+    @UploadedFile() file: Express.Multer.File,
     @Res() res: Response,
     @Param('goRulesJSONFilename') goRulesJSONFilename: string,
   ) {

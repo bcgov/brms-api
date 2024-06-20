@@ -250,7 +250,7 @@ export class ScenarioDataService {
     return scenarios;
   }
 
-  async parseCSV(file): Promise<string[][]> {
+  async parseCSV(file: Express.Multer.File): Promise<string[][]> {
     return new Promise((resolve, reject) => {
       const results: string[][] = [];
       const stream = csvParser({ headers: false });
