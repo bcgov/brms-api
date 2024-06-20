@@ -22,6 +22,7 @@ describe('ScenarioDataService', () => {
     ruleID: 'ruleID',
     variables: [],
     goRulesJSONFilename: 'test.json',
+    expectedResults: [],
   };
 
   class MockScenarioDataModel {
@@ -281,6 +282,7 @@ describe('ScenarioDataService', () => {
           variables: [{ name: 'familyComposition', value: 'single' }],
           ruleID: 'ruleID',
           goRulesJSONFilename: 'test.json',
+          expectedResults: [],
         },
         {
           _id: testObjectId,
@@ -288,6 +290,7 @@ describe('ScenarioDataService', () => {
           variables: [{ name: 'numberOfChildren', value: 2 }],
           ruleID: 'ruleID',
           goRulesJSONFilename: 'test.json',
+          expectedResults: [],
         },
       ];
       const ruleSchema = {
@@ -346,6 +349,7 @@ describe('ScenarioDataService', () => {
           variables: [{ name: 'familyComposition', value: 'single' }],
           ruleID: 'ruleID',
           goRulesJSONFilename: 'test.json',
+          expectedResults: [],
         },
       ];
       const ruleSchema = {
@@ -372,6 +376,7 @@ describe('ScenarioDataService', () => {
           variables: [],
           ruleID: 'ruleID',
           goRulesJSONFilename: 'test.json',
+          expectedResults: [],
         },
       ];
       const ruleSchema = {
@@ -554,6 +559,7 @@ describe('ScenarioDataService', () => {
             { name: 'Name', value: 'John', type: 'string' },
           ],
           goRulesJSONFilename: 'test.json',
+          expectedResults: [],
         },
         {
           _id: expect.any(Types.ObjectId),
@@ -564,6 +570,7 @@ describe('ScenarioDataService', () => {
             { name: 'Name', value: 'Jane', type: 'string' },
           ],
           goRulesJSONFilename: 'test.json',
+          expectedResults: [],
         },
       ];
 
@@ -600,6 +607,7 @@ describe('ScenarioDataService', () => {
           ruleID: '',
           variables: [{ name: 'Active', value: true, type: 'boolean' }],
           goRulesJSONFilename: 'test.json',
+          expectedResults: [],
         },
         {
           _id: expect.any(Types.ObjectId),
@@ -607,6 +615,7 @@ describe('ScenarioDataService', () => {
           ruleID: '',
           variables: [{ name: 'Active', value: false, type: 'boolean' }],
           goRulesJSONFilename: 'test.json',
+          expectedResults: [],
         },
       ];
 
@@ -643,6 +652,7 @@ describe('ScenarioDataService', () => {
           ruleID: '',
           variables: [{ name: 'Name', value: 'John', type: 'string' }],
           goRulesJSONFilename: 'test.json',
+          expectedResults: [],
         },
         {
           _id: expect.any(Types.ObjectId),
@@ -650,6 +660,7 @@ describe('ScenarioDataService', () => {
           ruleID: '',
           variables: [{ name: 'Name', value: 'Jane', type: 'string' }],
           goRulesJSONFilename: 'test.json',
+          expectedResults: [],
         },
       ];
 
@@ -686,6 +697,7 @@ describe('ScenarioDataService', () => {
           ruleID: '',
           variables: [{ name: 'Age', value: 25, type: 'number' }],
           goRulesJSONFilename: 'test.json',
+          expectedResults: [],
         },
         {
           _id: expect.any(Types.ObjectId),
@@ -693,6 +705,7 @@ describe('ScenarioDataService', () => {
           ruleID: '',
           variables: [{ name: 'Age', value: 30, type: 'number' }],
           goRulesJSONFilename: 'test.json',
+          expectedResults: [],
         },
       ];
 

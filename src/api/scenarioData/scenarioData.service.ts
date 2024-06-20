@@ -255,6 +255,7 @@ export class ScenarioDataService {
         ruleID: '',
         variables: inputs,
         goRulesJSONFilename: goRulesJSONFilename,
+        expectedResults: [],
       };
 
       scenarios.push(scenario);

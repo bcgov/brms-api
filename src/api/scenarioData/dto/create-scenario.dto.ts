@@ -22,6 +22,10 @@ export class CreateScenarioDto {
   @Type(() => VariableClass)
   variables: VariableClass[];
 
+  @ValidateNested({ each: true })
+  @Type(() => VariableClass)
+  expectedResults: VariableClass[];
+
   @IsNotEmpty()
   @IsString()
   goRulesJSONFilename: string;

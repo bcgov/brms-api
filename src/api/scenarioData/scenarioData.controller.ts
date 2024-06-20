@@ -67,6 +67,7 @@ export class ScenarioDataController {
         ruleID: createScenarioDto.ruleID,
         variables: createScenarioDto.variables,
         goRulesJSONFilename: createScenarioDto.goRulesJSONFilename,
+        expectedResults: createScenarioDto.expectedResults,
       };
       return await this.scenarioDataService.createScenarioData(scenarioData);
     } catch (error) {
@@ -86,6 +87,7 @@ export class ScenarioDataController {
         ruleID: updateScenarioDto.ruleID,
         variables: updateScenarioDto.variables,
         goRulesJSONFilename: updateScenarioDto.goRulesJSONFilename,
+        expectedResults: updateScenarioDto.expectedResults,
       };
       return await this.scenarioDataService.updateScenarioData(scenarioId, scenarioData);
     } catch (error) {

@@ -112,13 +112,15 @@ describe('ScenarioDataController', () => {
         ruleID: 'ruleID',
         variables: [],
         goRulesJSONFilename: 'filename',
+        expectedResults: [],
       };
 
-      // Adjusting variables to use VariableClass instances
       const variables: VariableClass[] = [
         { name: 'variable1', value: 'value1', type: 'string' },
         { name: 'variable2', value: 123, type: 'number' },
       ];
+
+      const expectedResults: VariableClass[] = [];
 
       jest.spyOn(service, 'createScenarioData').mockResolvedValue(result);
 
@@ -127,6 +129,7 @@ describe('ScenarioDataController', () => {
         ruleID: result.ruleID,
         variables: variables,
         goRulesJSONFilename: result.goRulesJSONFilename,
+        expectedResults: expectedResults,
       };
 
       expect(await controller.createScenarioData(dto)).toBe(result);
@@ -141,6 +144,7 @@ describe('ScenarioDataController', () => {
         ruleID: 'ruleID',
         variables: [],
         goRulesJSONFilename: 'filename',
+        expectedResults: [],
       };
 
       await expect(controller.createScenarioData(dto)).rejects.toThrow(HttpException);
@@ -155,6 +159,7 @@ describe('ScenarioDataController', () => {
         ruleID: 'ruleID',
         variables: [],
         goRulesJSONFilename: 'filename',
+        expectedResults: [],
       };
 
       jest.spyOn(service, 'updateScenarioData').mockResolvedValue(result);
@@ -164,6 +169,7 @@ describe('ScenarioDataController', () => {
         ruleID: result.ruleID,
         variables: [],
         goRulesJSONFilename: result.goRulesJSONFilename,
+        expectedResults: [],
       };
 
       expect(await controller.updateScenarioData(testObjectId.toHexString(), dto)).toBe(result);
@@ -178,6 +184,7 @@ describe('ScenarioDataController', () => {
         ruleID: 'ruleID',
         variables: [],
         goRulesJSONFilename: 'filename',
+        expectedResults: [],
       };
 
       await expect(controller.updateScenarioData(testObjectId.toHexString(), dto)).rejects.toThrow(HttpException);

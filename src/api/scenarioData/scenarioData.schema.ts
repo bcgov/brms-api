@@ -52,6 +52,13 @@ export class ScenarioData {
   })
   variables: Variable[];
 
+  @Prop({
+    required: false,
+    description: 'The expected result of the scenario',
+    type: [VariableModelSchema],
+  })
+  expectedResults: Variable[];
+
   @Prop({ required: true, description: 'The filename of the JSON file containing the rule' })
   goRulesJSONFilename: string;
 }
