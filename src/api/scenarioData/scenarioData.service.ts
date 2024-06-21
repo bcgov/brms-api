@@ -163,7 +163,16 @@ export class ScenarioDataService {
           { trace: true },
         );
 
-        const scenarioResult = { inputs: {}, outputs: {}, expectedResults: {}, result: {}, resultMatch: true };
+        const resultMatches =
+          Object.keys(expectedResultsObject).length > 0 ? isEqual(decisionResult.result, expectedResultsObject) : true;
+
+        const scenarioResult = {
+          inputs: {},
+          outputs: {},
+          expectedResults: expectedResultsObject,
+          result: decisionResult.result,
+          resultMatch: resultMatches,
+        };
 
         // Map inputs and outputs based on the trace
         for (const trace of Object.values(decisionResult.trace)) {
@@ -174,11 +183,6 @@ export class ScenarioDataService {
             Object.assign(scenarioResult.outputs, mapTraceToResult(trace.output, 'output'));
           }
         }
-
-        scenarioResult.expectedResults = expectedResultsObject;
-        scenarioResult.result = decisionResult.result;
-        scenarioResult.resultMatch =
-          Object.keys(expectedResultsObject).length > 0 ? isEqual(decisionResult.result, expectedResultsObject) : true;
 
         results[scenario.title.toString()] = scenarioResult;
       } catch (error) {
@@ -197,24 +201,39 @@ export class ScenarioDataService {
    */
   async getCSVForRuleRun(goRulesJSONFilename: string, newScenarios?: ScenarioData[]): Promise<string> {
     const ruleRunResults: RuleRunResults = await this.runDecisionsForScenarios(goRulesJSONFilename, newScenarios);
+
     const inputKeys = Array.from(
       new Set(Object.values(ruleRunResults).flatMap((scenario) => Object.keys(scenario.inputs))),
     );
     const outputKeys = Array.from(
       new Set(Object.values(ruleRunResults).flatMap((scenario) => Object.keys(scenario.outputs))),
     );
+    const expectedResultsKeys = Array.from(
+      new Set(
+        Object.values(ruleRunResults).flatMap((scenario) => {
+          if (scenario.expectedResults) {
+            return Object.keys(scenario.expectedResults);
+          }
+          return [];
+        }),
+      ),
+    );
 
     const headers = [
       'Scenario',
+      'Results Match Expected (Pass/Fail)',
       ...inputKeys.map((key) => `Input: ${key}`),
       ...outputKeys.map((key) => `Output: ${key}`),
+      ...expectedResultsKeys.map((key) => `Expected Result: ${key}`),
     ];
+
     const rows = Object.entries(ruleRunResults).map(([scenarioName, scenarioData]) => {
-      const inputs = inputKeys.map((key) => (scenarioData.inputs[key] !== undefined ? scenarioData.inputs[key] : ''));
-      const outputs = outputKeys.map((key) =>
-        scenarioData.outputs[key] !== undefined ? scenarioData.outputs[key] : '',
-      );
-      return [scenarioName, ...inputs, ...outputs];
+      const resultsMatch = scenarioData.resultMatch ? 'Pass' : 'Fail';
+      const inputs = inputKeys.map((key) => scenarioData.inputs[key] ?? '');
+      const outputs = outputKeys.map((key) => scenarioData.outputs[key] ?? '');
+      const expectedResults = expectedResultsKeys.map((key) => scenarioData.expectedResults[key] ?? '');
+
+      return [scenarioName, resultsMatch, ...inputs, ...outputs, ...expectedResults];
     });
 
     const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
