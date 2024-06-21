@@ -299,7 +299,7 @@ export class ScenarioDataService {
 
       const inputs: Variable[] = inputKeys.map((key, index) => {
         // Adjusted index to account for scenario title and results match
-        const value = formatValue(row[index + 2]);
+        const value = row[index + 2] ? formatValue(row[index + 2]) : null;
         return {
           name: key,
           value: value,
@@ -311,7 +311,9 @@ export class ScenarioDataService {
       const expectedResultsStartIndex = 2 + inputKeys.length;
       const expectedResults: Variable[] = expectedResultsKeys
         .map((key, index) => {
-          const value = formatValue(row[expectedResultsStartIndex + index]);
+          const value = row[expectedResultsStartIndex + index]
+            ? formatValue(row[expectedResultsStartIndex + index])
+            : null;
           if (value !== null && value !== undefined && value !== '') {
             return {
               name: key,

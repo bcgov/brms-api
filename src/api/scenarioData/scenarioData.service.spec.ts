@@ -446,7 +446,7 @@ describe('ScenarioDataService', () => {
 
       const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename);
 
-      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren,Output: isEligible,Output: baseAmount\nScenario 1,Fail,single,2,true,100\nScenario 2,Fail,couple,3,false,200`;
+      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren,Result: isEligible,Result: baseAmount\nScenario 1,Fail,single,2,true,100\nScenario 2,Fail,couple,3,false,200`;
 
       expect(csvContent.trim()).toBe(expectedCsvContent.trim());
     });
@@ -470,7 +470,7 @@ describe('ScenarioDataService', () => {
 
       const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename);
 
-      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren,Output: isEligible,Output: baseAmount\nScenario 1,Fail,single,,true,\nScenario 2,Fail,couple,3,,200`;
+      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren,Result: isEligible,Result: baseAmount\nScenario 1,Fail,single,,true,\nScenario 2,Fail,couple,3,,200`;
 
       expect(csvContent.trim()).toBe(expectedCsvContent.trim());
     });
@@ -489,7 +489,7 @@ describe('ScenarioDataService', () => {
 
       const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename);
 
-      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren,Output: isEligible,Output: baseAmount\nScenario 1,Fail,single,2,true,100`;
+      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren,Result: isEligible,Result: baseAmount\nScenario 1,Fail,single,2,true,100`;
 
       expect(csvContent.trim()).toBe(expectedCsvContent.trim());
     });
@@ -595,9 +595,9 @@ describe('ScenarioDataService', () => {
       ];
 
       jest.spyOn(service, 'parseCSV').mockResolvedValue([
-        ['Title', 'Input: Age', 'Input: Name'],
-        ['Scenario 1', '25', 'John'],
-        ['Scenario 2', '30', 'Jane'],
+        ['Title', 'Results Match Expected (Pass/Fail)', 'Input: Age', 'Input: Name'],
+        ['Scenario 1', 'Pass', '25', 'John'],
+        ['Scenario 2', 'Pass', '30', 'Jane'],
       ]);
 
       const result = await service.processProvidedScenarios('test.json', file);
@@ -640,9 +640,9 @@ describe('ScenarioDataService', () => {
       ];
 
       jest.spyOn(service, 'parseCSV').mockResolvedValue([
-        ['Title', 'Input: Active'],
-        ['Scenario 1', 'True'],
-        ['Scenario 2', 'False'],
+        ['Title', 'Results Match Expected (Pass/Fail)', 'Input: Active'],
+        ['Scenario 1', 'Pass', 'True'],
+        ['Scenario 2', 'Pass', 'False'],
       ]);
 
       const result = await service.processProvidedScenarios('test.json', file);
@@ -685,9 +685,9 @@ describe('ScenarioDataService', () => {
       ];
 
       jest.spyOn(service, 'parseCSV').mockResolvedValue([
-        ['Title', 'Input: Name'],
-        ['Scenario 1', 'John'],
-        ['Scenario 2', 'Jane'],
+        ['Title', 'Results Match Expected (Pass/Fail)', 'Input: Name'],
+        ['Scenario 1', 'Pass', 'John'],
+        ['Scenario 2', 'Pass', 'Jane'],
       ]);
 
       const result = await service.processProvidedScenarios('test.json', file);
@@ -730,9 +730,9 @@ describe('ScenarioDataService', () => {
       ];
 
       jest.spyOn(service, 'parseCSV').mockResolvedValue([
-        ['Title', 'Input: Age'],
-        ['Scenario 1', '25'],
-        ['Scenario 2', '30'],
+        ['Title', 'Results Match Expected (Pass/Fail)', 'Input: Age'],
+        ['Scenario 1', 'Pass', '25'],
+        ['Scenario 2', 'Pass', '30'],
       ]);
 
       const result = await service.processProvidedScenarios('test.json', file);
