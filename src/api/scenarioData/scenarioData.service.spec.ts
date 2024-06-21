@@ -337,6 +337,7 @@ describe('ScenarioDataService', () => {
             status: 'pass',
           },
           expectedResults: {},
+          resultMatch: true,
         },
         'Scenario 2': {
           inputs: { familyComposition: 'single', numberOfChildren: 2 },
@@ -345,6 +346,7 @@ describe('ScenarioDataService', () => {
             status: 'pass',
           },
           expectedResults: {},
+          resultMatch: true,
         },
       });
     });
@@ -418,6 +420,7 @@ describe('ScenarioDataService', () => {
           result: {
             status: 'pass',
           },
+          resultMatch: true,
         },
       });
     });
