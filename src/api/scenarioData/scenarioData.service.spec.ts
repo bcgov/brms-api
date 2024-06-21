@@ -333,10 +333,18 @@ describe('ScenarioDataService', () => {
         'Scenario 1': {
           inputs: { familyComposition: 'single', numberOfChildren: 2 },
           outputs: { baseAmount: 100, isEligible: true },
+          result: {
+            status: 'pass',
+          },
+          expectedResults: {},
         },
         'Scenario 2': {
           inputs: { familyComposition: 'single', numberOfChildren: 2 },
           outputs: { baseAmount: 100, isEligible: true },
+          result: {
+            status: 'pass',
+          },
+          expectedResults: {},
         },
       });
     });
@@ -406,6 +414,10 @@ describe('ScenarioDataService', () => {
         'Scenario 1': {
           inputs: {},
           outputs: { isEligible: true },
+          expectedResults: {},
+          result: {
+            status: 'pass',
+          },
         },
       });
     });
