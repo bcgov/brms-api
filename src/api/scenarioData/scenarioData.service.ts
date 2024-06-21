@@ -134,6 +134,11 @@ export class ScenarioDataService {
         return acc;
       }, {});
 
+      const expectedResultsObject = scenario?.expectedResults?.reduce((acc: any, obj: any) => {
+        acc[obj.name] = obj.value;
+        return acc;
+      }, {});
+
       try {
         const decisionResult = await this.decisionsService.runDecisionByFile(
           scenario.goRulesJSONFilename,
@@ -141,7 +146,7 @@ export class ScenarioDataService {
           { trace: true },
         );
 
-        const scenarioResult = { inputs: {}, outputs: {} };
+        const scenarioResult = { inputs: {}, outputs: {}, expectedResults: {}, result: {} };
 
         // Map inputs and outputs based on the trace
         for (const trace of Object.values(decisionResult.trace)) {
@@ -152,6 +157,9 @@ export class ScenarioDataService {
             Object.assign(scenarioResult.outputs, mapTraceToResult(trace.output, 'output'));
           }
         }
+
+        scenarioResult.expectedResults = expectedResultsObject;
+        scenarioResult.result = decisionResult.result;
 
         results[scenario.title.toString()] = scenarioResult;
       } catch (error) {
