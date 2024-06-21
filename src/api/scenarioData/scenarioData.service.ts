@@ -223,8 +223,8 @@ export class ScenarioDataService {
       'Scenario',
       'Results Match Expected (Pass/Fail)',
       ...inputKeys.map((key) => `Input: ${key}`),
-      ...outputKeys.map((key) => `Output: ${key}`),
       ...expectedResultsKeys.map((key) => `Expected Result: ${key}`),
+      ...outputKeys.map((key) => `Result: ${key}`),
     ];
 
     const rows = Object.entries(ruleRunResults).map(([scenarioName, scenarioData]) => {
@@ -233,7 +233,7 @@ export class ScenarioDataService {
       const outputs = outputKeys.map((key) => scenarioData.outputs[key] ?? '');
       const expectedResults = expectedResultsKeys.map((key) => scenarioData.expectedResults[key] ?? '');
 
-      return [scenarioName, resultsMatch, ...inputs, ...outputs, ...expectedResults];
+      return [scenarioName, resultsMatch, ...inputs, ...expectedResults, ...outputs];
     });
 
     const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
@@ -266,9 +266,14 @@ export class ScenarioDataService {
   ): Promise<ScenarioData[]> {
     const parsedData = await this.parseCSV(csvContent);
     const headers = parsedData[0];
+
     const inputKeys = headers
       .filter((header) => header.startsWith('Input: '))
       .map((header) => header.replace('Input: ', ''));
+
+    const expectedResultsKeys = headers
+      .filter((header) => header.startsWith('Expected Result: '))
+      .map((header) => header.replace('Expected Result: ', ''));
 
     const scenarios: ScenarioData[] = [];
 
@@ -282,6 +287,9 @@ export class ScenarioDataService {
       if (!isNaN(numberValue)) {
         return numberValue;
       }
+      if (value === '') {
+        return null;
+      }
       return value;
     }
 
@@ -289,11 +297,31 @@ export class ScenarioDataService {
       const row = parsedData[i];
       const scenarioTitle = row[0];
 
-      const inputs: Variable[] = inputKeys.map((key, index) => ({
-        name: key,
-        value: formatValue(row[index + 1]),
-        type: typeof formatValue(row[index + 1]),
-      }));
+      const inputs: Variable[] = inputKeys.map((key, index) => {
+        // Adjusted index to account for scenario title and results match
+        const value = formatValue(row[index + 2]);
+        return {
+          name: key,
+          value: value,
+          type: typeof value,
+        };
+      });
+
+      // Adjusted index to account for scenario title, results match, and inputs in csv layout
+      const expectedResultsStartIndex = 2 + inputKeys.length;
+      const expectedResults: Variable[] = expectedResultsKeys
+        .map((key, index) => {
+          const value = formatValue(row[expectedResultsStartIndex + index]);
+          if (value !== null && value !== undefined && value !== '') {
+            return {
+              name: key,
+              value: value,
+              type: typeof value,
+            };
+          }
+          return undefined;
+        })
+        .filter((entry) => entry !== undefined);
 
       const scenario: ScenarioData = {
         _id: new Types.ObjectId(),
@@ -301,7 +329,7 @@ export class ScenarioDataService {
         ruleID: '',
         variables: inputs,
         goRulesJSONFilename: goRulesJSONFilename,
-        expectedResults: [],
+        expectedResults: expectedResults || [],
       };
 
       scenarios.push(scenario);
