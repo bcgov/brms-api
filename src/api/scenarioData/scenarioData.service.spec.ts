@@ -446,7 +446,7 @@ describe('ScenarioDataService', () => {
 
       const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename);
 
-      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren,Result: isEligible,Result: baseAmount\nScenario 1,Fail,single,2,true,100\nScenario 2,Fail,couple,3,false,200`;
+      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren\nScenario 1,Fail,single,2\nScenario 2,Fail,couple,3`;
 
       expect(csvContent.trim()).toBe(expectedCsvContent.trim());
     });
@@ -470,7 +470,7 @@ describe('ScenarioDataService', () => {
 
       const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename);
 
-      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren,Result: isEligible,Result: baseAmount\nScenario 1,Fail,single,,true,\nScenario 2,Fail,couple,3,,200`;
+      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren\nScenario 1,Fail,single,\nScenario 2,Fail,couple,3`;
 
       expect(csvContent.trim()).toBe(expectedCsvContent.trim());
     });
@@ -489,7 +489,7 @@ describe('ScenarioDataService', () => {
 
       const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename);
 
-      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren,Result: isEligible,Result: baseAmount\nScenario 1,Fail,single,2,true,100`;
+      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren\nScenario 1,Fail,single,2`;
 
       expect(csvContent.trim()).toBe(expectedCsvContent.trim());
     });

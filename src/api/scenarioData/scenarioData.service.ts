@@ -166,11 +166,12 @@ export class ScenarioDataService {
         const resultMatches =
           Object.keys(expectedResultsObject).length > 0 ? isEqual(decisionResult.result, expectedResultsObject) : true;
 
+        console.log(expectedResultsObject, resultMatches, decisionResult.result);
         const scenarioResult = {
           inputs: {},
           outputs: {},
-          expectedResults: expectedResultsObject,
-          result: decisionResult.result,
+          expectedResults: expectedResultsObject || {},
+          result: decisionResult.result || {},
           resultMatch: resultMatches,
         };
 
@@ -190,7 +191,6 @@ export class ScenarioDataService {
         results[scenario._id.toString()] = { error: error.message };
       }
     }
-
     return results;
   }
 
@@ -206,7 +206,14 @@ export class ScenarioDataService {
       new Set(Object.values(ruleRunResults).flatMap((scenario) => Object.keys(scenario.inputs))),
     );
     const outputKeys = Array.from(
-      new Set(Object.values(ruleRunResults).flatMap((scenario) => Object.keys(scenario.outputs))),
+      new Set(
+        Object.values(ruleRunResults).flatMap((scenario) => {
+          if (scenario.result) {
+            return Object.keys(scenario.result);
+          }
+          return [];
+        }),
+      ),
     );
     const expectedResultsKeys = Array.from(
       new Set(
@@ -230,7 +237,7 @@ export class ScenarioDataService {
     const rows = Object.entries(ruleRunResults).map(([scenarioName, scenarioData]) => {
       const resultsMatch = scenarioData.resultMatch ? 'Pass' : 'Fail';
       const inputs = inputKeys.map((key) => scenarioData.inputs[key] ?? '');
-      const outputs = outputKeys.map((key) => scenarioData.outputs[key] ?? '');
+      const outputs = outputKeys.map((key) => scenarioData.result[key] ?? '');
       const expectedResults = expectedResultsKeys.map((key) => scenarioData.expectedResults[key] ?? '');
 
       return [scenarioName, resultsMatch, ...inputs, ...expectedResults, ...outputs];
