@@ -166,7 +166,6 @@ export class ScenarioDataService {
         const resultMatches =
           Object.keys(expectedResultsObject).length > 0 ? isEqual(decisionResult.result, expectedResultsObject) : true;
 
-        console.log(expectedResultsObject, resultMatches, decisionResult.result);
         const scenarioResult = {
           inputs: {},
           outputs: {},
