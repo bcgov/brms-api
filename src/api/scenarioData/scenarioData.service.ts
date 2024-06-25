@@ -89,6 +89,17 @@ export class ScenarioDataService {
     }
   }
 
+  //handle special characters that may be entered by end users
+  replaceSpecialCharacters(input: string, replacement: string): string {
+    const specialChars = /[\n\r\t\f,]/g;
+    return input.replace(specialChars, (match) => {
+      if (match === ',') {
+        return '-';
+      }
+      return replacement;
+    });
+  }
+
   /**
    * Runs decisions for multiple scenarios based on the provided rules JSON file.
    * Retrieves scenarios, retrieves rule schema, and executes decisions for each scenario.
@@ -113,14 +124,16 @@ export class ScenarioDataService {
       const schema = type === 'input' ? ruleSchema.inputs : ruleSchema.finalOutputs;
 
       for (const [key, value] of Object.entries(trace)) {
-        const property = getPropertyById(key, type);
+        const propertyUnformatted = getPropertyById(key, type);
+        const property = propertyUnformatted ? this.replaceSpecialCharacters(propertyUnformatted, '') : null;
         if (property) {
           result[property] = value;
         } else {
           // Direct match without id
-          const directMatch = schema.find((item: any) => item.property === key);
+          const directMatch = schema.find((item: any) => this.replaceSpecialCharacters(item.property, '') === key);
           if (directMatch) {
-            result[directMatch.property] = value;
+            const formattedKey = this.replaceSpecialCharacters(directMatch.property, '');
+            result[formattedKey] = value;
           }
         }
       }
@@ -145,6 +158,19 @@ export class ScenarioDataService {
       return true;
     };
 
+    const cleanObjectKeys = (obj: Record<string, any>, replacement: string): Record<string, any> => {
+      const cleanedObject: Record<string, any> = {};
+
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          const cleanedKey = this.replaceSpecialCharacters(key, replacement);
+          cleanedObject[cleanedKey] = obj[key];
+        }
+      }
+
+      return cleanedObject;
+    };
+
     for (const scenario of scenarios) {
       const variablesObject = scenario?.variables?.reduce((acc: any, obj: any) => {
         acc[obj.name] = obj.value;
@@ -156,20 +182,25 @@ export class ScenarioDataService {
         return acc;
       }, {});
 
+      const formattedVariablesObject = cleanObjectKeys(variablesObject, '');
+      const formattedExpectedResultsObject = cleanObjectKeys(expectedResultsObject, '');
+
       try {
         const decisionResult = await this.decisionsService.runDecisionByFile(
           scenario.goRulesJSONFilename,
-          variablesObject,
+          formattedVariablesObject,
           { trace: true },
         );
 
         const resultMatches =
-          Object.keys(expectedResultsObject).length > 0 ? isEqual(decisionResult.result, expectedResultsObject) : true;
+          Object.keys(expectedResultsObject).length > 0
+            ? isEqual(decisionResult.result, formattedExpectedResultsObject)
+            : true;
 
         const scenarioResult = {
           inputs: {},
           outputs: {},
-          expectedResults: expectedResultsObject || {},
+          expectedResults: formattedExpectedResultsObject || {},
           result: decisionResult.result || {},
           resultMatch: resultMatches,
         };
