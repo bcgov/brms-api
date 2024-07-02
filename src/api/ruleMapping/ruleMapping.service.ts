@@ -21,6 +21,31 @@ export class RuleMappingService {
           key: fieldKey === 'inputs' ? expr.key : expr.value,
           property: fieldKey === 'inputs' ? expr.value : expr.key,
         }));
+      } else if (node.type === 'functionNode' && node?.content) {
+        return node.content.split('\n').map((line: string) => {
+          const inputMatch = line.match(/\s*\*\s*@param\s+/);
+          const outputMatch = line.match(/\s*\*\s*@returns\s+/);
+          if (inputMatch && fieldKey === 'inputs') {
+            const param = line.replace(/\s*\*\s*@param\s+/, '');
+            return {
+              key: param,
+              property: param,
+            };
+          } else if (outputMatch && fieldKey === 'outputs') {
+            const result = line.replace(/\s*\*\s*@returns\s+/, '');
+            return {
+              key: result,
+              property: result,
+            };
+          } else {
+            return (node.content?.[fieldKey] || []).map((field: Field) => ({
+              id: field.id,
+              name: field.name,
+              type: field.type,
+              property: field.field,
+            }));
+          }
+        });
       } else {
         return (node.content?.[fieldKey] || []).map((field: Field) => ({
           id: field.id,
@@ -30,7 +55,6 @@ export class RuleMappingService {
         }));
       }
     });
-
     return { [fieldKey]: fields };
   }
 
