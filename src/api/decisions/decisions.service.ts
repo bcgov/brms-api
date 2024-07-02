@@ -9,8 +9,9 @@ export class DecisionsService {
   rulesDirectory: string;
 
   constructor(private configService: ConfigService) {
-    this.engine = new ZenEngine();
     this.rulesDirectory = this.configService.get<string>('RULES_DIRECTORY');
+    const loader = async (key: string) => readFileSafely(this.rulesDirectory, key);
+    this.engine = new ZenEngine({ loader });
   }
 
   async runDecision(content: object, context: object, options: ZenEvaluateOptions) {
@@ -18,6 +19,7 @@ export class DecisionsService {
       const decision = this.engine.createDecision(content);
       return await decision.evaluate(context, options);
     } catch (error) {
+      console.error(error.message);
       throw new Error(`Failed to run decision: ${error.message}`);
     }
   }
