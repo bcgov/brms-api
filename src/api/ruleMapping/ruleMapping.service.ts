@@ -22,30 +22,24 @@ export class RuleMappingService {
           property: fieldKey === 'inputs' ? expr.value : expr.key,
         }));
       } else if (node.type === 'functionNode' && node?.content) {
-        return node.content.split('\n').map((line: string) => {
+        return (node.content.split('\n') || []).reduce((acc: any, line: string) => {
           const inputMatch = line.match(/\s*\*\s*@param\s+/);
           const outputMatch = line.match(/\s*\*\s*@returns\s+/);
           if (inputMatch && fieldKey === 'inputs') {
-            const param = line.replace(/\s*\*\s*@param\s+/, '');
-            return {
+            const param = line.replace(/\s*\*\s*@param\s+/, '').trim();
+            acc.push({
               key: param,
               property: param,
-            };
+            });
           } else if (outputMatch && fieldKey === 'outputs') {
-            const result = line.replace(/\s*\*\s*@returns\s+/, '');
-            return {
+            const result = line.replace(/\s*\*\s*@returns\s+/, '').trim();
+            acc.push({
               key: result,
               property: result,
-            };
-          } else {
-            return (node.content?.[fieldKey] || []).map((field: Field) => ({
-              id: field.id,
-              name: field.name,
-              type: field.type,
-              property: field.field,
-            }));
+            });
           }
-        });
+          return acc;
+        }, []);
       } else {
         return (node.content?.[fieldKey] || []).map((field: Field) => ({
           id: field.id,
