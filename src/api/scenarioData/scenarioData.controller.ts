@@ -17,6 +17,7 @@ import { Response } from 'express';
 import { ScenarioDataService } from './scenarioData.service';
 import { ScenarioData } from './scenarioData.schema';
 import { CreateScenarioDto } from './dto/create-scenario.dto';
+import { FileNotFoundError } from '../../utils/readFile';
 
 @Controller('api/scenario')
 export class ScenarioDataController {
@@ -36,7 +37,11 @@ export class ScenarioDataController {
     try {
       return await this.scenarioDataService.getScenariosByRuleId(ruleId);
     } catch (error) {
-      throw new HttpException('Error getting scenarios by rule ID', HttpStatus.INTERNAL_SERVER_ERROR);
+      if (error instanceof FileNotFoundError) {
+        throw new HttpException('Rule not found', HttpStatus.NOT_FOUND);
+      } else {
+        throw new HttpException('Error getting scenarios by rule ID', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
     }
   }
 
@@ -45,7 +50,11 @@ export class ScenarioDataController {
     try {
       return await this.scenarioDataService.getScenariosByFilename(goRulesJSONFilename);
     } catch (error) {
-      throw new HttpException('Error getting scenarios by filename', HttpStatus.INTERNAL_SERVER_ERROR);
+      if (error instanceof FileNotFoundError) {
+        throw new HttpException('Rule not found', HttpStatus.NOT_FOUND);
+      } else {
+        throw new HttpException('Error getting scenarios by filename', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
     }
   }
 
