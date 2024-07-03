@@ -23,19 +23,12 @@ export class RuleMappingService {
         }));
       } else if (node.type === 'functionNode' && node?.content) {
         return (node.content.split('\n') || []).reduce((acc: any, line: string) => {
-          const inputMatch = line.match(/\s*\*\s*@param\s+/);
-          const outputMatch = line.match(/\s*\*\s*@returns\s+/);
-          if (inputMatch && fieldKey === 'inputs') {
-            const param = line.replace(/\s*\*\s*@param\s+/, '').trim();
+          const match = line.match(fieldKey === 'inputs' ? /\s*\*\s*@param\s+/ : /\s*\*\s*@returns\s+/);
+          if (match) {
+            const item = line.replace(match[0], '').trim();
             acc.push({
-              key: param,
-              property: param,
-            });
-          } else if (outputMatch && fieldKey === 'outputs') {
-            const result = line.replace(/\s*\*\s*@returns\s+/, '').trim();
-            acc.push({
-              key: result,
-              property: result,
+              key: item,
+              property: item,
             });
           }
           return acc;
