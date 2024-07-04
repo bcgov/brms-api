@@ -71,7 +71,6 @@ export class ScenarioDataController {
   async createScenarioData(@Body() createScenarioDto: CreateScenarioDto): Promise<ScenarioData> {
     try {
       const scenarioData: ScenarioData = {
-        _id: undefined!,
         title: createScenarioDto.title,
         ruleID: createScenarioDto.ruleID,
         variables: createScenarioDto.variables,
@@ -91,7 +90,6 @@ export class ScenarioDataController {
   ): Promise<ScenarioData> {
     try {
       const scenarioData: ScenarioData = {
-        _id: undefined!,
         title: updateScenarioDto.title,
         ruleID: updateScenarioDto.ruleID,
         variables: updateScenarioDto.variables,

@@ -20,7 +20,6 @@ describe('ScenarioDataService', () => {
   const testObjectId = new Types.ObjectId();
 
   const mockScenarioData: ScenarioData = {
-    _id: testObjectId,
     title: 'Test Title',
     ruleID: 'ruleID',
     variables: [],
@@ -566,13 +565,11 @@ describe('ScenarioDataService', () => {
       expect(result).toBeInstanceOf(Array);
       expect(result).toHaveLength(2);
       expect(result[0]).toMatchObject({
-        _id: expect.any(Types.ObjectId),
         title: 'Scenario 1',
         ruleID: '',
         goRulesJSONFilename: 'test.json',
       });
       expect(result[1]).toMatchObject({
-        _id: expect.any(Types.ObjectId),
         title: 'Scenario 2',
         ruleID: '',
         goRulesJSONFilename: 'test.json',

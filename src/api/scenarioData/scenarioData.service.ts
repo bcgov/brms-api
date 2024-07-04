@@ -105,7 +105,7 @@ export class ScenarioDataService {
     const ruleSchema: RuleSchema = await this.ruleMappingService.ruleSchemaFile(goRulesJSONFilename);
     const results: { [scenarioId: string]: any } = {};
 
-    for (const scenario of scenarios) {
+    for (const scenario of scenarios as ScenarioDataDocument[]) {
       const formattedVariablesObject = reduceToCleanObj(scenario?.variables, 'name', 'value');
       const formattedExpectedResultsObject = reduceToCleanObj(scenario?.expectedResults, 'name', 'value');
 
@@ -201,7 +201,6 @@ export class ScenarioDataService {
       const expectedResults = formatVariables(row, expectedResultsKeys, expectedResultsStartIndex, true);
 
       const scenario: ScenarioData = {
-        _id: new Types.ObjectId(),
         title: scenarioTitle,
         ruleID: '',
         variables: inputs,

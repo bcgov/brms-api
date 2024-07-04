@@ -107,7 +107,6 @@ describe('ScenarioDataController', () => {
   describe('createScenarioData', () => {
     it('should create a scenario', async () => {
       const result: ScenarioData = {
-        _id: testObjectId,
         title: 'title',
         ruleID: 'ruleID',
         variables: [],
@@ -154,7 +153,6 @@ describe('ScenarioDataController', () => {
   describe('updateScenarioData', () => {
     it('should update a scenario', async () => {
       const result: ScenarioData = {
-        _id: testObjectId,
         title: 'title',
         ruleID: 'ruleID',
         variables: [],

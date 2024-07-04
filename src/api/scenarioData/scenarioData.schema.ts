@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document } from 'mongoose';
 
 export type ScenarioDataDocument = ScenarioData & Document;
 export interface Variable {
@@ -32,9 +32,6 @@ VariableModelSchema.pre<Variable>('save', function (next) {
 
 @Schema()
 export class ScenarioData {
-  @Prop({ required: true, description: 'The scenario ID', type: Types.ObjectId, default: () => new Types.ObjectId() })
-  _id: Types.ObjectId;
-
   @Prop({ description: 'The title of the scenario' })
   title: string;
 
