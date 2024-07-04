@@ -4,8 +4,10 @@ import { Model, Types } from 'mongoose';
 import { ScenarioData, ScenarioDataDocument, Variable } from './scenarioData.schema';
 import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
-import * as csvParser from 'csv-parser';
 import { RuleSchema, RuleRunResults } from './scenarioData.interface';
+import { parseCSV, isEqual, reduceToCleanObj } from '../../utils/helpers';
+import { mapTraces } from 'src/utils/handleTrace';
+
 @Injectable()
 export class ScenarioDataService {
   constructor(
@@ -59,7 +61,7 @@ export class ScenarioDataService {
       throw new Error(`Failed to update scenario data: ${error.message}`);
     }
   }
-
+  ƒ;
   async deleteScenarioData(scenarioId: string): Promise<void> {
     try {
       const objectId = new Types.ObjectId(scenarioId);
@@ -89,17 +91,6 @@ export class ScenarioDataService {
     }
   }
 
-  //handle special characters that may be entered by end users
-  replaceSpecialCharacters(input: string, replacement: string): string {
-    const specialChars = /[\n\r\t\f,]/g;
-    return input.replace(specialChars, (match) => {
-      if (match === ',') {
-        return '-';
-      }
-      return replacement;
-    });
-  }
-
   /**
    * Runs decisions for multiple scenarios based on the provided rules JSON file.
    * Retrieves scenarios, retrieves rule schema, and executes decisions for each scenario.
@@ -113,77 +104,9 @@ export class ScenarioDataService {
     const ruleSchema: RuleSchema = await this.ruleMappingService.ruleSchemaFile(goRulesJSONFilename);
     const results: { [scenarioId: string]: any } = {};
 
-    const getPropertyById = (id: string, type: 'input' | 'output') => {
-      const schema = type === 'input' ? ruleSchema.inputs : ruleSchema.finalOutputs;
-      const item = schema.find((item: any) => item.id === id);
-      return item ? item.property : null;
-    };
-
-    const mapTraceToResult = (trace: any, type: 'input' | 'output') => {
-      const result: { [key: string]: any } = {};
-      const schema = type === 'input' ? ruleSchema.inputs : ruleSchema.finalOutputs;
-
-      for (const [key, value] of Object.entries(trace)) {
-        const propertyUnformatted = getPropertyById(key, type);
-        const property = propertyUnformatted ? this.replaceSpecialCharacters(propertyUnformatted, '') : null;
-        if (property) {
-          result[property] = value;
-        } else {
-          // Direct match without id
-          const directMatch = schema.find((item: any) => this.replaceSpecialCharacters(item.property, '') === key);
-          if (directMatch) {
-            const formattedKey = this.replaceSpecialCharacters(directMatch.property, '');
-            result[formattedKey] = value;
-          }
-        }
-      }
-
-      return result;
-    };
-
-    const isEqual = (obj1: any, obj2: any) => {
-      if (obj1 === obj2) return true;
-      if (obj1 == null || obj2 == null) return false;
-      if (typeof obj1 !== 'object' || typeof obj2 !== 'object') return false;
-
-      const keys1 = Object.keys(obj1);
-      const keys2 = Object.keys(obj2);
-
-      if (keys1.length !== keys2.length) return false;
-
-      for (const key of keys1) {
-        if (!keys2.includes(key) || !isEqual(obj1[key], obj2[key])) return false;
-      }
-
-      return true;
-    };
-
-    const cleanObjectKeys = (obj: Record<string, any>, replacement: string): Record<string, any> => {
-      const cleanedObject: Record<string, any> = {};
-
-      for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-          const cleanedKey = this.replaceSpecialCharacters(key, replacement);
-          cleanedObject[cleanedKey] = obj[key];
-        }
-      }
-
-      return cleanedObject;
-    };
-
     for (const scenario of scenarios) {
-      const variablesObject = scenario?.variables?.reduce((acc: any, obj: any) => {
-        acc[obj.name] = obj.value;
-        return acc;
-      }, {});
-
-      const expectedResultsObject = scenario?.expectedResults?.reduce((acc: any, obj: any) => {
-        acc[obj.name] = obj.value;
-        return acc;
-      }, {});
-
-      const formattedVariablesObject = cleanObjectKeys(variablesObject, '');
-      const formattedExpectedResultsObject = cleanObjectKeys(expectedResultsObject, '');
+      const formattedVariablesObject = reduceToCleanObj(scenario?.variables, 'name', 'value');
+      const formattedExpectedResultsObject = reduceToCleanObj(scenario?.expectedResults, 'name', 'value');
 
       try {
         const decisionResult = await this.decisionsService.runDecisionByFile(
@@ -193,27 +116,17 @@ export class ScenarioDataService {
         );
 
         const resultMatches =
-          Object.keys(expectedResultsObject).length > 0
+          Object.keys(formattedExpectedResultsObject).length > 0
             ? isEqual(decisionResult.result, formattedExpectedResultsObject)
             : true;
 
         const scenarioResult = {
-          inputs: {},
-          outputs: {},
+          inputs: mapTraces(decisionResult.trace, ruleSchema, 'input'),
+          outputs: mapTraces(decisionResult.trace, ruleSchema, 'output'),
           expectedResults: formattedExpectedResultsObject || {},
           result: decisionResult.result || {},
           resultMatch: resultMatches,
         };
-
-        // Map inputs and outputs based on the trace
-        for (const trace of Object.values(decisionResult.trace)) {
-          if (trace.input) {
-            Object.assign(scenarioResult.inputs, mapTraceToResult(trace.input, 'input'));
-          }
-          if (trace.output) {
-            Object.assign(scenarioResult.outputs, mapTraceToResult(trace.output, 'output'));
-          }
-        }
 
         results[scenario.title.toString()] = scenarioResult;
       } catch (error) {
@@ -277,20 +190,6 @@ export class ScenarioDataService {
     return csvContent;
   }
 
-  async parseCSV(file: Express.Multer.File | undefined): Promise<string[][]> {
-    return new Promise((resolve, reject) => {
-      const results: string[][] = [];
-      const stream = csvParser({ headers: false });
-
-      stream.on('data', (data) => results.push(Object.values(data)));
-      stream.on('end', () => resolve(results));
-      stream.on('error', (error) => reject(error));
-
-      stream.write(file.buffer);
-      stream.end();
-    });
-  }
-
   /**
    * Processes a CSV file containing scenario data and returns an array of ScenarioData objects based on the inputs.
    * @param goRulesJSONFilename The name of the Go rules JSON file.
@@ -301,7 +200,7 @@ export class ScenarioDataService {
     goRulesJSONFilename: string,
     csvContent: Express.Multer.File,
   ): Promise<ScenarioData[]> {
-    const parsedData = await this.parseCSV(csvContent);
+    const parsedData = await parseCSV(csvContent);
     const headers = parsedData[0];
 
     const inputKeys = headers

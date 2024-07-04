@@ -7,6 +7,7 @@ import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
 import { ConfigService } from '@nestjs/config';
 import { DocumentsService } from '../documents/documents.service';
+import { replaceSpecialCharacters, parseCSV, isEqual, reduceToCleanObj } from '../../utils/helpers';
 
 describe('ScenarioDataService', () => {
   let service: ScenarioDataService;
@@ -548,7 +549,7 @@ describe('ScenarioDataService', () => {
         ['4', '5', '6'],
       ];
 
-      const result = await service.parseCSV(file);
+      const result = await parseCSV(file);
       expect(result).toEqual(expectedOutput);
     });
   });
