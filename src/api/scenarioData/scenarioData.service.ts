@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { ScenarioData, ScenarioDataDocument, Variable } from './scenarioData.schema';
+import { ScenarioData, ScenarioDataDocument } from './scenarioData.schema';
 import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
 import { RuleSchema, RuleRunResults } from './scenarioData.interface';
-import { parseCSV, isEqual, reduceToCleanObj, extractUniqueKeys } from '../../utils/helpers';
+import { isEqual, reduceToCleanObj, extractUniqueKeys } from '../../utils/helpers';
 import { mapTraces } from 'src/utils/handleTrace';
+import { parseCSV, extractKeys, formatVariables } from '../../utils/csv';
 
 @Injectable()
 export class ScenarioDataService {
@@ -183,63 +184,17 @@ export class ScenarioDataService {
     const parsedData = await parseCSV(csvContent);
     const headers = parsedData[0];
 
-    const inputKeys = headers
-      .filter((header) => header.startsWith('Input: '))
-      .map((header) => header.replace('Input: ', ''));
-
-    const expectedResultsKeys = headers
-      .filter((header) => header.startsWith('Expected Result: '))
-      .map((header) => header.replace('Expected Result: ', ''));
+    const inputKeys = extractKeys(headers, 'Input: ');
+    const expectedResultsKeys = extractKeys(headers, 'Expected Result: ');
 
     const scenarios: ScenarioData[] = [];
 
-    function formatValue(value: string): boolean | number | string {
-      if (value.toLowerCase() === 'true') {
-        return true;
-      } else if (value.toLowerCase() === 'false') {
-        return false;
-      }
-      const numberValue = parseFloat(value);
-      if (!isNaN(numberValue)) {
-        return numberValue;
-      }
-      if (value === '') {
-        return null;
-      }
-      return value;
-    }
-
-    for (let i = 1; i < parsedData.length; i++) {
-      const row = parsedData[i];
+    parsedData.slice(1).forEach((row) => {
       const scenarioTitle = row[0];
 
-      const inputs: Variable[] = inputKeys.map((key, index) => {
-        // Adjusted index to account for scenario title and results match
-        const value = row[index + 2] ? formatValue(row[index + 2]) : null;
-        return {
-          name: key,
-          value: value,
-          type: typeof value,
-        };
-      });
-
-      // Adjusted index to account for scenario title, results match, and inputs in csv layout
+      const inputs = formatVariables(row, inputKeys, 2);
       const expectedResultsStartIndex = 2 + inputKeys.length;
-      const expectedResults: Variable[] = expectedResultsKeys
-        .map((key, index) => {
-          const value = row[expectedResultsStartIndex + index]
-            ? formatValue(row[expectedResultsStartIndex + index])
-            : null;
-          if (value !== null && value !== undefined && value !== '') {
-            return {
-              name: key,
-              value: value,
-              type: typeof value,
-            };
-          }
-          return undefined;
-        })
-        .filter((entry) => entry !== undefined);
+      const expectedResults = formatVariables(row, expectedResultsKeys, expectedResultsStartIndex, true);
 
       const scenario: ScenarioData = {
         _id: new Types.ObjectId(),
@@ -247,11 +202,11 @@ export class ScenarioDataService {
         ruleID: '',
         variables: inputs,
         goRulesJSONFilename: goRulesJSONFilename,
-        expectedResults: expectedResults || [],
+        expectedResults: expectedResults,
       };
 
       scenarios.push(scenario);
-    }
+    });
 
     return scenarios;
   }

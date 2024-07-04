@@ -1,5 +1,3 @@
-import * as csvParser from 'csv-parser';
-
 /**
  * Replace special characters in strings
  * @param input
@@ -13,25 +11,6 @@ export const replaceSpecialCharacters = (input: string, replacement: string): st
       return '-';
     }
     return replacement;
-  });
-};
-
-/**
- * Parses CSV file to an array of arrays
- * @param file csv file
- * @returns array of arrays
- */
-export const parseCSV = async (file: Express.Multer.File | undefined): Promise<string[][]> => {
-  return new Promise((resolve, reject) => {
-    const results: string[][] = [];
-    const stream = csvParser({ headers: false });
-
-    stream.on('data', (data) => results.push(Object.values(data)));
-    stream.on('end', () => resolve(results));
-    stream.on('error', (error) => reject(error));
-
-    stream.write(file.buffer);
-    stream.end();
   });
 };
 
@@ -103,4 +82,25 @@ export const extractUniqueKeys = (object: Record<string, any>, property: string)
       }),
     ),
   );
+};
+
+/**
+ * Formats a value based on its type.
+ * @param value The value to format.
+ * @returns The formatted value.
+ */
+export const formatValue = (value: string): boolean | number | string | null => {
+  if (value.toLowerCase() === 'true') {
+    return true;
+  } else if (value.toLowerCase() === 'false') {
+    return false;
+  }
+  const numberValue = parseFloat(value);
+  if (!isNaN(numberValue)) {
+    return numberValue;
+  }
+  if (value === '') {
+    return null;
+  }
+  return value;
 };
