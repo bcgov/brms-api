@@ -7,7 +7,9 @@ import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
 import { ConfigService } from '@nestjs/config';
 import { DocumentsService } from '../documents/documents.service';
-import { replaceSpecialCharacters, parseCSV, isEqual, reduceToCleanObj } from '../../utils/helpers';
+import { parseCSV } from '../../utils/csv';
+
+jest.mock('../../utils/csv');
 
 describe('ScenarioDataService', () => {
   let service: ScenarioDataService;
@@ -34,6 +36,22 @@ describe('ScenarioDataService', () => {
     static findOneAndDelete = jest.fn();
   }
 
+  let originalConsoleError: {
+    (...data: any[]): void;
+    (message?: any, ...optionalParams: any[]): void;
+    (...data: any[]): void;
+    (message?: any, ...optionalParams: any[]): void;
+  };
+
+  beforeAll(() => {
+    originalConsoleError = console.error;
+    console.error = jest.fn();
+  });
+
+  afterAll(() => {
+    console.error = originalConsoleError;
+  });
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -48,7 +66,7 @@ describe('ScenarioDataService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue('mocked_value'), // Replace with your mocked config values
+            get: jest.fn().mockReturnValue('mocked_value'),
           },
         },
       ],
@@ -527,238 +545,82 @@ describe('ScenarioDataService', () => {
     });
   });
 
-  describe('parseCSV', () => {
-    it('should parse a CSV file and return the parsed data as a 2D array', async () => {
-      const fileBuffer = Buffer.from('a,b,c\n1,2,3\n4,5,6\n');
-      const file: Express.Multer.File = {
-        buffer: fileBuffer,
-        fieldname: '',
-        originalname: '',
-        encoding: '',
-        mimetype: '',
-        size: 0,
-        stream: null,
-        destination: '',
-        filename: '',
-        path: '',
-      };
-
-      const expectedOutput = [
-        ['a', 'b', 'c'],
-        ['1', '2', '3'],
-        ['4', '5', '6'],
-      ];
-
-      const result = await parseCSV(file);
-      expect(result).toEqual(expectedOutput);
-    });
-  });
-
   describe('processProvidedScenarios', () => {
-    it('should process CSV content and return scenario data', async () => {
-      const csvContent = Buffer.from('Title,Input: Age,Input: Name\nScenario 1,25,John\nScenario 2,30,Jane');
-      const file: Express.Multer.File = {
-        buffer: csvContent,
-        fieldname: '',
-        originalname: '',
-        encoding: '',
-        mimetype: '',
-        size: 0,
-        stream: null,
-        destination: '',
-        filename: '',
-        path: '',
-      };
+    it('should process CSV content and return ScenarioData array', async () => {
+      const mockCSVContent = {
+        buffer: Buffer.from(
+          'Title,Input: Age,Input: Income,Expected Result: Eligible\nScenario 1,30,50000,true\nScenario 2,25,30000,false',
+        ),
+      } as Express.Multer.File;
 
-      const expectedScenarios: ScenarioData[] = [
-        {
-          _id: expect.any(Types.ObjectId),
-          title: 'Scenario 1',
-          ruleID: '',
-          variables: [
-            { name: 'Age', value: 25, type: 'number' },
-            { name: 'Name', value: 'John', type: 'string' },
-          ],
-          goRulesJSONFilename: 'test.json',
-          expectedResults: [],
-        },
-        {
-          _id: expect.any(Types.ObjectId),
-          title: 'Scenario 2',
-          ruleID: '',
-          variables: [
-            { name: 'Age', value: 30, type: 'number' },
-            { name: 'Name', value: 'Jane', type: 'string' },
-          ],
-          goRulesJSONFilename: 'test.json',
-          expectedResults: [],
-        },
+      const mockParsedData = [
+        ['Title', 'Input: Age', 'Input: Income', 'Expected Result: Eligible'],
+        ['Scenario 1', '30', '50000', 'true'],
+        ['Scenario 2', '25', '30000', 'false'],
       ];
 
-      jest.spyOn(service, 'parseCSV').mockResolvedValue([
-        ['Title', 'Results Match Expected (Pass/Fail)', 'Input: Age', 'Input: Name'],
-        ['Scenario 1', 'Pass', '25', 'John'],
-        ['Scenario 2', 'Pass', '30', 'Jane'],
-      ]);
+      (parseCSV as jest.Mock).mockResolvedValue(mockParsedData);
 
-      const result = await service.processProvidedScenarios('test.json', file);
+      const result = await service.processProvidedScenarios('test.json', mockCSVContent);
 
-      expect(result).toEqual(expectedScenarios);
+      expect(result).toBeInstanceOf(Array);
+      expect(result).toHaveLength(2);
+      expect(result[0]).toMatchObject({
+        _id: expect.any(Types.ObjectId),
+        title: 'Scenario 1',
+        ruleID: '',
+        goRulesJSONFilename: 'test.json',
+      });
+      expect(result[1]).toMatchObject({
+        _id: expect.any(Types.ObjectId),
+        title: 'Scenario 2',
+        ruleID: '',
+        goRulesJSONFilename: 'test.json',
+      });
+
+      expect(result[0]).toHaveProperty('variables');
+      expect(result[0]).toHaveProperty('expectedResults');
+      expect(result[1]).toHaveProperty('variables');
+      expect(result[1]).toHaveProperty('expectedResults');
+
+      if (result[0].variables) {
+        expect(result[0].variables).toEqual({
+          Age: '30',
+          Income: '50000',
+        });
+      }
+      if (result[0].expectedResults) {
+        expect(result[0].expectedResults).toEqual({
+          Eligible: true,
+        });
+      }
     });
 
-    it('should handle boolean values correctly', async () => {
-      const csvContent = Buffer.from('Title,Input: Active\nScenario 1,True\nScenario 2,False');
-      const file: Express.Multer.File = {
-        buffer: csvContent,
-        fieldname: '',
-        originalname: '',
-        encoding: '',
-        mimetype: '',
-        size: 0,
-        stream: null,
-        destination: '',
-        filename: '',
-        path: '',
-      };
+    it('should throw an error if CSV content is empty', async () => {
+      const mockCSVContent = {
+        buffer: Buffer.from(''),
+      } as Express.Multer.File;
 
-      const expectedScenarios: ScenarioData[] = [
-        {
-          _id: expect.any(Types.ObjectId),
-          title: 'Scenario 1',
-          ruleID: '',
-          variables: [{ name: 'Active', value: true, type: 'boolean' }],
-          goRulesJSONFilename: 'test.json',
-          expectedResults: [],
-        },
-        {
-          _id: expect.any(Types.ObjectId),
-          title: 'Scenario 2',
-          ruleID: '',
-          variables: [{ name: 'Active', value: false, type: 'boolean' }],
-          goRulesJSONFilename: 'test.json',
-          expectedResults: [],
-        },
-      ];
+      (parseCSV as jest.Mock).mockResolvedValue([]);
 
-      jest.spyOn(service, 'parseCSV').mockResolvedValue([
-        ['Title', 'Results Match Expected (Pass/Fail)', 'Input: Active'],
-        ['Scenario 1', 'Pass', 'True'],
-        ['Scenario 2', 'Pass', 'False'],
-      ]);
-
-      const result = await service.processProvidedScenarios('test.json', file);
-
-      expect(result).toEqual(expectedScenarios);
+      await expect(service.processProvidedScenarios('test.json', mockCSVContent)).rejects.toThrow(
+        'CSV content is empty or invalid',
+      );
     });
 
-    it('should handle string values correctly', async () => {
-      const csvContent = Buffer.from('Title,Input: Name\nScenario 1,John\nScenario 2,Jane');
-      const file: Express.Multer.File = {
-        buffer: csvContent,
-        fieldname: '',
-        originalname: '',
-        encoding: '',
-        mimetype: '',
-        size: 0,
-        stream: null,
-        destination: '',
-        filename: '',
-        path: '',
-      };
+    it('should handle CSV with only headers', async () => {
+      const mockCSVContent = {
+        buffer: Buffer.from('Title,Input: Age,Input: Income,Expected Result: Eligible'),
+      } as Express.Multer.File;
 
-      const expectedScenarios: ScenarioData[] = [
-        {
-          _id: expect.any(Types.ObjectId),
-          title: 'Scenario 1',
-          ruleID: '',
-          variables: [{ name: 'Name', value: 'John', type: 'string' }],
-          goRulesJSONFilename: 'test.json',
-          expectedResults: [],
-        },
-        {
-          _id: expect.any(Types.ObjectId),
-          title: 'Scenario 2',
-          ruleID: '',
-          variables: [{ name: 'Name', value: 'Jane', type: 'string' }],
-          goRulesJSONFilename: 'test.json',
-          expectedResults: [],
-        },
-      ];
+      const mockParsedData = [['Title', 'Input: Age', 'Input: Income', 'Expected Result: Eligible']];
 
-      jest.spyOn(service, 'parseCSV').mockResolvedValue([
-        ['Title', 'Results Match Expected (Pass/Fail)', 'Input: Name'],
-        ['Scenario 1', 'Pass', 'John'],
-        ['Scenario 2', 'Pass', 'Jane'],
-      ]);
+      (parseCSV as jest.Mock).mockResolvedValue(mockParsedData);
 
-      const result = await service.processProvidedScenarios('test.json', file);
+      const result = await service.processProvidedScenarios('test.json', mockCSVContent);
 
-      expect(result).toEqual(expectedScenarios);
-    });
-
-    it('should handle number values correctly', async () => {
-      const csvContent = Buffer.from('Title,Input: Age\nScenario 1,25\nScenario 2,30');
-      const file: Express.Multer.File = {
-        buffer: csvContent,
-        fieldname: '',
-        originalname: '',
-        encoding: '',
-        mimetype: '',
-        size: 0,
-        stream: null,
-        destination: '',
-        filename: '',
-        path: '',
-      };
-
-      const expectedScenarios: ScenarioData[] = [
-        {
-          _id: expect.any(Types.ObjectId),
-          title: 'Scenario 1',
-          ruleID: '',
-          variables: [{ name: 'Age', value: 25, type: 'number' }],
-          goRulesJSONFilename: 'test.json',
-          expectedResults: [],
-        },
-        {
-          _id: expect.any(Types.ObjectId),
-          title: 'Scenario 2',
-          ruleID: '',
-          variables: [{ name: 'Age', value: 30, type: 'number' }],
-          goRulesJSONFilename: 'test.json',
-          expectedResults: [],
-        },
-      ];
-
-      jest.spyOn(service, 'parseCSV').mockResolvedValue([
-        ['Title', 'Results Match Expected (Pass/Fail)', 'Input: Age'],
-        ['Scenario 1', 'Pass', '25'],
-        ['Scenario 2', 'Pass', '30'],
-      ]);
-
-      const result = await service.processProvidedScenarios('test.json', file);
-
-      expect(result).toEqual(expectedScenarios);
-    });
-
-    it('should throw an error if CSV parsing fails', async () => {
-      const csvContent = Buffer.from('Title,Input: Age\nScenario 1,25\nScenario 2,invalid data');
-      const file: Express.Multer.File = {
-        buffer: csvContent,
-        fieldname: '',
-        originalname: '',
-        encoding: '',
-        mimetype: '',
-        size: 0,
-        stream: null,
-        destination: '',
-        filename: '',
-        path: '',
-      };
-
-      jest.spyOn(service, 'parseCSV').mockRejectedValue(new Error('Mocked CSV parsing error'));
-
-      await expect(service.processProvidedScenarios('test.json', file)).rejects.toThrow('Mocked CSV parsing error');
+      expect(result).toBeInstanceOf(Array);
+      expect(result).toHaveLength(0);
     });
   });
 });

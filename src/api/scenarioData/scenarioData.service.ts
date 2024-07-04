@@ -6,7 +6,7 @@ import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
 import { RuleSchema, RuleRunResults } from './scenarioData.interface';
 import { isEqual, reduceToCleanObj, extractUniqueKeys } from '../../utils/helpers';
-import { mapTraces } from 'src/utils/handleTrace';
+import { mapTraces } from '../../utils/handleTrace';
 import { parseCSV, extractKeys, formatVariables } from '../../utils/csv';
 
 @Injectable()
@@ -182,10 +182,14 @@ export class ScenarioDataService {
     csvContent: Express.Multer.File,
   ): Promise<ScenarioData[]> {
     const parsedData = await parseCSV(csvContent);
+    if (!parsedData || parsedData.length === 0) {
+      throw new Error('CSV content is empty or invalid');
+    }
+
     const headers = parsedData[0];
 
-    const inputKeys = extractKeys(headers, 'Input: ');
-    const expectedResultsKeys = extractKeys(headers, 'Expected Result: ');
+    const inputKeys = extractKeys(headers, 'Input: ') || [];
+    const expectedResultsKeys = extractKeys(headers, 'Expected Result: ') || [];
 
     const scenarios: ScenarioData[] = [];
 
