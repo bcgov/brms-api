@@ -9,7 +9,7 @@ import { TraceObject } from '../api/ruleMapping/ruleMapping.interface';
  * @returns Property name
  */
 export const getPropertyById = (id: string, ruleSchema: RuleSchema, type: 'input' | 'output') => {
-  const schema = type === 'input' ? ruleSchema.inputs : ruleSchema.finalOutputs;
+  const schema = type === 'input' ? ruleSchema.inputs : ruleSchema.resultOutputs;
   const item = schema.find((item: any) => item.id === id);
   return item ? item.property : null;
 };
@@ -22,7 +22,7 @@ export const getPropertyById = (id: string, ruleSchema: RuleSchema, type: 'input
  */
 export const mapTraceToResult = (trace: TraceObject, ruleSchema: RuleSchema, type: 'input' | 'output') => {
   const result: { [key: string]: any } = {};
-  const schema = type === 'input' ? ruleSchema.inputs : ruleSchema.finalOutputs;
+  const schema = type === 'input' ? ruleSchema.inputs : ruleSchema.resultOutputs;
 
   for (const [key, value] of Object.entries(trace)) {
     const propertyUnformatted = getPropertyById(key, ruleSchema, type);

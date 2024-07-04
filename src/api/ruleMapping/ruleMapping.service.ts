@@ -46,11 +46,11 @@ export class RuleMappingService {
   }
 
   // Get the final outputs of a rule from mapping the target output nodes and the edges
-  extractfinalOutputs(
+  extractResultOutputs(
     nodes: Node[],
     edges: Edge[],
   ): {
-    finalOutputs: any[];
+    resultOutputs: any[];
   } {
     // Find the output node
     const outputNode = nodes.find((obj) => obj.type === 'outputNode');
@@ -64,9 +64,9 @@ export class RuleMappingService {
     // Find the edges that connect the output node to other nodes
     const targetEdges = edges.filter((edge) => edge.targetId === outputNodeID);
     const targetOutputNodes = targetEdges.map((edge) => nodes.find((node) => node.id === edge.sourceId));
-    const finalOutputs: any[] = this.extractFields(targetOutputNodes, 'outputs').outputs;
+    const resultOutputs: any[] = this.extractFields(targetOutputNodes, 'outputs').outputs;
 
-    return { finalOutputs };
+    return { resultOutputs };
   }
 
   extractInputsAndOutputs(nodes: Node[]): {
@@ -109,23 +109,23 @@ export class RuleMappingService {
   ): {
     inputs: any[];
     outputs: any[];
-    finalOutputs: any[];
+    resultOutputs: any[];
   } {
     const inputs: any[] = this.extractUniqueInputs(nodes).uniqueInputs;
     const generalOutputs: any[] = this.extractFields(nodes, 'outputs').outputs;
-    const finalOutputs: any[] = this.extractfinalOutputs(nodes, edges).finalOutputs;
+    const resultOutputs: any[] = this.extractResultOutputs(nodes, edges).resultOutputs;
 
     //get unique outputs excluding final outputs
     const outputs: any[] = generalOutputs.filter(
       (output) =>
-        !finalOutputs.some(
-          (finalOutput) =>
-            finalOutput.id === output.id ||
-            (finalOutput.key === output.key && finalOutput.property === output.property),
+        !resultOutputs.some(
+          (resultOutput) =>
+            resultOutput.id === output.id ||
+            (resultOutput.key === output.key && resultOutput.property === output.property),
         ),
     );
 
-    return { inputs, outputs, finalOutputs };
+    return { inputs, outputs, resultOutputs };
   }
 
   // generate a schema for the inputs and outputs of a rule given the trace data of a rule run

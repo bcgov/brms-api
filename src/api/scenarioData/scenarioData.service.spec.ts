@@ -316,7 +316,7 @@ describe('ScenarioDataService', () => {
           { id: 'id1', name: 'Family Composition', property: 'familyComposition' },
           { id: 'id2', name: 'Number of Children', property: 'numberOfChildren' },
         ],
-        finalOutputs: [
+        resultOutputs: [
           { id: 'id3', name: 'Is Eligible', property: 'isEligible' },
           { id: 'id4', name: 'Base Amount', property: 'baseAmount' },
         ],
@@ -382,7 +382,7 @@ describe('ScenarioDataService', () => {
       ];
       const ruleSchema = {
         inputs: [{ id: 'id1', name: 'Family Composition', property: 'familyComposition' }],
-        finalOutputs: [{ id: 'id3', name: 'Is Eligible', property: 'isEligible' }],
+        resultOutputs: [{ id: 'id3', name: 'Is Eligible', property: 'isEligible' }],
       };
 
       jest.spyOn(service, 'getScenariosByFilename').mockResolvedValue(scenarios);
@@ -409,7 +409,7 @@ describe('ScenarioDataService', () => {
       ];
       const ruleSchema = {
         inputs: [],
-        finalOutputs: [{ id: 'id3', name: 'Is Eligible', property: 'isEligible' }],
+        resultOutputs: [{ id: 'id3', name: 'Is Eligible', property: 'isEligible' }],
       };
       const decisionResult = {
         performance: '0.7',
