@@ -85,3 +85,22 @@ export const reduceToCleanObj = (
     return acc;
   }, {});
 };
+
+/**
+ * Extracts unique keys from a specified property.
+ * @param object The object to extract keys from.
+ * @param property The property to extract keys from ('inputs', 'outputs', 'expectedResults', etc.).
+ * @returns An array of unique keys.
+ */
+export const extractUniqueKeys = (object: Record<string, any>, property: string): string[] => {
+  return Array.from(
+    new Set(
+      Object.values(object).flatMap((each) => {
+        if (each[property]) {
+          return Object.keys(each[property]);
+        }
+        return [];
+      }),
+    ),
+  );
+};

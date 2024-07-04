@@ -5,7 +5,7 @@ import { ScenarioData, ScenarioDataDocument, Variable } from './scenarioData.sch
 import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
 import { RuleSchema, RuleRunResults } from './scenarioData.interface';
-import { parseCSV, isEqual, reduceToCleanObj } from '../../utils/helpers';
+import { parseCSV, isEqual, reduceToCleanObj, extractUniqueKeys } from '../../utils/helpers';
 import { mapTraces } from 'src/utils/handleTrace';
 
 @Injectable()
@@ -145,29 +145,9 @@ export class ScenarioDataService {
   async getCSVForRuleRun(goRulesJSONFilename: string, newScenarios?: ScenarioData[]): Promise<string> {
     const ruleRunResults: RuleRunResults = await this.runDecisionsForScenarios(goRulesJSONFilename, newScenarios);
 
-    const inputKeys = Array.from(
-      new Set(Object.values(ruleRunResults).flatMap((scenario) => Object.keys(scenario.inputs))),
-    );
-    const outputKeys = Array.from(
-      new Set(
-        Object.values(ruleRunResults).flatMap((scenario) => {
-          if (scenario.result) {
-            return Object.keys(scenario.result);
-          }
-          return [];
-        }),
-      ),
-    );
-    const expectedResultsKeys = Array.from(
-      new Set(
-        Object.values(ruleRunResults).flatMap((scenario) => {
-          if (scenario.expectedResults) {
-            return Object.keys(scenario.expectedResults);
-          }
-          return [];
-        }),
-      ),
-    );
+    const inputKeys = extractUniqueKeys(ruleRunResults, 'inputs');
+    const outputKeys = extractUniqueKeys(ruleRunResults, 'result');
+    const expectedResultsKeys = extractUniqueKeys(ruleRunResults, 'expectedResults');
 
     const headers = [
       'Scenario',
