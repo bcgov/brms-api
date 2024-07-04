@@ -80,7 +80,7 @@ describe('RuleMappingController', () => {
     it('should return the evaluated rule map', async () => {
       const nodes = [{ id: '1', type: 'someType', content: { inputs: [], outputs: [] } }];
       const edges = [{ id: '2', type: 'someType', targetId: '1', sourceId: '1' }];
-      const result = { inputs: [], outputs: [], finalOutputs: [] };
+      const result = { inputs: [], outputs: [], resultOutputs: [] };
       jest.spyOn(service, 'ruleSchema').mockReturnValue(result);
 
       const dto: EvaluateRuleMappingDto = { nodes, edges };
