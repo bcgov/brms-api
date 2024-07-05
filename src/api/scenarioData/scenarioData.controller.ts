@@ -111,10 +111,10 @@ export class ScenarioDataController {
     }
   }
 
-  @Get('/evaluation/:goRulesJSONFilename')
-  async getCSVForRuleRun(@Param('goRulesJSONFilename') goRulesJSONFilename: string, @Res() res: Response) {
-    const fileContent = await this.scenarioDataService.getCSVForRuleRun(goRulesJSONFilename);
+  @Post('/evaluation')
+  async getCSVForRuleRun(@Body('goRulesJSONFilename') goRulesJSONFilename: string, @Res() res: Response) {
     try {
+      const fileContent = await this.scenarioDataService.getCSVForRuleRun(goRulesJSONFilename);
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename=${goRulesJSONFilename.replace(/\.json$/, '.csv')}`);
       res.status(HttpStatus.OK).send(fileContent);
