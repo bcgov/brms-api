@@ -45,8 +45,8 @@ export class ScenarioDataController {
     }
   }
 
-  @Get('/by-filename/:goRulesJSONFilename')
-  async getScenariosByFilename(@Param('goRulesJSONFilename') goRulesJSONFilename: string): Promise<ScenarioData[]> {
+  @Post('/by-filename')
+  async getScenariosByFilename(@Body('goRulesJSONFilename') goRulesJSONFilename: string): Promise<ScenarioData[]> {
     try {
       return await this.scenarioDataService.getScenariosByFilename(goRulesJSONFilename);
     } catch (error) {
@@ -123,9 +123,9 @@ export class ScenarioDataController {
     }
   }
 
-  @Get('/run-decisions/:goRulesJSONFilename')
+  @Post('/run-decisions')
   async runDecisionsForScenarios(
-    @Param('goRulesJSONFilename') goRulesJSONFilename: string,
+    @Body('goRulesJSONFilename') goRulesJSONFilename: string,
   ): Promise<{ [scenarioId: string]: any }> {
     try {
       return await this.scenarioDataService.runDecisionsForScenarios(goRulesJSONFilename);
@@ -134,12 +134,12 @@ export class ScenarioDataController {
     }
   }
 
-  @Post('/evaluation/upload/:goRulesJSONFilename')
+  @Post('/evaluation/upload/')
   @UseInterceptors(FileInterceptor('file'))
   async uploadCSVAndProcess(
     @UploadedFile() file: Express.Multer.File | undefined,
     @Res() res: Response,
-    @Param('goRulesJSONFilename') goRulesJSONFilename: string,
+    @Body('goRulesJSONFilename') goRulesJSONFilename: string,
   ) {
     if (!file) {
       throw new HttpException('No file uploaded', HttpStatus.BAD_REQUEST);
