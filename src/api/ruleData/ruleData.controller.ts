@@ -11,7 +11,7 @@ export class RuleDataController {
     try {
       return await this.ruleDataService.getAllRuleData();
     } catch (error) {
-      throw new HttpException('Error getting submissions', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException('Error getting list of rule data', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -20,7 +20,7 @@ export class RuleDataController {
     try {
       return await this.ruleDataService.getRuleData(ruleId);
     } catch (error) {
-      throw new HttpException('Error getting submissions', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException('Error getting rule data', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 

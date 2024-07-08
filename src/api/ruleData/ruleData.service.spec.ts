@@ -8,8 +8,6 @@ export const mockRuleData = {
   _id: 'testId',
   title: 'Title',
   goRulesJSONFilename: 'filename.json',
-  chefsFormId: 'formId',
-  chefsFormAPIKey: '12345',
 };
 
 export const mockServiceProviders = [
