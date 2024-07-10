@@ -86,7 +86,7 @@ export class ScenarioDataService {
 
   async getScenariosByFilename(goRulesJSONFilename: string): Promise<ScenarioData[]> {
     try {
-      return await this.scenarioDataModel.find({ goRulesJSONFilename: goRulesJSONFilename }).exec();
+      return await this.scenarioDataModel.find({ goRulesJSONFilename: { $eq: goRulesJSONFilename } }).exec();
     } catch (error) {
       throw new Error(`Error getting scenarios by filename: ${error.message}`);
     }
