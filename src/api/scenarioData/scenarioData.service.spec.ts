@@ -267,12 +267,13 @@ describe('ScenarioDataService', () => {
     it('should return scenarios by filename', async () => {
       const goRulesJSONFilename = 'test.json';
       const scenarioDataList: ScenarioData[] = [mockScenarioData];
+      scenarioDataList[0].goRulesJSONFilename = goRulesJSONFilename;
       MockScenarioDataModel.find = jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(scenarioDataList) });
 
       const result = await service.getScenariosByFilename(goRulesJSONFilename);
 
       expect(result).toEqual(scenarioDataList);
-      expect(MockScenarioDataModel.find).toHaveBeenCalledWith({ goRulesJSONFilename });
+      expect(MockScenarioDataModel.find).toHaveBeenCalledWith({ goRulesJSONFilename: { $eq: goRulesJSONFilename } });
     });
 
     it('should throw an error if an error occurs while retrieving scenarios by filename', async () => {
@@ -287,7 +288,7 @@ describe('ScenarioDataService', () => {
         await service.getScenariosByFilename(goRulesJSONFilename);
       }).rejects.toThrowError(`Error getting scenarios by filename: ${errorMessage}`);
 
-      expect(MockScenarioDataModel.find).toHaveBeenCalledWith({ goRulesJSONFilename });
+      expect(MockScenarioDataModel.find).toHaveBeenCalledWith({ goRulesJSONFilename: { $eq: goRulesJSONFilename } });
     });
   });
   describe('runDecisionsForScenarios', () => {
