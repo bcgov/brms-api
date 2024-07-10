@@ -1,9 +1,6 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import * as fs from 'fs';
-import * as util from 'util';
-import * as path from 'path';
 import { DocumentsService } from './documents.service';
 import { readFileSafely } from '../../utils/readFile';
 

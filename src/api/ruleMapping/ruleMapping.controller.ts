@@ -1,19 +1,20 @@
-import { Controller, Get, Param, Res, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Query, Res, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { RuleMappingService } from './ruleMapping.service';
 import { Response } from 'express';
 import { EvaluateRuleRunSchemaDto, EvaluateRuleMappingDto } from './dto/evaluate-rulemapping.dto';
+
 @Controller('api/rulemap')
 export class RuleMappingController {
   constructor(private ruleMappingService: RuleMappingService) {}
 
   // Map a rule file to its unique inputs, and all outputs
-  @Get('/:ruleFileName')
-  async getRuleFile(@Param('ruleFileName') ruleFileName: string, @Res() res: Response) {
-    const rulemap = await this.ruleMappingService.ruleSchemaFile(ruleFileName);
+  @Post('/')
+  async getRuleFile(@Query('goRulesJSONFilename') goRulesJSONFilename: string, @Res() res: Response) {
+    const rulemap = await this.ruleMappingService.ruleSchemaFile(goRulesJSONFilename);
 
     try {
       res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename=${ruleFileName}`);
+      res.setHeader('Content-Disposition', `attachment; filename=${goRulesJSONFilename}`);
       res.send(rulemap);
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);

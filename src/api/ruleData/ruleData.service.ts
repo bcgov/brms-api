@@ -2,11 +2,20 @@ import { ObjectId } from 'mongodb';
 import { Model } from 'mongoose';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { DocumentsService } from '../documents/documents.service';
 import { RuleData, RuleDataDocument } from './ruleData.schema';
 
 @Injectable()
 export class RuleDataService {
-  constructor(@InjectModel(RuleData.name) private ruleDataModel: Model<RuleDataDocument>) {}
+  constructor(
+    @InjectModel(RuleData.name) private ruleDataModel: Model<RuleDataDocument>,
+    private documentsService: DocumentsService,
+  ) {}
+
+  async onModuleInit() {
+    console.info('Syncing existing rules with any updates to the rules repository');
+    this.addUnsyncedFiles();
+  }
 
   async getAllRuleData(): Promise<RuleData[]> {
     try {
@@ -29,7 +38,7 @@ export class RuleDataService {
     }
   }
 
-  async createRuleData(ruleData: RuleData): Promise<RuleData> {
+  async createRuleData(ruleData: Partial<RuleData>): Promise<RuleData> {
     try {
       if (!ruleData._id) {
         const newRuleID = new ObjectId();
@@ -74,5 +83,21 @@ export class RuleDataService {
       throw new Error(`Rule data not found for CHEFS form id: ${chefsFormId}`);
     }
     return ruleData.chefsFormAPIKey;
+  }
+
+  /**
+   * Add rules to the db that exist in the repo, but not yet the db
+   */
+  async addUnsyncedFiles() {
+    const existingRules = await this.getAllRuleData();
+    const jsonRuleDocuments = await this.documentsService.getAllJSONFiles();
+    // Find rules not yet defined in db (but with an exisitng JSON file) and add them
+    jsonRuleDocuments
+      .filter((goRulesJSONFilename: string) => {
+        return !existingRules.find((rule) => rule.goRulesJSONFilename === goRulesJSONFilename);
+      })
+      .forEach((goRulesJSONFilename: string) => {
+        this.createRuleData({ goRulesJSONFilename });
+      });
   }
 }
