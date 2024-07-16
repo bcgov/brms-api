@@ -1,4 +1,5 @@
 import { IsBoolean, IsObject } from 'class-validator';
+import { RuleContent } from 'src/api/ruleMapping/ruleMapping.interface';
 
 export class EvaluateDecisionDto {
   @IsObject()
@@ -10,5 +11,5 @@ export class EvaluateDecisionDto {
 
 export class EvaluateDecisionWithContentDto extends EvaluateDecisionDto {
   @IsObject()
-  content: object;
+  ruleContent: RuleContent;
 }

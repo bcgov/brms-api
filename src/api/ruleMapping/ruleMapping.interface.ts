@@ -37,6 +37,11 @@ export interface Edge {
   targetHandle?: string;
 }
 
+export interface RuleContent {
+  nodes: Node[];
+  edges: Edge[];
+}
+
 export interface TraceObjectEntry extends ZenEngineTrace {
   id: string;
   name: string;

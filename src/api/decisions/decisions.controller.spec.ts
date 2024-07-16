@@ -15,7 +15,7 @@ describe('DecisionsController', () => {
         {
           provide: DecisionsService,
           useValue: {
-            runDecision: jest.fn(),
+            runDecisionByContent: jest.fn(),
             runDecisionByFile: jest.fn(),
           },
         },
@@ -26,23 +26,23 @@ describe('DecisionsController', () => {
     service = module.get<DecisionsService>(DecisionsService);
   });
 
-  it('should call runDecision with correct parameters', async () => {
+  it('should call runDecisionByContent with correct parameters', async () => {
     const dto: EvaluateDecisionWithContentDto = {
-      content: { value: 'content' },
+      ruleContent: { nodes: [], edges: [] },
       context: { value: 'context' },
       trace: false,
     };
     await controller.evaluateDecisionByContent(dto);
-    expect(service.runDecision).toHaveBeenCalledWith(dto.content, dto.context, { trace: dto.trace });
+    expect(service.runDecisionByContent).toHaveBeenCalledWith(dto.ruleContent, dto.context, { trace: dto.trace });
   });
 
   it('should throw an error when runDecision fails', async () => {
     const dto: EvaluateDecisionWithContentDto = {
-      content: { value: 'content' },
+      ruleContent: { nodes: [], edges: [] },
       context: { value: 'context' },
       trace: false,
     };
-    (service.runDecision as jest.Mock).mockRejectedValue(new Error('Error'));
+    (service.runDecisionByContent as jest.Mock).mockRejectedValue(new Error('Error'));
     await expect(controller.evaluateDecisionByContent(dto)).rejects.toThrow(HttpException);
   });
 
