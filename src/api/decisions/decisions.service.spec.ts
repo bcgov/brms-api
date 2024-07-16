@@ -32,20 +32,45 @@ describe('DecisionsService', () => {
 
   describe('runDecision', () => {
     it('should run a decision', async () => {
-      const content = {};
+      const ruleFileName = 'rule';
+      const ruleContent = { nodes: [], edges: [] };
       const context = {};
       const options: ZenEvaluateOptions = { trace: false };
-      await service.runDecision(content, context, options);
-      expect(mockEngine.createDecision).toHaveBeenCalledWith(content);
+      await service.runDecision(ruleContent, ruleFileName, context, options);
+      expect(mockEngine.createDecision).toHaveBeenCalledWith(ruleContent);
       expect(mockDecision.evaluate).toHaveBeenCalledWith(context, options);
     });
 
     it('should throw an error if the decision fails', async () => {
-      const content = {};
+      const ruleFileName = 'rule';
+      const ruleContent = { nodes: [], edges: [] };
       const context = {};
       const options: ZenEvaluateOptions = { trace: false };
       (mockDecision.evaluate as jest.Mock).mockRejectedValue(new Error('Error'));
-      await expect(service.runDecision(content, context, options)).rejects.toThrow('Failed to run decision: Error');
+      await expect(service.runDecision(ruleContent, ruleFileName, context, options)).rejects.toThrow(
+        'Failed to run decision: Error',
+      );
+    });
+  });
+
+  describe('runDecisionByContent', () => {
+    it('should run a decision by content', async () => {
+      const ruleContent = { nodes: [], edges: [] };
+      const context = {};
+      const options: ZenEvaluateOptions = { trace: false };
+      await service.runDecisionByContent(ruleContent, context, options);
+      expect(mockEngine.createDecision).toHaveBeenCalledWith(ruleContent);
+      expect(mockDecision.evaluate).toHaveBeenCalledWith(context, options);
+    });
+
+    it('should throw an error if the decision fails', async () => {
+      const ruleContent = { nodes: [], edges: [] };
+      const context = {};
+      const options: ZenEvaluateOptions = { trace: false };
+      (mockDecision.evaluate as jest.Mock).mockRejectedValue(new Error('Error'));
+      await expect(service.runDecisionByContent(ruleContent, context, options)).rejects.toThrow(
+        'Failed to run decision: Error',
+      );
     });
   });
 
@@ -54,8 +79,8 @@ describe('DecisionsService', () => {
       const ruleFileName = 'rule';
       const context = {};
       const options: ZenEvaluateOptions = { trace: false };
-      const content = JSON.stringify({ rule: 'rule' });
-      (readFileSafely as jest.Mock).mockResolvedValue(content);
+      const content = { rule: 'rule' };
+      (readFileSafely as jest.Mock).mockResolvedValue(Buffer.from(JSON.stringify(content)));
       await service.runDecisionByFile(ruleFileName, context, options);
       expect(readFileSafely).toHaveBeenCalledWith(service.rulesDirectory, ruleFileName);
       expect(mockEngine.createDecision).toHaveBeenCalledWith(content);

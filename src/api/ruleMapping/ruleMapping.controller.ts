@@ -1,5 +1,5 @@
-import { Controller, Query, Res, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
-import { RuleMappingService } from './ruleMapping.service';
+import { Controller, Res, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { RuleMappingService, InvalidRuleContent } from './ruleMapping.service';
 import { Response } from 'express';
 import { EvaluateRuleRunSchemaDto, EvaluateRuleMappingDto } from './dto/evaluate-rulemapping.dto';
 
@@ -9,30 +9,35 @@ export class RuleMappingController {
 
   // Map a rule file to its unique inputs, and all outputs
   @Post('/')
-  async getRuleFile(@Query('goRulesJSONFilename') goRulesJSONFilename: string, @Res() res: Response) {
-    const rulemap = await this.ruleMappingService.ruleSchemaFile(goRulesJSONFilename);
+  async getRuleSchema(
+    @Body('goRulesJSONFilename') goRulesJSONFilename: string,
+    @Body('ruleContent') ruleContent: EvaluateRuleMappingDto,
+    @Res() res: Response,
+  ) {
+    const rulemap = this.ruleMappingService.ruleSchema(ruleContent);
 
     try {
       res.setHeader('Content-Type', 'application/json');
       res.setHeader('Content-Disposition', `attachment; filename=${goRulesJSONFilename}`);
       res.send(rulemap);
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (error instanceof InvalidRuleContent) {
+        throw new HttpException('Invalid rule content', HttpStatus.BAD_REQUEST);
+      } else {
+        throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
     }
   }
 
   // Map a rule to its unique inputs, and all outputs
   @Post('/evaluate')
-  async evaluateRuleMap(@Body() { nodes, edges }: EvaluateRuleMappingDto) {
+  async evaluateRuleMap(@Body() ruleContent: EvaluateRuleMappingDto) {
     try {
-      if (!nodes || !Array.isArray(nodes)) {
-        throw new HttpException('Invalid request data', HttpStatus.BAD_REQUEST);
-      }
-      const result = this.ruleMappingService.ruleSchema(nodes, edges);
+      const result = this.ruleMappingService.ruleSchema(ruleContent);
       return { result };
     } catch (error) {
-      if (error instanceof HttpException && error.getStatus() === HttpStatus.BAD_REQUEST) {
-        throw error;
+      if (error instanceof InvalidRuleContent) {
+        throw new HttpException('Invalid rule content', HttpStatus.BAD_REQUEST);
       } else {
         throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
       }
