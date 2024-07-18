@@ -206,6 +206,7 @@ describe('ScenarioDataController', () => {
   describe('getCSVForRuleRun', () => {
     it('should return CSV content with correct headers', async () => {
       const goRulesJSONFilename = 'test.json';
+      const ruleContent = { nodes: [], edges: [] };
       const csvContent = `Scenario,Input: familyComposition,Input: numberOfChildren,Output: isEligible,Output: baseAmount
 Scenario 1,single,,true,
 Scenario 2,couple,3,,200`;
@@ -218,7 +219,7 @@ Scenario 2,couple,3,,200`;
         setHeader: jest.fn(),
       };
 
-      await controller.getCSVForRuleRun(goRulesJSONFilename, mockResponse as any);
+      await controller.getCSVForRuleRun(goRulesJSONFilename, ruleContent, mockResponse as any);
 
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.OK);
       expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
@@ -232,6 +233,7 @@ Scenario 2,couple,3,,200`;
     it('should throw an error if service fails', async () => {
       const errorMessage = 'Error generating CSV for rule run';
       const goRulesJSONFilename = 'test.json';
+      const ruleContent = { nodes: [], edges: [] };
       jest.spyOn(service, 'getCSVForRuleRun').mockRejectedValue(new Error(errorMessage));
 
       const mockResponse = {
@@ -240,11 +242,11 @@ Scenario 2,couple,3,,200`;
       };
 
       await expect(async () => {
-        await controller.getCSVForRuleRun(goRulesJSONFilename, mockResponse as any);
+        await controller.getCSVForRuleRun(goRulesJSONFilename, ruleContent, mockResponse as any);
       }).rejects.toThrow(Error);
 
       try {
-        await controller.getCSVForRuleRun(goRulesJSONFilename, mockResponse as any);
+        await controller.getCSVForRuleRun(goRulesJSONFilename, ruleContent, mockResponse as any);
       } catch (error) {
         expect(error.message).toBe('Error generating CSV for rule run');
       }
@@ -252,15 +254,16 @@ Scenario 2,couple,3,,200`;
   });
   describe('uploadCSVAndProcess', () => {
     it('should throw an error if no file is uploaded', async () => {
+      const ruleContent = { nodes: [], edges: [] };
       const res: Partial<Response> = {
         setHeader: jest.fn(),
         status: jest.fn().mockReturnThis(),
         send: jest.fn(),
       };
 
-      await expect(controller.uploadCSVAndProcess(undefined, res as Response, 'test.json')).rejects.toThrow(
-        HttpException,
-      );
+      await expect(
+        controller.uploadCSVAndProcess(undefined, res as Response, 'test.json', ruleContent),
+      ).rejects.toThrow(HttpException);
 
       expect(res.status).not.toHaveBeenCalled();
       expect(res.setHeader).not.toHaveBeenCalled();
@@ -281,6 +284,7 @@ Scenario 2,couple,3,,200`;
         filename: '',
         path: '',
       };
+      const ruleContent = { nodes: [], edges: [] };
 
       const scenarios = [
         {
@@ -303,10 +307,10 @@ Scenario 2,couple,3,,200`;
         send: jest.fn(),
       };
 
-      await controller.uploadCSVAndProcess(file, res as Response, 'test.json');
+      await controller.uploadCSVAndProcess(file, res as Response, 'test.json', ruleContent);
 
       expect(service.processProvidedScenarios).toHaveBeenCalledWith('test.json', file);
-      expect(service.getCSVForRuleRun).toHaveBeenCalledWith('test.json', scenarios);
+      expect(service.getCSVForRuleRun).toHaveBeenCalledWith('test.json', ruleContent, scenarios);
       expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
       expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename=processed_data.csv');
       expect(res.status).toHaveBeenCalledWith(HttpStatus.OK);
@@ -327,6 +331,7 @@ Scenario 2,couple,3,,200`;
         filename: '',
         path: '',
       };
+      const ruleContent = { nodes: [], edges: [] };
 
       mockScenarioDataService.processProvidedScenarios.mockRejectedValue(new Error('Mocked error'));
 
@@ -336,7 +341,7 @@ Scenario 2,couple,3,,200`;
         send: jest.fn(),
       };
 
-      await expect(controller.uploadCSVAndProcess(file, res as Response, 'test.json')).rejects.toThrow(
+      await expect(controller.uploadCSVAndProcess(file, res as Response, 'test.json', ruleContent)).rejects.toThrow(
         new HttpException('Error processing CSV file', HttpStatus.INTERNAL_SERVER_ERROR),
       );
 

@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { Node, Edge, TraceObject, Field } from './ruleMapping.interface';
-import { DocumentsService } from '../documents/documents.service';
-import { ConfigService } from '@nestjs/config';
+import { Node, Edge, TraceObject, Field, RuleContent } from './ruleMapping.interface';
+import { RuleSchema } from '../scenarioData/scenarioData.interface';
+
+export class InvalidRuleContent extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidRuleContentError';
+  }
+}
 
 @Injectable()
 export class RuleMappingService {
-  rulesDirectory: string;
-  constructor(
-    private documentsService: DocumentsService,
-    private configService: ConfigService,
-  ) {
-    this.rulesDirectory = this.configService.get<string>('RULES_DIRECTORY');
-  }
+  constructor() {}
 
   // Extract all fields from a list of nodes
   extractFields(nodes: Node[], fieldKey: 'inputs' | 'outputs'): { [key: string]: any[] } {
@@ -103,14 +103,14 @@ export class RuleMappingService {
   }
 
   // generate a rule schema from a list of nodes that represent the origin inputs and all outputs of a rule
-  ruleSchema(
-    nodes: Node[],
-    edges: Edge[],
-  ): {
-    inputs: any[];
-    outputs: any[];
-    resultOutputs: any[];
-  } {
+  ruleSchema(ruleContent: RuleContent): RuleSchema {
+    if (!ruleContent) {
+      throw new InvalidRuleContent('No content');
+    }
+    const { nodes, edges } = ruleContent;
+    if (!nodes || !Array.isArray(nodes)) {
+      throw new InvalidRuleContent('Rule has no nodes');
+    }
     const inputs: any[] = this.extractUniqueInputs(nodes).uniqueInputs;
     const generalOutputs: any[] = this.extractFields(nodes, 'outputs').outputs;
     const resultOutputs: any[] = this.extractResultOutputs(nodes, edges).resultOutputs;
@@ -147,12 +147,5 @@ export class RuleMappingService {
       }
     }
     return { input, output };
-  }
-
-  // generate a rule schema from a given local file
-  async ruleSchemaFile(ruleFileName: string): Promise<any> {
-    const fileContent = await this.documentsService.getFileContent(ruleFileName);
-    const { nodes, edges } = await JSON.parse(fileContent.toString());
-    return this.ruleSchema(nodes, edges);
   }
 }

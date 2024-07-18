@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { RuleMappingService } from './ruleMapping.service';
-import { Node, TraceObject, Edge } from './ruleMapping.interface';
+import { RuleMappingService, InvalidRuleContent } from './ruleMapping.service';
+import { Node, TraceObject, Edge, RuleContent } from './ruleMapping.interface';
 import { DocumentsService } from '../documents/documents.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -360,7 +360,7 @@ describe('RuleMappingService', () => {
 
       const edges = [{ id: '1', type: 'someType', targetId: '2', sourceId: '1' }]; // Edge connects input node to output node
 
-      const result = service.ruleSchema(nodes, edges);
+      const result = service.ruleSchema({ nodes, edges });
       expect(result).toEqual({
         inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
         outputs: [
@@ -369,6 +369,11 @@ describe('RuleMappingService', () => {
         ],
         resultOutputs: [],
       });
+    });
+
+    it('should handle invalid request data', async () => {
+      const ruleContent = { nodes: 'invalid' } as unknown as RuleContent;
+      expect(() => service.ruleSchema(ruleContent)).toThrow(new InvalidRuleContent('Rule has no nodes'));
     });
   });
 
@@ -477,59 +482,6 @@ describe('RuleMappingService', () => {
       expect(result).toEqual({
         input: {},
         output: {},
-      });
-    });
-  });
-
-  describe('ruleSchemaFile', () => {
-    it('should generate a rule schema from a file', async () => {
-      const mockFileContent = JSON.stringify({
-        nodes: [
-          {
-            id: '1',
-            type: 'inputNode', // Assuming this node is an input node
-            content: {
-              inputs: [
-                { id: '1', name: 'Input1', type: 'string', field: 'field1' },
-                { id: '2', name: 'Input2', type: 'number', field: 'field2' },
-              ],
-            },
-          },
-          {
-            id: '2',
-            type: 'outputNode', // This node is the output node
-            content: {
-              outputs: [
-                { id: '3', name: 'Output1', type: 'string', field: 'field2' },
-                { id: '4', name: 'Output2', type: 'number', field: 'field3' },
-              ],
-            },
-          },
-        ],
-        edges: [
-          {
-            id: '1',
-            type: 'someType',
-            targetId: '2',
-            sourceId: '1',
-          },
-        ],
-      });
-
-      const mockGetFileContent = jest.fn().mockResolvedValue(mockFileContent);
-      DocumentsService.prototype.getFileContent = mockGetFileContent;
-
-      const filePath = 'path/to/mock/file.json';
-      const result = await service.ruleSchemaFile(filePath);
-
-      expect(mockGetFileContent).toHaveBeenCalledWith(filePath);
-      expect(result).toEqual({
-        resultOutputs: [],
-        inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
-        outputs: [
-          { id: '3', name: 'Output1', type: 'string', property: 'field2' },
-          { id: '4', name: 'Output2', type: 'number', property: 'field3' },
-        ],
       });
     });
   });

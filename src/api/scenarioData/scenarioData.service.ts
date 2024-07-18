@@ -2,8 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ScenarioData, ScenarioDataDocument } from './scenarioData.schema';
+import { RuleContent } from '../ruleMapping/ruleMapping.interface';
 import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
+import { DocumentsService } from '../documents/documents.service';
 import { RuleSchema, RuleRunResults } from './scenarioData.interface';
 import { isEqual, reduceToCleanObj, extractUniqueKeys } from '../../utils/helpers';
 import { mapTraces } from '../../utils/handleTrace';
@@ -14,7 +16,7 @@ export class ScenarioDataService {
   constructor(
     private decisionsService: DecisionsService,
     private ruleMappingService: RuleMappingService,
-
+    private documentsService: DocumentsService,
     @InjectModel(ScenarioData.name) private scenarioDataModel: Model<ScenarioDataDocument>,
   ) {}
 
@@ -99,10 +101,15 @@ export class ScenarioDataService {
    */
   async runDecisionsForScenarios(
     goRulesJSONFilename: string,
+    ruleContent?: RuleContent,
     newScenarios?: ScenarioData[],
   ): Promise<{ [scenarioId: string]: any }> {
     const scenarios = newScenarios || (await this.getScenariosByFilename(goRulesJSONFilename));
-    const ruleSchema: RuleSchema = await this.ruleMappingService.ruleSchemaFile(goRulesJSONFilename);
+    if (!ruleContent) {
+      const fileContent = await this.documentsService.getFileContent(goRulesJSONFilename);
+      ruleContent = await JSON.parse(fileContent.toString());
+    }
+    const ruleSchema: RuleSchema = this.ruleMappingService.ruleSchema(ruleContent);
     const results: { [scenarioId: string]: any } = {};
 
     for (const scenario of scenarios as ScenarioDataDocument[]) {
@@ -110,10 +117,13 @@ export class ScenarioDataService {
       const formattedExpectedResultsObject = reduceToCleanObj(scenario?.expectedResults, 'name', 'value');
 
       try {
-        const decisionResult = await this.decisionsService.runDecisionByFile(
-          scenario.goRulesJSONFilename,
+        const decisionResult = await this.decisionsService.runDecision(
+          ruleContent,
+          goRulesJSONFilename,
           formattedVariablesObject,
-          { trace: true },
+          {
+            trace: true,
+          },
         );
 
         const resultMatches =
@@ -143,8 +153,16 @@ export class ScenarioDataService {
    * Retrieves scenario results, extracts unique input and output keys, and maps them to CSV rows.
    * Constructs CSV headers and rows based on input and output keys.
    */
-  async getCSVForRuleRun(goRulesJSONFilename: string, newScenarios?: ScenarioData[]): Promise<string> {
-    const ruleRunResults: RuleRunResults = await this.runDecisionsForScenarios(goRulesJSONFilename, newScenarios);
+  async getCSVForRuleRun(
+    goRulesJSONFilename: string,
+    ruleContent: RuleContent,
+    newScenarios?: ScenarioData[],
+  ): Promise<string> {
+    const ruleRunResults: RuleRunResults = await this.runDecisionsForScenarios(
+      goRulesJSONFilename,
+      ruleContent,
+      newScenarios,
+    );
 
     const inputKeys = extractUniqueKeys(ruleRunResults, 'inputs');
     const outputKeys = extractUniqueKeys(ruleRunResults, 'result');
