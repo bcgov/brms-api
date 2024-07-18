@@ -23,8 +23,28 @@ export const getPropertyById = (id: string, ruleSchema: RuleSchema, type: 'input
 export const mapTraceToResult = (trace: TraceObject, ruleSchema: RuleSchema, type: 'input' | 'output') => {
   const result: { [key: string]: any } = {};
   const schema = type === 'input' ? ruleSchema.inputs : ruleSchema.resultOutputs;
-
   for (const [key, value] of Object.entries(trace)) {
+    if (trace[key] && typeof trace[key] === 'object') {
+      const newArray: any[] = [];
+      const arrayName = key;
+      for (const item in trace[key]) {
+        if (trace[key].hasOwnProperty(item)) {
+          newArray.push(trace[key][item]);
+        }
+      }
+      newArray.forEach((item, index) => {
+        index++;
+        const keyName = `${arrayName.toString().slice(0, -1)}[${index}]`;
+        if (Object.keys(item).length === 0) {
+          result[`${keyName}${key}`] = item;
+        } else {
+          Object.keys(item).forEach((key) => {
+            result[`${keyName}${key}`] = item[key];
+          });
+        }
+      });
+    }
+
     const propertyUnformatted = getPropertyById(key, ruleSchema, type);
     const property = propertyUnformatted ? replaceSpecialCharacters(propertyUnformatted, '') : null;
     if (property) {

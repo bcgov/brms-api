@@ -94,6 +94,9 @@ export const formatValue = (value: string): boolean | number | string | null => 
     return true;
   } else if (value.toLowerCase() === 'false') {
     return false;
+    // Check if the value matches the format yyyy-mm-dd
+  } else if (/\d{4}-\d{2}-\d{2}/.test(value)) {
+    return value;
   }
   const numberValue = parseFloat(value);
   if (!isNaN(numberValue)) {
