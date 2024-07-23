@@ -346,7 +346,7 @@ describe('ScenarioDataService', () => {
       };
 
       jest.spyOn(service, 'getScenariosByFilename').mockResolvedValue(scenarios);
-      jest.spyOn(ruleMappingService, 'ruleSchema').mockReturnValue(ruleSchemaOutput);
+      jest.spyOn(ruleMappingService, 'ruleSchema').mockResolvedValue(ruleSchemaOutput);
       jest.spyOn(decisionsService, 'runDecisionByContent').mockResolvedValue(decisionResult);
 
       const results = await service.runDecisionsForScenarios(goRulesJSONFilename, ruleContent);
@@ -392,7 +392,7 @@ describe('ScenarioDataService', () => {
       };
 
       jest.spyOn(service, 'getScenariosByFilename').mockResolvedValue(scenarios);
-      jest.spyOn(ruleMappingService, 'ruleSchema').mockReturnValue(ruleSchema);
+      jest.spyOn(ruleMappingService, 'ruleSchema').mockResolvedValue(ruleSchema);
       jest.spyOn(decisionsService, 'runDecisionByContent').mockRejectedValue(new Error('Decision execution error'));
 
       const results = await service.runDecisionsForScenarios(goRulesJSONFilename, ruleContent);
@@ -433,7 +433,7 @@ describe('ScenarioDataService', () => {
       };
 
       jest.spyOn(service, 'getScenariosByFilename').mockResolvedValue(scenarios);
-      jest.spyOn(ruleMappingService, 'ruleSchema').mockReturnValue(ruleSchema);
+      jest.spyOn(ruleMappingService, 'ruleSchema').mockResolvedValue(ruleSchema);
       jest.spyOn(decisionsService, 'runDecisionByContent').mockResolvedValue(decisionResult);
 
       const results = await service.runDecisionsForScenarios(goRulesJSONFilename, ruleContent);

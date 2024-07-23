@@ -30,12 +30,13 @@ export class RuleMappingService {
         return fieldKey === 'inputs' ? inputs : resultOutputs;
       }
       if (node.type === 'expressionNode' && node.content?.expressions) {
-        const simpleExpressionRegex = /^[a-zA-Z]+$/;
+        const simpleExpressionRegex = /^[a-zA-Z0-9]+$/;
         return node.content.expressions.map((expr: { key: any; value: any }) => {
           const isSimpleValue = simpleExpressionRegex.test(expr.value);
           return {
             key: isSimpleValue ? (fieldKey === 'inputs' ? expr.key : expr.value) : expr.key,
             property: isSimpleValue ? (fieldKey === 'inputs' ? expr.value : expr.key) : expr.key,
+            exception: isSimpleValue ? null : expr.value,
           };
         });
       } else if (node.type === 'functionNode' && node?.content) {
@@ -113,9 +114,21 @@ export class RuleMappingService {
 
   // extract only the unique inputs from a list of nodes
   // excludes inputs found in the outputs of other nodes
+  // inputs that are only transformed are still included as unique as marked as exception
   async extractUniqueInputs(nodes: Node[]): Promise<{ uniqueInputs: any[] }> {
     const { inputs, outputs } = await this.extractInputsAndOutputs(nodes);
-    const outputFields = new Set(outputs.map((outputField) => outputField.property));
+    const outputFields = new Set(
+      outputs
+        // check for exceptions where input is transformed and exclude from output fields
+        .filter((outputField) =>
+          outputField.exception
+            ? outputField.exception.includes(outputField.key)
+              ? outputField.exception === outputField.key
+              : true
+            : true,
+        )
+        .map((outputField) => outputField.property),
+    );
     const uniqueInputFields = this.findUniqueFields(inputs, outputFields);
 
     return {

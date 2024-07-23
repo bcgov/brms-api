@@ -29,7 +29,7 @@ describe('RuleMappingService', () => {
   });
 
   describe('extractFields', () => {
-    it('should extract inputs correctly', () => {
+    it('should extract inputs correctly', async () => {
       const nodes: Node[] = [
         {
           type: 'someType',
@@ -51,17 +51,17 @@ describe('RuleMappingService', () => {
         },
       ];
 
-      const result = service.extractFields(nodes, 'inputs');
+      const result = await service.extractFields(nodes, 'inputs');
       expect(result).toEqual({
         inputs: [
           { id: '1', name: 'Input1', type: 'string', property: 'field1' },
           { id: '2', name: 'Input2', type: 'number', property: 'field2' },
-          { key: 'expr1', property: 'field3' },
+          { key: 'expr1', property: 'field3', exception: null },
         ],
       });
     });
 
-    it('should extract outputs correctly', () => {
+    it('should extract outputs correctly', async () => {
       const nodes: Node[] = [
         {
           type: 'someType',
@@ -75,7 +75,7 @@ describe('RuleMappingService', () => {
         },
       ];
 
-      const result = service.extractFields(nodes, 'outputs');
+      const result = await service.extractFields(nodes, 'outputs');
       expect(result).toEqual({
         outputs: [
           { id: '1', name: 'Output1', type: 'string', property: 'field1' },
@@ -84,15 +84,15 @@ describe('RuleMappingService', () => {
       });
     });
 
-    it('should handle empty nodes array', () => {
+    it('should handle empty nodes array', async () => {
       const nodes: Node[] = [];
-      const result = service.extractFields(nodes, 'outputs');
+      const result = await service.extractFields(nodes, 'outputs');
       expect(result).toEqual({ outputs: [] });
     });
   });
 
   describe('extractResultOutputs', () => {
-    it('should extract result outputs correctly when there is one output node and corresponding edges', () => {
+    it('should extract result outputs correctly when there is one output node and corresponding edges', async () => {
       const nodes: Node[] = [
         {
           id: '1',
@@ -122,14 +122,14 @@ describe('RuleMappingService', () => {
         { id: '2', type: 'someType', sourceId: '3', targetId: '2' },
       ];
 
-      jest.spyOn(service, 'extractFields').mockReturnValue({
+      jest.spyOn(service, 'extractFields').mockResolvedValue({
         outputs: [
           { id: '1', name: 'Output1', type: 'string', property: 'field2' },
           { id: '2', name: 'Output2', type: 'number', property: 'field3' },
         ],
       });
 
-      const result = service.extractResultOutputs(nodes, edges);
+      const result = await service.extractResultOutputs(nodes, edges);
       expect(result).toEqual({
         resultOutputs: [
           { id: '1', name: 'Output1', type: 'string', property: 'field2' },
@@ -138,7 +138,7 @@ describe('RuleMappingService', () => {
       });
     });
 
-    it('should throw an error if no outputNode is found', () => {
+    it('should throw an error if no outputNode is found', async () => {
       const nodes: Node[] = [
         {
           id: '1',
@@ -151,10 +151,15 @@ describe('RuleMappingService', () => {
 
       const edges: Edge[] = [{ id: '1', type: 'someType', sourceId: '1', targetId: '2' }];
 
-      expect(() => service.extractResultOutputs(nodes, edges)).toThrow('No outputNode found in the nodes array');
+      try {
+        await service.extractResultOutputs(nodes, edges);
+        fail('Expected extractResultOutputs to throw an error');
+      } catch (error) {
+        expect(error.message).toBe('No outputNode found in the nodes array');
+      }
     });
 
-    it('should return an empty array if no target edges are found for the output node', () => {
+    it('should return an empty array if no target edges are found for the output node', async () => {
       const nodes: Node[] = [
         {
           id: '1',
@@ -174,17 +179,17 @@ describe('RuleMappingService', () => {
 
       const edges: Edge[] = [];
 
-      jest.spyOn(service, 'extractFields').mockReturnValue({
+      jest.spyOn(service, 'extractFields').mockResolvedValue({
         outputs: [],
       });
 
-      const result = service.extractResultOutputs(nodes, edges);
+      const result = await service.extractResultOutputs(nodes, edges);
       expect(result).toEqual({
         resultOutputs: [],
       });
     });
 
-    it('should handle cases where there are multiple output nodes', () => {
+    it('should handle cases where there are multiple output nodes', async () => {
       const nodes: Node[] = [
         {
           id: '1',
@@ -214,14 +219,14 @@ describe('RuleMappingService', () => {
         { id: '2', type: 'someType', sourceId: '1', targetId: '3' },
       ];
 
-      jest.spyOn(service, 'extractFields').mockReturnValue({
+      jest.spyOn(service, 'extractFields').mockResolvedValue({
         outputs: [
           { id: '1', name: 'Output1', type: 'string', property: 'field2' },
           { id: '2', name: 'Output2', type: 'number', property: 'field3' },
         ],
       });
 
-      const result = service.extractResultOutputs(nodes, edges);
+      const result = await service.extractResultOutputs(nodes, edges);
       expect(result).toEqual({
         resultOutputs: [
           { id: '1', name: 'Output1', type: 'string', property: 'field2' },
@@ -232,7 +237,7 @@ describe('RuleMappingService', () => {
   });
 
   describe('extractInputsAndOutputs', () => {
-    it('should extract inputs and outputs correctly', () => {
+    it('should extract inputs and outputs correctly', async () => {
       const nodes: Node[] = [
         {
           type: 'someType',
@@ -257,24 +262,24 @@ describe('RuleMappingService', () => {
         },
       ];
 
-      const result = service.extractInputsAndOutputs(nodes);
+      const result = await service.extractInputsAndOutputs(nodes);
       expect(result).toEqual({
         inputs: [
           { id: '1', name: 'Input1', type: 'string', property: 'field1' },
           { id: '2', name: 'Input2', type: 'number', property: 'field2' },
-          { key: 'expr1', property: 'field5' },
+          { key: 'expr1', property: 'field5', exception: null },
         ],
         outputs: [
           { id: '3', name: 'Output1', type: 'string', property: 'field3' },
           { id: '4', name: 'Output2', type: 'number', property: 'field4' },
-          { key: 'field5', property: 'expr1' },
+          { key: 'field5', property: 'expr1', exception: null },
         ],
       });
     });
 
-    it('should handle empty nodes array', () => {
+    it('should handle empty nodes array', async () => {
       const nodes: Node[] = [];
-      const result = service.extractInputsAndOutputs(nodes);
+      const result = await service.extractInputsAndOutputs(nodes);
       expect(result).toEqual({ inputs: [], outputs: [] });
     });
   });
@@ -294,7 +299,7 @@ describe('RuleMappingService', () => {
   });
 
   describe('extractUniqueInputs', () => {
-    it('should extract unique inputs correctly', () => {
+    it('should extract unique inputs correctly', async () => {
       const nodes: Node[] = [
         {
           type: 'someType',
@@ -309,13 +314,13 @@ describe('RuleMappingService', () => {
         },
       ];
 
-      const result = service.extractUniqueInputs(nodes);
+      const result = await service.extractUniqueInputs(nodes);
       expect(result).toEqual({
         uniqueInputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
       });
     });
 
-    it('should handle nodes without inputs', () => {
+    it('should handle nodes without inputs', async () => {
       const nodes: Node[] = [
         {
           type: 'someType',
@@ -326,7 +331,7 @@ describe('RuleMappingService', () => {
         },
       ];
 
-      const result = service.extractUniqueInputs(nodes);
+      const result = await service.extractUniqueInputs(nodes);
       expect(result).toEqual({
         uniqueInputs: [],
       });
@@ -334,7 +339,7 @@ describe('RuleMappingService', () => {
   });
 
   describe('ruleSchema', () => {
-    it('should generate a rule schema correctly', () => {
+    it('should generate a rule schema correctly', async () => {
       const nodes: Node[] = [
         {
           id: '1',
@@ -360,7 +365,7 @@ describe('RuleMappingService', () => {
 
       const edges = [{ id: '1', type: 'someType', targetId: '2', sourceId: '1' }]; // Edge connects input node to output node
 
-      const result = service.ruleSchema({ nodes, edges });
+      const result = await service.ruleSchema({ nodes, edges });
       expect(result).toEqual({
         inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
         outputs: [
@@ -373,7 +378,14 @@ describe('RuleMappingService', () => {
 
     it('should handle invalid request data', async () => {
       const ruleContent = { nodes: 'invalid' } as unknown as RuleContent;
-      expect(() => service.ruleSchema(ruleContent)).toThrow(new InvalidRuleContent('Rule has no nodes'));
+
+      try {
+        await service.ruleSchema(ruleContent);
+        fail('Expected ruleSchema to throw an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(InvalidRuleContent);
+        expect(error.message).toBe('Rule has no nodes');
+      }
     });
   });
 
@@ -482,6 +494,59 @@ describe('RuleMappingService', () => {
       expect(result).toEqual({
         input: {},
         output: {},
+      });
+    });
+  });
+
+  describe('ruleSchemaFile', () => {
+    it('should generate a rule schema from a file', async () => {
+      const mockFileContent = JSON.stringify({
+        nodes: [
+          {
+            id: '1',
+            type: 'inputNode', // Assuming this node is an input node
+            content: {
+              inputs: [
+                { id: '1', name: 'Input1', type: 'string', field: 'field1' },
+                { id: '2', name: 'Input2', type: 'number', field: 'field2' },
+              ],
+            },
+          },
+          {
+            id: '2',
+            type: 'outputNode', // This node is the output node
+            content: {
+              outputs: [
+                { id: '3', name: 'Output1', type: 'string', field: 'field2' },
+                { id: '4', name: 'Output2', type: 'number', field: 'field3' },
+              ],
+            },
+          },
+        ],
+        edges: [
+          {
+            id: '1',
+            type: 'someType',
+            targetId: '2',
+            sourceId: '1',
+          },
+        ],
+      });
+
+      const mockGetFileContent = jest.fn().mockResolvedValue(mockFileContent);
+      DocumentsService.prototype.getFileContent = mockGetFileContent;
+
+      const filePath = 'path/to/mock/file.json';
+      const result = await service.ruleSchemaFile(filePath);
+
+      expect(mockGetFileContent).toHaveBeenCalledWith(filePath);
+      expect(result).toEqual({
+        resultOutputs: [],
+        inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
+        outputs: [
+          { id: '3', name: 'Output1', type: 'string', property: 'field2' },
+          { id: '4', name: 'Output2', type: 'number', property: 'field3' },
+        ],
       });
     });
   });
