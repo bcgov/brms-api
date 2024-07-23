@@ -89,6 +89,162 @@ describe('RuleMappingService', () => {
       const result = await service.extractFields(nodes, 'outputs');
       expect(result).toEqual({ outputs: [] });
     });
+    it('should handle decisionNode correctly', async () => {
+      const nodes: Node[] = [
+        {
+          type: 'decisionNode',
+          content: {
+            key: 'someKey',
+          },
+          id: 'testNode',
+        },
+      ];
+
+      // Mock the ruleSchemaFile method to return a sample schema
+      jest.spyOn(service, 'ruleSchemaFile').mockResolvedValue({
+        inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
+        resultOutputs: [{ id: '2', name: 'Output1', type: 'number', property: 'field2' }],
+      });
+
+      const result = await service.extractFields(nodes, 'inputs');
+      expect(result).toEqual({
+        inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
+      });
+
+      const resultOutputs = await service.extractFields(nodes, 'outputs');
+      expect(resultOutputs).toEqual({
+        outputs: [{ id: '2', name: 'Output1', type: 'number', property: 'field2' }],
+      });
+    });
+
+    it('should handle expressionNode with simple expressions correctly', async () => {
+      const nodes: Node[] = [
+        {
+          type: 'expressionNode',
+          content: {
+            expressions: [
+              { key: 'expr1', value: 'field3' },
+              { key: 'expr2', value: '123' },
+            ],
+          },
+          id: 'testNode',
+        },
+      ];
+
+      const result = await service.extractFields(nodes, 'inputs');
+      expect(result).toEqual({
+        inputs: [
+          { key: 'expr1', property: 'field3', exception: null },
+          { key: 'expr2', property: '123', exception: null },
+        ],
+      });
+    });
+
+    it('should handle expressionNode with complex expressions correctly', async () => {
+      const nodes: Node[] = [
+        {
+          type: 'expressionNode',
+          content: {
+            expressions: [
+              { key: 'expr1', value: 'field3' },
+              { key: 'expr2', value: 'complexExpr + 2' },
+            ],
+          },
+          id: 'testNode',
+        },
+      ];
+
+      const result = await service.extractFields(nodes, 'inputs');
+      expect(result).toEqual({
+        inputs: [
+          { key: 'expr1', property: 'field3', exception: null },
+          { key: 'expr2', property: 'expr2', exception: 'complexExpr + 2' },
+        ],
+      });
+    });
+
+    it('should handle functionNode correctly', async () => {
+      const nodes: Node[] = [
+        {
+          type: 'functionNode',
+          content: `
+            /**
+             * @param input1
+             * @param input2
+             * @returns output1
+             */
+          `,
+          id: 'testNode',
+        },
+      ];
+
+      const result = await service.extractFields(nodes, 'inputs');
+      expect(result).toEqual({
+        inputs: [
+          { key: 'input1', property: 'input1' },
+          { key: 'input2', property: 'input2' },
+        ],
+      });
+
+      const resultOutputs = await service.extractFields(nodes, 'outputs');
+      expect(resultOutputs).toEqual({
+        outputs: [{ key: 'output1', property: 'output1' }],
+      });
+    });
+
+    it('should handle nodes with unknown type correctly', async () => {
+      const nodes: Node[] = [
+        {
+          type: 'unknownType',
+          content: {
+            inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
+          },
+          id: 'testNode',
+        },
+      ];
+
+      const result = await service.extractFields(nodes, 'inputs');
+      expect(result).toEqual({
+        inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
+      });
+    });
+
+    it('should handle nodes without the specified fieldKey correctly', async () => {
+      const nodes: Node[] = [
+        {
+          type: 'someType',
+          content: {
+            inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
+          },
+          id: 'testNode',
+        },
+      ];
+
+      const result = await service.extractFields(nodes, 'outputs');
+      expect(result).toEqual({
+        outputs: [],
+      });
+    });
+
+    it('should handle nodes with duplicate properties correctly', async () => {
+      const nodes: Node[] = [
+        {
+          type: 'someType',
+          content: {
+            inputs: [
+              { id: '1', name: 'Input1', type: 'string', field: 'field1' },
+              { id: '2', name: 'Input2', type: 'number', field: 'field1' },
+            ],
+          },
+          id: 'testNode',
+        },
+      ];
+
+      const result = await service.extractFields(nodes, 'inputs');
+      expect(result).toEqual({
+        inputs: [{ id: '2', name: 'Input2', type: 'number', property: 'field1' }],
+      });
+    });
   });
 
   describe('extractResultOutputs', () => {
@@ -336,6 +492,153 @@ describe('RuleMappingService', () => {
         uniqueInputs: [],
       });
     });
+
+    it('should handle nodes with inputs and no outputs', async () => {
+      const nodes: Node[] = [
+        {
+          type: 'someType',
+          content: {
+            inputs: [
+              { id: '1', name: 'Input1', type: 'string', field: 'field1' },
+              { id: '2', name: 'Input2', type: 'number', field: 'field2' },
+            ],
+          },
+          id: 'testNode',
+        },
+      ];
+
+      const result = await service.extractUniqueInputs(nodes);
+      expect(result).toEqual({
+        uniqueInputs: [
+          { id: '1', name: 'Input1', type: 'string', property: 'field1' },
+          { id: '2', name: 'Input2', type: 'number', property: 'field2' },
+        ],
+      });
+    });
+
+    it('should handle nodes with inputs and outputs that match', async () => {
+      const nodes: Node[] = [
+        {
+          type: 'someType',
+          content: {
+            inputs: [
+              { id: '1', name: 'Input1', type: 'string', field: 'field1' },
+              { id: '2', name: 'Input2', type: 'number', field: 'field2' },
+            ],
+            outputs: [
+              { id: '3', name: 'Output1', type: 'string', field: 'field1' },
+              { id: '4', name: 'Output2', type: 'number', field: 'field2' },
+            ],
+          },
+          id: 'testNode',
+        },
+      ];
+
+      const result = await service.extractUniqueInputs(nodes);
+      expect(result).toEqual({
+        uniqueInputs: [],
+      });
+    });
+
+    it('should handle nodes with transformed inputs as exceptions', async () => {
+      const nodes: Node[] = [
+        {
+          type: 'someType',
+          content: {
+            inputs: [
+              { id: '1', name: 'Input1', type: 'string', field: 'field1' },
+              { id: '2', name: 'Input2', type: 'number', field: 'field2' },
+            ],
+            outputs: [
+              {
+                id: '3',
+                name: 'Output1',
+                type: 'string',
+                field: 'field3',
+                exception: 'field2',
+              },
+            ],
+          },
+          id: 'testNode',
+        },
+      ];
+
+      const result = await service.extractUniqueInputs(nodes);
+      expect(result).toEqual({
+        uniqueInputs: [
+          { id: '1', name: 'Input1', type: 'string', property: 'field1' },
+          { id: '2', name: 'Input2', type: 'number', property: 'field2' },
+        ],
+      });
+    });
+
+    it('should handle multiple nodes with overlapping inputs and outputs', async () => {
+      const nodes: Node[] = [
+        {
+          type: 'someType',
+          content: {
+            inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
+            outputs: [{ id: '2', name: 'Output1', type: 'string', field: 'field2' }],
+          },
+          id: 'testNode1',
+        },
+        {
+          type: 'someType',
+          content: {
+            inputs: [
+              { id: '3', name: 'Input3', type: 'boolean', field: 'field3' },
+              { id: '4', name: 'Input4', type: 'number', field: 'field4' },
+            ],
+            outputs: [{ id: '5', name: 'Output2', type: 'boolean', field: 'field3' }],
+          },
+          id: 'testNode2',
+        },
+      ];
+
+      const result = await service.extractUniqueInputs(nodes);
+      expect(result).toEqual({
+        uniqueInputs: [
+          { id: '1', name: 'Input1', type: 'string', property: 'field1' },
+          { id: '4', name: 'Input4', type: 'number', property: 'field4' },
+        ],
+      });
+    });
+
+    it('should handle nodes with exceptions correctly', async () => {
+      const nodes: Node[] = [
+        {
+          type: 'someType',
+          content: {
+            inputs: [
+              { id: '1', name: 'Input1', type: 'string', field: 'field1' },
+              { id: '2', name: 'Input2', type: 'number', field: 'field2' },
+            ],
+            outputs: [
+              {
+                id: '3',
+                name: 'Output1',
+                type: 'string',
+                field: 'field1',
+                exception: 'field1',
+              },
+              {
+                id: '4',
+                name: 'Output2',
+                type: 'number',
+                field: 'field3',
+                exception: 'field2',
+              },
+            ],
+          },
+          id: 'testNode',
+        },
+      ];
+
+      const result = await service.extractUniqueInputs(nodes);
+      expect(result).toEqual({
+        uniqueInputs: [{ id: '2', name: 'Input2', type: 'number', property: 'field2' }],
+      });
+    });
   });
 
   describe('ruleSchema', () => {
@@ -386,6 +689,127 @@ describe('RuleMappingService', () => {
         expect(error).toBeInstanceOf(InvalidRuleContent);
         expect(error.message).toBe('Rule has no nodes');
       }
+    });
+    it('should handle nodes with inputs but no edges', async () => {
+      const nodes: Node[] = [
+        {
+          id: '1',
+          type: 'inputNode',
+          content: {
+            inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
+          },
+        },
+        {
+          id: '1',
+          type: 'outputNode',
+          content: {
+            outputs: [{ id: '1', name: 'Output1', type: 'string', field: 'field2' }],
+          },
+        },
+      ];
+      const edges: Edge[] = [];
+
+      const result = await service.ruleSchema({ nodes, edges });
+      expect(result).toEqual({
+        inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
+        outputs: [{ id: '1', name: 'Output1', type: 'string', property: 'field2' }],
+        resultOutputs: [],
+      });
+    });
+
+    it('should handle nodes with outputs but no edges', async () => {
+      const nodes: Node[] = [
+        {
+          id: '1',
+          type: 'outputNode',
+          content: {
+            outputs: [{ id: '1', name: 'Output1', type: 'string', field: 'field2' }],
+          },
+        },
+      ];
+      const edges: Edge[] = [];
+
+      const result = await service.ruleSchema({ nodes, edges });
+      expect(result).toEqual({
+        inputs: [],
+        outputs: [{ id: '1', name: 'Output1', type: 'string', property: 'field2' }],
+        resultOutputs: [],
+      });
+    });
+
+    it('should handle nodes with both inputs and outputs correctly', async () => {
+      const nodes: Node[] = [
+        {
+          id: '1',
+          type: 'inputNode',
+          content: {
+            inputs: [
+              { id: '1', name: 'Input1', type: 'string', field: 'field1' },
+              { id: '2', name: 'Input2', type: 'number', field: 'field2' },
+            ],
+          },
+        },
+        {
+          id: '2',
+          type: 'outputNode',
+          content: {
+            outputs: [
+              { id: '1', name: 'Output1', type: 'string', field: 'field2' },
+              { id: '2', name: 'Output2', type: 'number', field: 'field3' },
+            ],
+          },
+        },
+      ];
+      const edges: Edge[] = [];
+
+      const result = await service.ruleSchema({ nodes, edges });
+      expect(result).toEqual({
+        inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
+        outputs: [
+          { id: '1', name: 'Output1', type: 'string', property: 'field2' },
+          { id: '2', name: 'Output2', type: 'number', property: 'field3' },
+        ],
+        resultOutputs: [],
+      });
+    });
+
+    it('should handle nodes with decisionNode', async () => {
+      const nodes: Node[] = [
+        {
+          id: '1',
+          type: 'decisionNode',
+          content: {
+            key: 'someKey',
+          },
+        },
+        {
+          id: '2',
+          type: 'outputNode',
+          content: {
+            outputs: [
+              { id: '1', name: 'Output1', type: 'string', field: 'field2' },
+              { id: '2', name: 'Output2', type: 'number', field: 'field3' },
+            ],
+          },
+        },
+      ];
+      const edges: Edge[] = [];
+
+      // Mock the ruleSchemaFile method to return a sample schema
+      jest.spyOn(service, 'ruleSchemaFile').mockResolvedValue({
+        inputs: [{ id: '1', name: 'DecisionInput1', type: 'string', property: 'field1' }],
+        resultOutputs: [{ id: '2', name: 'DecisionOutput1', type: 'number', property: 'field2' }],
+      });
+
+      const result = await service.ruleSchema({ nodes, edges });
+      expect(result).toEqual({
+        inputs: [{ id: '1', name: 'DecisionInput1', type: 'string', property: 'field1' }],
+        outputs: [
+          { id: '1', name: 'Output1', type: 'string', property: 'field2' },
+          { id: '2', name: 'Output2', type: 'number', property: 'field3' },
+        ],
+        resultOutputs: [],
+      });
     });
   });
 
