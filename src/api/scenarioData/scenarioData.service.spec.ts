@@ -461,11 +461,13 @@ describe('ScenarioDataService', () => {
           inputs: { familyComposition: 'single', numberOfChildren: 2 },
           outputs: { isEligible: true, baseAmount: 100 },
           expectedResults: {},
+          resultMatch: false,
         },
         'Scenario 2': {
           inputs: { familyComposition: 'couple', numberOfChildren: 3 },
           outputs: { isEligible: false, baseAmount: 200 },
           expectedResults: {},
+          resultMatch: false,
         },
       };
 
@@ -552,6 +554,26 @@ describe('ScenarioDataService', () => {
       const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename, ruleContent);
 
       const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail)\nScenario 1,Fail`;
+
+      expect(csvContent.trim()).toBe(expectedCsvContent.trim());
+    });
+
+    it('should escape inputs and outputs containing commas or quotes', async () => {
+      const goRulesJSONFilename = 'test.json';
+      const ruleContent = { nodes: [], edges: [] };
+      const ruleRunResults = {
+        'Scenario 1': {
+          inputs: { input1: 'value, with, commas', input2: 'value "with" quotes' },
+          outputs: { output1: 'result, with, commas', output2: 'result "with" quotes' },
+          expectedResults: {},
+        },
+      };
+
+      jest.spyOn(service, 'runDecisionsForScenarios').mockResolvedValue(ruleRunResults);
+
+      const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename, ruleContent);
+
+      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: input1,Input: input2\nScenario 1,Fail,"value, with, commas",value "with" quotes`;
 
       expect(csvContent.trim()).toBe(expectedCsvContent.trim());
     });

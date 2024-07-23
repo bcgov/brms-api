@@ -164,29 +164,43 @@ export class ScenarioDataService {
       newScenarios,
     );
 
-    const inputKeys = extractUniqueKeys(ruleRunResults, 'inputs');
-    const outputKeys = extractUniqueKeys(ruleRunResults, 'result');
-    const expectedResultsKeys = extractUniqueKeys(ruleRunResults, 'expectedResults');
+    const keys = {
+      inputs: extractUniqueKeys(ruleRunResults, 'inputs'),
+      expectedResults: extractUniqueKeys(ruleRunResults, 'expectedResults'),
+      result: extractUniqueKeys(ruleRunResults, 'result'),
+    };
 
     const headers = [
       'Scenario',
       'Results Match Expected (Pass/Fail)',
-      ...inputKeys.map((key) => `Input: ${key}`),
-      ...expectedResultsKeys.map((key) => `Expected Result: ${key}`),
-      ...outputKeys.map((key) => `Result: ${key}`),
+      ...this.prefixKeys(keys.inputs, 'Input'),
+      ...this.prefixKeys(keys.expectedResults, 'Expected Result'),
+      ...this.prefixKeys(keys.result, 'Result'),
     ];
 
-    const rows = Object.entries(ruleRunResults).map(([scenarioName, scenarioData]) => {
-      const resultsMatch = scenarioData.resultMatch ? 'Pass' : 'Fail';
-      const inputs = inputKeys.map((key) => scenarioData.inputs[key] ?? '');
-      const outputs = outputKeys.map((key) => scenarioData.result[key] ?? '');
-      const expectedResults = expectedResultsKeys.map((key) => scenarioData.expectedResults[key] ?? '');
+    const rows = Object.entries(ruleRunResults).map(([scenarioName, data]) => [
+      this.escapeCSVField(scenarioName),
+      data.resultMatch ? 'Pass' : 'Fail',
+      ...this.mapFields(data.inputs, keys.inputs),
+      ...this.mapFields(data.expectedResults, keys.expectedResults),
+      ...this.mapFields(data.result, keys.result),
+    ]);
 
-      return [scenarioName, resultsMatch, ...inputs, ...expectedResults, ...outputs];
-    });
+    return [headers, ...rows].map((row) => row.join(',')).join('\n');
+  }
 
-    const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
-    return csvContent;
+  private prefixKeys(keys: string[], prefix: string): string[] {
+    return keys.map((key) => `${prefix}: ${key}`);
+  }
+
+  private mapFields(data: Record<string, any>, keys: string[]): string[] {
+    return keys.map((key) => this.escapeCSVField(data[key]));
+  }
+
+  private escapeCSVField(field: any): string {
+    if (field == null) return '';
+    const stringField = typeof field === 'string' ? field : String(field);
+    return stringField.includes(',') ? `"${stringField.replace(/"/g, '""')}"` : stringField;
   }
 
   /**
