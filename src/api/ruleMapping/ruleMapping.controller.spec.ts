@@ -41,7 +41,7 @@ describe('RuleMappingController', () => {
       const ruleFileName = 'test-rule.json';
       const ruleContent = { nodes: [], edges: [] };
       const rulemap = { inputs: [], outputs: [], resultOutputs: [] };
-      jest.spyOn(service, 'ruleSchema').mockReturnValue(rulemap);
+      jest.spyOn(service, 'ruleSchema').mockResolvedValue(rulemap);
 
       const mockResponse = {
         setHeader: jest.fn(),
@@ -65,7 +65,7 @@ describe('RuleMappingController', () => {
       const nodes = [{ id: '1', type: 'someType', content: { inputs: [], outputs: [] } }];
       const edges = [{ id: '2', type: 'someType', targetId: '1', sourceId: '1' }];
       const result = { inputs: [], outputs: [], resultOutputs: [] };
-      jest.spyOn(service, 'ruleSchema').mockReturnValue(result);
+      jest.spyOn(service, 'ruleSchema').mockResolvedValue(result);
 
       const dto: EvaluateRuleMappingDto = { nodes, edges };
       const response = await controller.evaluateRuleMap(dto);
