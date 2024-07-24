@@ -64,11 +64,7 @@ export class RuleMappingService {
     const results = await Promise.all(promises);
     const fields = results.flat();
 
-    const uniqueFieldsMap = new Map<string, any>();
-
-    fields.forEach((field) => {
-      uniqueFieldsMap.set(field.property, field);
-    });
+    const uniqueFieldsMap = new Map(fields.map((field) => [field.property, field]));
 
     const uniqueFields = Array.from(uniqueFieldsMap.values());
     return { [fieldKey]: uniqueFields };

@@ -146,7 +146,7 @@ describe('RuleMappingService', () => {
           type: 'expressionNode',
           content: {
             expressions: [
-              { key: 'expr1', value: 'field3' },
+              { key: 'expr1', value: 'field3 > 5' },
               { key: 'expr2', value: 'complexExpr + 2' },
             ],
           },
@@ -157,7 +157,7 @@ describe('RuleMappingService', () => {
       const result = await service.extractFields(nodes, 'inputs');
       expect(result).toEqual({
         inputs: [
-          { key: 'expr1', property: 'field3', exception: null },
+          { key: 'expr1', property: 'expr1', exception: 'field3 > 5' },
           { key: 'expr2', property: 'expr2', exception: 'complexExpr + 2' },
         ],
       });
