@@ -40,10 +40,11 @@ export class RuleMappingService {
           };
         });
       } else if (node.type === 'functionNode' && node?.content) {
-        return (node.content.split('\n') || []).reduce((acc: any, line: string) => {
-          const match = line.match(fieldKey === 'inputs' ? /\s*\*\s*@param\s+/ : /\s*\*\s*@returns\s+/);
+        return (node.content.split('\n') || []).reduce((acc: any[], line: string) => {
+          const pattern = fieldKey === 'inputs' ? /^\s*\*\s*@param\s+(.+)$/ : /^\s*\*\s*@returns\s+(.+)$/;
+          const match = line.match(pattern);
           if (match) {
-            const item = line.replace(match[0], '').trim();
+            const item = match[1].trim();
             acc.push({
               key: item,
               property: item,
