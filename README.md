@@ -14,6 +14,8 @@ Before running your application locally, you'll need some environment variables.
 
 - MONGODB_URL: The URL for connecting to the MongoDB instance you created in the previous step. Set it to something like mongodb://localhost/nest.
 - FRONTEND_URI: The URI for the frontend application. Set it to http://localhost:8080.
+- GITHUB_APP_CLIENT_ID
+- GITHUB_APP_CLIENT_SECRET
 
 ### Including Rules from the Rules Repository
 
