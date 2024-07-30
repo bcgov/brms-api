@@ -1,7 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { Node, Edge, TraceObject, Field } from './ruleMapping.interface';
+import { Node, Edge, TraceObject, Field, RuleContent } from './ruleMapping.interface';
 import { DocumentsService } from '../documents/documents.service';
 import { ConfigService } from '@nestjs/config';
+import { RuleSchema } from '../scenarioData/scenarioData.interface';
+
+export class InvalidRuleContent extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidRuleContentError';
+  }
+}
 
 @Injectable()
 export class RuleMappingService {
@@ -14,22 +22,37 @@ export class RuleMappingService {
   }
 
   // Extract all fields from a list of nodes
-  extractFields(nodes: Node[], fieldKey: 'inputs' | 'outputs'): { [key: string]: any[] } {
-    const fields: any[] = nodes.flatMap((node: any) => {
+  async extractFields(nodes: Node[], fieldKey: 'inputs' | 'outputs'): Promise<{ [key: string]: any[] }> {
+    const promises = nodes.map(async (node: any) => {
+      if (node.type === 'decisionNode' && node.content?.key) {
+        const generateNestedSchema = await this.ruleSchemaFile(node.content.key);
+        const { inputs, resultOutputs } = generateNestedSchema;
+        return fieldKey === 'inputs' ? inputs : resultOutputs;
+      }
       if (node.type === 'expressionNode' && node.content?.expressions) {
-        return node.content.expressions.map((expr: { key: any; value: any }) => ({
-          key: fieldKey === 'inputs' ? expr.key : expr.value,
-          property: fieldKey === 'inputs' ? expr.value : expr.key,
-        }));
+        const simpleExpressionRegex = /^[a-zA-Z0-9]+$/;
+        return node.content.expressions.map((expr: { key: any; value: any }) => {
+          const isSimpleValue = simpleExpressionRegex.test(expr.value);
+          return {
+            key: isSimpleValue ? (fieldKey === 'inputs' ? expr.key : expr.value) : expr.key,
+            property: isSimpleValue ? (fieldKey === 'inputs' ? expr.value : expr.key) : expr.key,
+            exception: isSimpleValue ? null : expr.value,
+          };
+        });
       } else if (node.type === 'functionNode' && node?.content) {
-        return (node.content.split('\n') || []).reduce((acc: any, line: string) => {
-          const match = line.match(fieldKey === 'inputs' ? /\s*\*\s*@param\s+/ : /\s*\*\s*@returns\s+/);
-          if (match) {
-            const item = line.replace(match[0], '').trim();
-            acc.push({
-              key: item,
-              property: item,
-            });
+        if (node.content.length > 10000) {
+          throw new Error('Input too large');
+        }
+        return (node.content.split('\n') || []).reduce((acc: any[], line: string) => {
+          const keyword = fieldKey === 'inputs' ? '@param' : '@returns';
+          if (line.includes(keyword)) {
+            const item = line.split(keyword)[1]?.trim();
+            if (item) {
+              acc.push({
+                key: item,
+                property: item,
+              });
+            }
           }
           return acc;
         }, []);
@@ -42,16 +65,18 @@ export class RuleMappingService {
         }));
       }
     });
-    return { [fieldKey]: fields };
+
+    const results = await Promise.all(promises);
+    const fields = results.flat();
+
+    const uniqueFieldsMap = new Map(fields.map((field) => [field.property, field]));
+
+    const uniqueFields = Array.from(uniqueFieldsMap.values());
+    return { [fieldKey]: uniqueFields };
   }
 
   // Get the final outputs of a rule from mapping the target output nodes and the edges
-  extractResultOutputs(
-    nodes: Node[],
-    edges: Edge[],
-  ): {
-    resultOutputs: any[];
-  } {
+  async extractResultOutputs(nodes: Node[], edges: Edge[]): Promise<{ resultOutputs: any[] }> {
     // Find the output node
     const outputNode = nodes.find((obj) => obj.type === 'outputNode');
 
@@ -64,17 +89,15 @@ export class RuleMappingService {
     // Find the edges that connect the output node to other nodes
     const targetEdges = edges.filter((edge) => edge.targetId === outputNodeID);
     const targetOutputNodes = targetEdges.map((edge) => nodes.find((node) => node.id === edge.sourceId));
-    const resultOutputs: any[] = this.extractFields(targetOutputNodes, 'outputs').outputs;
+    const resultOutputs: any[] = (await this.extractFields(targetOutputNodes, 'outputs')).outputs;
 
     return { resultOutputs };
   }
 
-  extractInputsAndOutputs(nodes: Node[]): {
-    inputs: any[];
-    outputs: any[];
-  } {
-    const inputs: any[] = this.extractFields(nodes, 'inputs').inputs;
-    const outputs: any[] = this.extractFields(nodes, 'outputs').outputs;
+  async extractInputsAndOutputs(nodes: Node[]): Promise<{ inputs: any[]; outputs: any[] }> {
+    const inputs: any[] = (await this.extractFields(nodes, 'inputs')).inputs;
+    const outputs: any[] = (await this.extractFields(nodes, 'outputs')).outputs;
+
     return { inputs, outputs };
   }
 
@@ -92,9 +115,21 @@ export class RuleMappingService {
 
   // extract only the unique inputs from a list of nodes
   // excludes inputs found in the outputs of other nodes
-  extractUniqueInputs(nodes: Node[]) {
-    const { inputs, outputs } = this.extractInputsAndOutputs(nodes);
-    const outputFields = new Set(outputs.map((outputField) => outputField.property));
+  // inputs that are only transformed are still included as unique as marked as exception
+  async extractUniqueInputs(nodes: Node[]): Promise<{ uniqueInputs: any[] }> {
+    const { inputs, outputs } = await this.extractInputsAndOutputs(nodes);
+    const outputFields = new Set(
+      outputs
+        // check for exceptions where input is transformed and exclude from output fields
+        .filter((outputField) =>
+          outputField.exception
+            ? outputField.exception.includes(outputField.key)
+              ? outputField.exception === outputField.key
+              : true
+            : true,
+        )
+        .map((outputField) => outputField.property),
+    );
     const uniqueInputFields = this.findUniqueFields(inputs, outputFields);
 
     return {
@@ -103,17 +138,17 @@ export class RuleMappingService {
   }
 
   // generate a rule schema from a list of nodes that represent the origin inputs and all outputs of a rule
-  ruleSchema(
-    nodes: Node[],
-    edges: Edge[],
-  ): {
-    inputs: any[];
-    outputs: any[];
-    resultOutputs: any[];
-  } {
-    const inputs: any[] = this.extractUniqueInputs(nodes).uniqueInputs;
-    const generalOutputs: any[] = this.extractFields(nodes, 'outputs').outputs;
-    const resultOutputs: any[] = this.extractResultOutputs(nodes, edges).resultOutputs;
+  async ruleSchema(ruleContent: RuleContent): Promise<RuleSchema> {
+    if (!ruleContent) {
+      throw new InvalidRuleContent('No content');
+    }
+    const { nodes, edges } = ruleContent;
+    if (!nodes || !Array.isArray(nodes)) {
+      throw new InvalidRuleContent('Rule has no nodes');
+    }
+    const inputs: any[] = (await this.extractUniqueInputs(nodes)).uniqueInputs;
+    const generalOutputs: any[] = (await this.extractFields(nodes, 'outputs')).outputs;
+    const resultOutputs: any[] = (await this.extractResultOutputs(nodes, edges)).resultOutputs;
 
     //get unique outputs excluding final outputs
     const outputs: any[] = generalOutputs.filter(
@@ -126,6 +161,13 @@ export class RuleMappingService {
     );
 
     return { inputs, outputs, resultOutputs };
+  }
+
+  // generate a rule schema from a given local file
+  async ruleSchemaFile(ruleFileName: string): Promise<any> {
+    const fileContent = await this.documentsService.getFileContent(ruleFileName);
+    const ruleContent = await JSON.parse(fileContent.toString());
+    return this.ruleSchema(ruleContent);
   }
 
   // generate a schema for the inputs and outputs of a rule given the trace data of a rule run
@@ -147,12 +189,5 @@ export class RuleMappingService {
       }
     }
     return { input, output };
-  }
-
-  // generate a rule schema from a given local file
-  async ruleSchemaFile(ruleFileName: string): Promise<any> {
-    const fileContent = await this.documentsService.getFileContent(ruleFileName);
-    const { nodes, edges } = await JSON.parse(fileContent.toString());
-    return this.ruleSchema(nodes, edges);
   }
 }

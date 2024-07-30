@@ -25,7 +25,6 @@ describe('RuleMappingController', () => {
         {
           provide: RuleMappingService,
           useValue: {
-            ruleSchemaFile: jest.fn(),
             ruleSchema: jest.fn(),
             evaluateRuleSchema: jest.fn(),
           },
@@ -37,42 +36,27 @@ describe('RuleMappingController', () => {
     service = module.get<RuleMappingService>(RuleMappingService);
   });
 
-  describe('getRuleFile', () => {
-    it('should return the rule file with the correct headers', async () => {
+  describe('getRuleSchema', () => {
+    it('should return the rule schema with the correct headers', async () => {
       const ruleFileName = 'test-rule.json';
-      const filePath = `${ruleFileName}`;
-      const rulemap = { inputs: [], outputs: [] };
-      jest.spyOn(service, 'ruleSchemaFile').mockResolvedValue(rulemap);
+      const ruleContent = { nodes: [], edges: [] };
+      const rulemap = { inputs: [], outputs: [], resultOutputs: [] };
+      jest.spyOn(service, 'ruleSchema').mockResolvedValue(rulemap);
 
       const mockResponse = {
         setHeader: jest.fn(),
         send: jest.fn(),
       } as unknown as Response;
 
-      await controller.getRuleFile(ruleFileName, mockResponse);
+      await controller.getRuleSchema(ruleFileName, ruleContent, mockResponse);
 
-      expect(service.ruleSchemaFile).toHaveBeenCalledWith(filePath);
+      expect(service.ruleSchema).toHaveBeenCalledWith(ruleContent);
       expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'application/json');
       expect(mockResponse.setHeader).toHaveBeenCalledWith(
         'Content-Disposition',
         `attachment; filename=${ruleFileName}`,
       );
       expect(mockResponse.send).toHaveBeenCalledWith(rulemap);
-    });
-
-    it('should handle errors properly', async () => {
-      const ruleFileName = 'test-rule.json';
-      const error = new Error('File not found');
-      jest.spyOn(service, 'ruleSchemaFile').mockRejectedValue(error);
-
-      const mockResponse = {
-        setHeader: jest.fn(),
-        send: jest.fn(),
-      } as unknown as Response;
-
-      await expect(controller.getRuleFile(ruleFileName, mockResponse)).rejects.toThrow(
-        new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR),
-      );
     });
   });
 
@@ -81,21 +65,13 @@ describe('RuleMappingController', () => {
       const nodes = [{ id: '1', type: 'someType', content: { inputs: [], outputs: [] } }];
       const edges = [{ id: '2', type: 'someType', targetId: '1', sourceId: '1' }];
       const result = { inputs: [], outputs: [], resultOutputs: [] };
-      jest.spyOn(service, 'ruleSchema').mockReturnValue(result);
+      jest.spyOn(service, 'ruleSchema').mockResolvedValue(result);
 
       const dto: EvaluateRuleMappingDto = { nodes, edges };
       const response = await controller.evaluateRuleMap(dto);
 
-      expect(service.ruleSchema).toHaveBeenCalledWith(nodes, edges);
+      expect(service.ruleSchema).toHaveBeenCalledWith({ nodes, edges });
       expect(response).toEqual({ result });
-    });
-
-    it('should handle invalid request data', async () => {
-      const dto = { nodes: 'invalid' } as unknown as EvaluateRuleMappingDto;
-
-      await expect(controller.evaluateRuleMap(dto)).rejects.toThrow(
-        new HttpException('Invalid request data', HttpStatus.BAD_REQUEST),
-      );
     });
 
     it('should handle errors properly', async () => {

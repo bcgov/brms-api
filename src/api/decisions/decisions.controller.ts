@@ -7,9 +7,9 @@ export class DecisionsController {
   constructor(private readonly decisionsService: DecisionsService) {}
 
   @Post('/evaluate')
-  async evaluateDecisionByContent(@Body() { content, context, trace }: EvaluateDecisionWithContentDto) {
+  async evaluateDecisionByContent(@Body() { ruleContent, context, trace }: EvaluateDecisionWithContentDto) {
     try {
-      return await this.decisionsService.runDecision(content, context, { trace });
+      return await this.decisionsService.runDecisionByContent(ruleContent, context, { trace });
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }

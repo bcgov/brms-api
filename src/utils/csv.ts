@@ -40,17 +40,47 @@ export const extractKeys = (headers: string[], prefix: string): string[] => {
  * @returns An array of formatted variables.
  */
 export const formatVariables = (row: string[], keys: string[], startIndex: number, filterEmpty = false): Variable[] => {
-  return keys
-    .map((key, index) => {
-      const value = row[startIndex + index] ? formatValue(row[startIndex + index]) : null;
-      if (filterEmpty && (value === null || value === undefined || value === '')) {
-        return undefined;
+  const result: { [key: string]: any } = {};
+
+  keys.forEach((key, index) => {
+    const value = row[startIndex + index] ? formatValue(row[startIndex + index]) : null;
+    if (filterEmpty && (value === null || value === undefined || value === '')) {
+      return;
+    }
+
+    const parts = key.match(/^([^\[]+)(?:\[(\d+)\])?(.*)$/);
+    if (parts) {
+      const [, baseKey, arrayIndex, remainingKey] = parts;
+
+      const pluralizedKey = `${baseKey}${Number(arrayIndex) > 0 ? 's' : ''}`;
+
+      if (!result[pluralizedKey]) {
+        result[pluralizedKey] = arrayIndex ? [] : {};
       }
-      return {
-        name: key,
-        value: value,
-        type: typeof value,
-      };
-    })
-    .filter((entry) => entry !== undefined);
+
+      if (arrayIndex) {
+        const idx = parseInt(arrayIndex, 10) - 1;
+        if (!result[pluralizedKey][idx]) {
+          result[pluralizedKey][idx] = {};
+        }
+        if (remainingKey) {
+          result[pluralizedKey][idx][remainingKey] = value;
+        } else {
+          result[pluralizedKey][idx] = value;
+        }
+      } else if (remainingKey) {
+        result[pluralizedKey][remainingKey] = value;
+      } else {
+        result[pluralizedKey] = value;
+      }
+    } else {
+      result[key] = value;
+    }
+  });
+
+  return Object.entries(result).map(([name, value]) => ({
+    name,
+    value: Array.isArray(value) ? value.filter((v) => v !== undefined) : value,
+    type: Array.isArray(value) ? 'array' : typeof value,
+  }));
 };

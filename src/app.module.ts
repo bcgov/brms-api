@@ -8,8 +8,6 @@ import { DecisionsController } from './api/decisions/decisions.controller';
 import { DecisionsService } from './api/decisions/decisions.service';
 import { DocumentsController } from './api/documents/documents.controller';
 import { DocumentsService } from './api/documents/documents.service';
-import { SubmissionsController } from './api/submissions/submissions.controller';
-import { SubmissionsService } from './api/submissions/submissions.service';
 import { RuleMappingController } from './api/ruleMapping/ruleMapping.controller';
 import { RuleMappingService } from './api/ruleMapping/ruleMapping.service';
 import { ScenarioData, ScenarioDataSchema } from './api/scenarioData/scenarioData.schema';
@@ -36,17 +34,9 @@ import { ScenarioDataService } from './api/scenarioData/scenarioData.service';
     RuleDataController,
     DecisionsController,
     DocumentsController,
-    SubmissionsController,
     RuleMappingController,
     ScenarioDataController,
   ],
-  providers: [
-    RuleDataService,
-    DecisionsService,
-    DocumentsService,
-    SubmissionsService,
-    RuleMappingService,
-    ScenarioDataService,
-  ],
+  providers: [RuleDataService, DecisionsService, DocumentsService, RuleMappingService, ScenarioDataService],
 })
 export class AppModule {}

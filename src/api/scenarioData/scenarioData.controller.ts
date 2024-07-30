@@ -16,6 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { ScenarioDataService } from './scenarioData.service';
 import { ScenarioData } from './scenarioData.schema';
+import { RuleContent } from '../ruleMapping/ruleMapping.interface';
 import { CreateScenarioDto } from './dto/create-scenario.dto';
 import { FileNotFoundError } from '../../utils/readFile';
 
@@ -112,9 +113,13 @@ export class ScenarioDataController {
   }
 
   @Post('/evaluation')
-  async getCSVForRuleRun(@Body('goRulesJSONFilename') goRulesJSONFilename: string, @Res() res: Response) {
+  async getCSVForRuleRun(
+    @Body('goRulesJSONFilename') goRulesJSONFilename: string,
+    @Body('ruleContent') ruleContent: RuleContent,
+    @Res() res: Response,
+  ) {
     try {
-      const fileContent = await this.scenarioDataService.getCSVForRuleRun(goRulesJSONFilename);
+      const fileContent = await this.scenarioDataService.getCSVForRuleRun(goRulesJSONFilename, ruleContent);
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename=${goRulesJSONFilename.replace(/\.json$/, '.csv')}`);
       res.status(HttpStatus.OK).send(fileContent);
@@ -126,9 +131,10 @@ export class ScenarioDataController {
   @Post('/run-decisions')
   async runDecisionsForScenarios(
     @Body('goRulesJSONFilename') goRulesJSONFilename: string,
+    @Body('ruleContent') ruleContent: RuleContent,
   ): Promise<{ [scenarioId: string]: any }> {
     try {
-      return await this.scenarioDataService.runDecisionsForScenarios(goRulesJSONFilename);
+      return await this.scenarioDataService.runDecisionsForScenarios(goRulesJSONFilename, ruleContent);
     } catch (error) {
       throw new HttpException('Error running scenario decisions', HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -140,6 +146,7 @@ export class ScenarioDataController {
     @UploadedFile() file: Express.Multer.File | undefined,
     @Res() res: Response,
     @Body('goRulesJSONFilename') goRulesJSONFilename: string,
+    @Body('ruleContent') ruleContent: RuleContent,
   ) {
     if (!file) {
       throw new HttpException('No file uploaded', HttpStatus.BAD_REQUEST);
@@ -147,7 +154,7 @@ export class ScenarioDataController {
 
     try {
       const scenarios = await this.scenarioDataService.processProvidedScenarios(goRulesJSONFilename, file);
-      const csvContent = await this.scenarioDataService.getCSVForRuleRun(goRulesJSONFilename, scenarios);
+      const csvContent = await this.scenarioDataService.getCSVForRuleRun(goRulesJSONFilename, ruleContent, scenarios);
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename=processed_data.csv`);
       res.status(HttpStatus.OK).send(csvContent);

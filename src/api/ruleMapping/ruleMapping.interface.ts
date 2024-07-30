@@ -9,7 +9,9 @@ export interface Field {
 
 export interface InputField extends Field {}
 
-export interface OutputField extends Field {}
+export interface OutputField extends Field {
+  exception?: string;
+}
 
 export interface Expression {
   key: string;
@@ -20,12 +22,13 @@ export interface NodeContent {
   inputs?: InputField[];
   outputs?: OutputField[];
   expressions?: Expression[];
+  key?: string;
 }
 
 export interface Node {
   id: any;
   type: string;
-  content: NodeContent;
+  content: NodeContent | string;
 }
 
 export interface Edge {
@@ -35,6 +38,11 @@ export interface Edge {
   sourceId: string;
   sourceHandle?: string;
   targetHandle?: string;
+}
+
+export interface RuleContent {
+  nodes: Node[];
+  edges: Edge[];
 }
 
 export interface TraceObjectEntry extends ZenEngineTrace {
