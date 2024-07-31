@@ -3,15 +3,22 @@ import { getModelToken } from '@nestjs/mongoose';
 import { DocumentsService } from '../documents/documents.service';
 import { RuleDataService } from './ruleData.service';
 import { RuleData } from './ruleData.schema';
+import { RuleDraft } from './ruleDraft.schema';
 
-export const mockRuleData = {
+export const mockRuleData: RuleData = {
   _id: 'testId',
   title: 'Title',
   goRulesJSONFilename: 'filename.json',
 };
 
+const mockRuleDraft = { content: { nodes: [], edges: [] } };
+
 export const mockServiceProviders = [
   RuleDataService,
+  {
+    provide: getModelToken(RuleDraft.name),
+    useFactory: () => ({}),
+  },
   {
     provide: getModelToken(RuleData.name),
     useFactory: () => ({
@@ -21,6 +28,11 @@ export const mockServiceProviders = [
       findOne: jest.fn().mockImplementation(() => ({
         exec: jest.fn().mockResolvedValue(mockRuleData),
       })),
+      findById: jest.fn().mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue({ ...mockRuleData, ruleDraft: mockRuleDraft }),
+        }),
+      }),
     }),
   },
   {
@@ -53,8 +65,20 @@ describe('RuleDataService', () => {
     expect(await service.getAllRuleData()).toEqual(result);
   });
 
+  it('should return a rule draft for a given ruleId', async () => {
+    expect(await service.getRuleDataWithDraft(mockRuleData._id)).toEqual(mockRuleDraft);
+  });
+
   it('should get data for a rule', async () => {
     expect(await service.getRuleData(mockRuleData._id)).toEqual(mockRuleData);
+  });
+
+  it('should update rule data', async () => {
+    // TODO: Implement
+  });
+
+  it('should delete rule data', async () => {
+    // TODO: Implement
   });
 
   it('should add unsynced files correctly', async () => {
