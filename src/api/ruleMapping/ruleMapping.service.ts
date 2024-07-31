@@ -40,14 +40,19 @@ export class RuleMappingService {
           };
         });
       } else if (node.type === 'functionNode' && node?.content) {
-        return (node.content.split('\n') || []).reduce((acc: any, line: string) => {
-          const match = line.match(fieldKey === 'inputs' ? /\s*\*\s*@param\s+/ : /\s*\*\s*@returns\s+/);
-          if (match) {
-            const item = line.replace(match[0], '').trim();
-            acc.push({
-              key: item,
-              property: item,
-            });
+        if (node.content.length > 10000) {
+          throw new Error('Input too large');
+        }
+        return (node.content.split('\n') || []).reduce((acc: any[], line: string) => {
+          const keyword = fieldKey === 'inputs' ? '@param' : '@returns';
+          if (line.includes(keyword)) {
+            const item = line.split(keyword)[1]?.trim();
+            if (item) {
+              acc.push({
+                key: item,
+                property: item,
+              });
+            }
           }
           return acc;
         }, []);
