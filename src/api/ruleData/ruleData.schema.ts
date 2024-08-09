@@ -18,6 +18,9 @@ export class RuleData {
 
   @Prop({ description: 'The name of the branch on github associated with this file' })
   reviewBranch?: string;
+
+  @Prop({ description: 'If the rule has been published' })
+  isPublished?: boolean;
 }
 
 export type RuleDataDocument = RuleData & Document;
