@@ -56,7 +56,7 @@ describe('RuleDataController', () => {
 
   it('should delete a rule data', async () => {
     const ruleId = 'testId';
-    jest.spyOn(service, 'deleteRuleData').mockImplementation(() => Promise.resolve());
+    jest.spyOn(service, 'deleteRuleData').mockImplementation(() => Promise.resolve(mockRuleData));
 
     expect(await controller.deleteRuleData(ruleId)).toBeUndefined();
   });
