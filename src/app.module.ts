@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { RuleData, RuleDataSchema } from './api/ruleData/ruleData.schema';
-import { RuleDataController } from './api/ruleData/ruleData.controller';
-import { RuleDataService } from './api/ruleData/ruleData.service';
+import { GithubAuthModule } from './auth/github-auth/github-auth.module';
+import { RuleDataModule } from './api/ruleData/ruleData.module';
 import { DecisionsController } from './api/decisions/decisions.controller';
 import { DecisionsService } from './api/decisions/decisions.service';
 import { DocumentsController } from './api/documents/documents.controller';
@@ -25,18 +24,11 @@ import { ScenarioDataService } from './api/scenarioData/scenarioData.service';
       ],
     }),
     MongooseModule.forRoot(process.env.MONGODB_URL),
-    MongooseModule.forFeature([
-      { name: RuleData.name, schema: RuleDataSchema },
-      { name: ScenarioData.name, schema: ScenarioDataSchema },
-    ]),
+    MongooseModule.forFeature([{ name: ScenarioData.name, schema: ScenarioDataSchema }]),
+    GithubAuthModule,
+    RuleDataModule,
   ],
-  controllers: [
-    RuleDataController,
-    DecisionsController,
-    DocumentsController,
-    RuleMappingController,
-    ScenarioDataController,
-  ],
-  providers: [RuleDataService, DecisionsService, DocumentsService, RuleMappingService, ScenarioDataService],
+  controllers: [DecisionsController, DocumentsController, RuleMappingController, ScenarioDataController],
+  providers: [DecisionsService, DocumentsService, RuleMappingService, ScenarioDataService],
 })
 export class AppModule {}

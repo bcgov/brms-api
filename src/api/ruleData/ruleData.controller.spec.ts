@@ -25,6 +25,15 @@ describe('RuleDataController', () => {
     expect(await controller.getAllRulesData()).toBe(result);
   });
 
+  it('should return a rule draft for a given ruleId', async () => {
+    const ruleId = 'testRuleId';
+    const mockRuleDraft = { _id: 'sadasd', content: {} };
+    jest.spyOn(service, 'getRuleDataWithDraft').mockImplementation(() => Promise.resolve(mockRuleDraft));
+
+    expect(await controller.getRuleDraft(ruleId)).toBe(mockRuleDraft);
+    expect(service.getRuleDataWithDraft).toHaveBeenCalledWith(ruleId);
+  });
+
   it('should return a rule data', async () => {
     const ruleId = 'testId';
     jest.spyOn(service, 'getRuleData').mockImplementation(() => Promise.resolve(mockRuleData));
@@ -47,7 +56,7 @@ describe('RuleDataController', () => {
 
   it('should delete a rule data', async () => {
     const ruleId = 'testId';
-    jest.spyOn(service, 'deleteRuleData').mockImplementation(() => Promise.resolve());
+    jest.spyOn(service, 'deleteRuleData').mockImplementation(() => Promise.resolve(mockRuleData));
 
     expect(await controller.deleteRuleData(ruleId)).toBeUndefined();
   });
