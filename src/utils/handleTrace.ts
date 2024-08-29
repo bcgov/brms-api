@@ -51,10 +51,7 @@ export const mapTraceToResult = (trace: TraceObject, ruleSchema: RuleSchema, typ
       result[property] = value;
     } else {
       // Direct match without id
-      const directMatch = schema.find(
-        (item: any) =>
-          item.property !== undefined && item.property !== null && replaceSpecialCharacters(item.property, '') === key,
-      );
+      const directMatch = schema.find((item: any) => replaceSpecialCharacters(item.property ?? '', '') === key);
       if (directMatch) {
         const formattedKey = replaceSpecialCharacters(directMatch.property, '');
         result[formattedKey] = value;
