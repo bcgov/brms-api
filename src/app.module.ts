@@ -12,6 +12,8 @@ import { RuleMappingService } from './api/ruleMapping/ruleMapping.service';
 import { ScenarioData, ScenarioDataSchema } from './api/scenarioData/scenarioData.schema';
 import { ScenarioDataController } from './api/scenarioData/scenarioData.controller';
 import { ScenarioDataService } from './api/scenarioData/scenarioData.service';
+import { KlammController } from './api/klamm/klamm.controller';
+import { KlammService } from './api/klamm/klamm.service';
 
 @Module({
   imports: [
@@ -28,7 +30,13 @@ import { ScenarioDataService } from './api/scenarioData/scenarioData.service';
     GithubAuthModule,
     RuleDataModule,
   ],
-  controllers: [DecisionsController, DocumentsController, RuleMappingController, ScenarioDataController],
-  providers: [DecisionsService, DocumentsService, RuleMappingService, ScenarioDataService],
+  controllers: [
+    DecisionsController,
+    DocumentsController,
+    RuleMappingController,
+    ScenarioDataController,
+    KlammController,
+  ],
+  providers: [DecisionsService, DocumentsService, RuleMappingService, ScenarioDataService, KlammService],
 })
 export class AppModule {}
