@@ -40,22 +40,41 @@ export class RuleMappingService {
           };
         });
       } else if (node.type === 'functionNode' && node?.content) {
-        if (node.content.length > 10000) {
-          throw new Error('Input too large');
-        }
-        return (node.content.split('\n') || []).reduce((acc: any[], line: string) => {
-          const keyword = fieldKey === 'inputs' ? '@param' : '@returns';
-          if (line.includes(keyword)) {
-            const item = line.split(keyword)[1]?.trim();
-            if (item) {
-              acc.push({
-                key: item,
-                property: item,
-              });
-            }
+        if (node.content.source) {
+          if (node.content.source.length > 10000) {
+            throw new Error('Input too large');
           }
-          return acc;
-        }, []);
+          return (node.content.source.split('\n') || []).reduce((acc: any[], line: string) => {
+            const keyword = fieldKey === 'inputs' ? '@param' : '@returns';
+            if (line.includes(keyword)) {
+              const item = line.split(keyword)[1]?.trim();
+              if (item) {
+                acc.push({
+                  key: item,
+                  property: item,
+                });
+              }
+            }
+            return acc;
+          }, []);
+        } else {
+          if (node.content.length > 10000) {
+            throw new Error('Input too large');
+          }
+          return (node.content.split('\n') || []).reduce((acc: any[], line: string) => {
+            const keyword = fieldKey === 'inputs' ? '@param' : '@returns';
+            if (line.includes(keyword)) {
+              const item = line.split(keyword)[1]?.trim();
+              if (item) {
+                acc.push({
+                  key: item,
+                  property: item,
+                });
+              }
+            }
+            return acc;
+          }, []);
+        }
       } else {
         return (node.content?.[fieldKey] || []).map((field: Field) => ({
           id: field.id,
@@ -189,5 +208,59 @@ export class RuleMappingService {
       }
     }
     return { input, output };
+  }
+
+  async inputOutputSchema(ruleContent: RuleContent): Promise<RuleSchema> {
+    if (!ruleContent || !Array.isArray(ruleContent.nodes)) {
+      throw new Error('Invalid rule content or missing nodes');
+    }
+
+    // Refactor flattenNodes to handle async properly
+    const flattenNodes = async (nodes: Node[]): Promise<any[]> => {
+      const result: any[] = [];
+
+      for (const node of nodes) {
+        if (node.type === 'decisionNode' && typeof node.content === 'object' && node.content?.key) {
+          const generateNestedInputs = await this.inputOutputSchemaFile(node.content.key);
+          const inputs = generateNestedInputs.inputs;
+          result.push(...inputs); // Add inputs to the result array
+        }
+      }
+
+      return result;
+    };
+
+    // Helper function to map fields to the desired format
+    const mapFields = (fields: any[]) =>
+      fields.map((field) => ({
+        id: field.id,
+        name: field.label, // Rename 'label' to 'name'
+        property: field.field, // Rename 'field' to 'property'
+      }));
+
+    // Extract inputs from 'inputNode' type
+    const inputNodes = ruleContent.nodes.filter((node) => node.type === 'inputNode');
+    let inputs = inputNodes.flatMap((node) =>
+      typeof node.content === 'object' && 'fields' in node.content ? mapFields(node.content.fields || []) : [],
+    );
+
+    // Fetch and concatenate nested inputs
+    const nestedInputs = await flattenNodes(ruleContent.nodes);
+    inputs = inputs.concat(nestedInputs); // Use concat to combine arrays
+
+    // Extract outputs from 'outputNode' type
+    const outputNodes = ruleContent.nodes.filter((node) => node.type === 'outputNode');
+    const resultOutputs = outputNodes.flatMap((node) =>
+      typeof node.content === 'object' && 'fields' in node.content ? mapFields(node.content.fields || []) : [],
+    );
+
+    // Return the schema with inputs and outputs
+    return { inputs, resultOutputs };
+  }
+
+  async inputOutputSchemaFile(ruleFileName: string): Promise<RuleSchema> {
+    const fileContent = await this.documentsService.getFileContent(ruleFileName);
+    const ruleContent = JSON.parse(fileContent.toString());
+    return this.inputOutputSchema(ruleContent);
   }
 }

@@ -2,9 +2,10 @@ import { ZenEngineTrace } from '@gorules/zen-engine';
 
 export interface Field {
   id: string;
-  name: string;
-  type: string;
-  field: string;
+  name?: string;
+  type?: string;
+  field?: string;
+  label?: string;
 }
 
 export interface InputField extends Field {}
@@ -23,6 +24,7 @@ export interface NodeContent {
   outputs?: OutputField[];
   expressions?: Expression[];
   key?: string;
+  fields?: Field[];
 }
 
 export interface Node {

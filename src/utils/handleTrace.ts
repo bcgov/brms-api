@@ -24,7 +24,7 @@ export const mapTraceToResult = (trace: TraceObject, ruleSchema: RuleSchema, typ
   const result: { [key: string]: any } = {};
   const schema = type === 'input' ? ruleSchema.inputs : ruleSchema.resultOutputs;
   for (const [key, value] of Object.entries(trace)) {
-    if (trace[key] && typeof trace[key] === 'object') {
+    if (trace[key] && typeof trace[key] === 'object' && key !== '$' && key !== '$nodes') {
       const newArray: any[] = [];
       const arrayName = key;
       for (const item in trace[key]) {
