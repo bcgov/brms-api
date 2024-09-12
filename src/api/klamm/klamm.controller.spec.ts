@@ -7,7 +7,6 @@ describe('KlammController', () => {
   let service: KlammService;
 
   beforeEach(async () => {
-    // Mock KlammService
     const module: TestingModule = await Test.createTestingModule({
       controllers: [KlammController],
       providers: [
@@ -15,6 +14,7 @@ describe('KlammController', () => {
           provide: KlammService,
           useValue: {
             getBREFields: jest.fn(() => Promise.resolve('expected result')),
+            getBREFieldFromName: jest.fn((fieldName) => Promise.resolve(`result for ${fieldName}`)), // Mock implementation
           },
         },
       ],
@@ -27,5 +27,12 @@ describe('KlammController', () => {
   it('should call getBREFields and return expected result', async () => {
     expect(await controller.getBREFields()).toBe('expected result');
     expect(service.getBREFields).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call getBREFieldFromName with fieldName and return expected result', async () => {
+    const fieldName = 'testField';
+    expect(await controller.getBREFieldFromName(fieldName)).toBe(`result for ${fieldName}`);
+    expect(service.getBREFieldFromName).toHaveBeenCalledWith(fieldName);
+    expect(service.getBREFieldFromName).toHaveBeenCalledTimes(1);
   });
 });
