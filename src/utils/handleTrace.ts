@@ -34,7 +34,7 @@ export const mapTraceToResult = (trace: TraceObject, ruleSchema: RuleSchema, typ
       }
       newArray.forEach((item, index) => {
         index++;
-        const keyName = `${arrayName.toString().slice(0, -1)}[${index}]`;
+        const keyName = `${arrayName.toString()}[${index}]`;
         if (Object.keys(item).length === 0) {
           result[`${keyName}${key}`] = item;
         } else {

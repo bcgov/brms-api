@@ -234,8 +234,13 @@ export class RuleMappingService {
     const mapFields = (fields: any[]) =>
       fields.map((field) => ({
         id: field.id,
-        name: field.label, // Rename 'label' to 'name'
-        property: field.field, // Rename 'field' to 'property'
+        name: field.label,
+        property: field.name,
+        description: field.description,
+        type: field.dataType,
+        validationCriteria: field.validationCriteria,
+        validationType: field.validationType,
+        child_fields: field.child_fields,
       }));
 
     // Extract inputs from 'inputNode' type
