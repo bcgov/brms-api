@@ -295,7 +295,31 @@ describe('ScenarioDataService', () => {
   describe('runDecisionsForScenarios', () => {
     it('should run decisions for scenarios and map inputs/outputs correctly', async () => {
       const goRulesJSONFilename = 'test.json';
-      const ruleContent = { nodes: [], edges: [] };
+      const ruleContent = {
+        nodes: [
+          {
+            id: 'node1',
+            type: 'inputNode',
+            content: {
+              fields: [
+                { id: 'id1', name: 'Family Composition', field: 'familyComposition', dataType: 'string' },
+                { id: 'id2', name: 'Number of Children', field: 'numberOfChildren', dataType: 'number' },
+              ],
+            },
+          },
+          {
+            id: 'node2',
+            type: 'outputNode',
+            content: {
+              fields: [
+                { id: 'id3', name: 'Is Eligible', field: 'isEligible', dataType: 'boolean' },
+                { id: 'id4', name: 'Base Amount', field: 'baseAmount', dataType: 'number' },
+              ],
+            },
+          },
+        ],
+        edges: [],
+      };
       const scenarios = [
         {
           _id: testObjectId,
@@ -441,7 +465,7 @@ describe('ScenarioDataService', () => {
       expect(results).toEqual({
         'Scenario 1': {
           inputs: {},
-          outputs: { isEligible: true },
+          outputs: {},
           expectedResults: {},
           result: {
             status: 'pass',

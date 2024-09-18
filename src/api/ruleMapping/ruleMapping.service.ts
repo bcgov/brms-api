@@ -215,27 +215,28 @@ export class RuleMappingService {
       throw new Error('Invalid rule content or missing nodes');
     }
 
-    // Refactor flattenNodes to handle async properly
-    const flattenNodes = async (nodes: Node[]): Promise<any[]> => {
-      const result: any[] = [];
+    const flattenNodes = async (nodes: Node[]): Promise<{ resultInput: any[]; resultOutput: any[] }> => {
+      const resultInput: any[] = [];
+      const resultOutput: any[] = [];
 
       for (const node of nodes) {
         if (node.type === 'decisionNode' && typeof node.content === 'object' && node.content?.key) {
           const generateNestedInputs = await this.inputOutputSchemaFile(node.content.key);
-          const inputs = generateNestedInputs.inputs;
-          result.push(...inputs); // Add inputs to the result array
+          const { inputs, resultOutputs } = generateNestedInputs;
+          resultInput.push(...inputs);
+          resultOutput.push(...resultOutputs);
         }
       }
 
-      return result;
+      return { resultInput, resultOutput };
     };
 
     // Helper function to map fields to the desired format
     const mapFields = (fields: any[]) =>
       fields.map((field) => ({
         id: field.id,
-        name: field.label,
-        property: field.name,
+        name: field.name,
+        property: field.field,
         description: field.description,
         type: field.dataType,
         validationCriteria: field.validationCriteria,
@@ -251,7 +252,10 @@ export class RuleMappingService {
 
     // Fetch and concatenate nested inputs
     const nestedInputs = await flattenNodes(ruleContent.nodes);
-    inputs = inputs.concat(nestedInputs); // Use concat to combine arrays
+    const filteredInputs = nestedInputs.resultInput.filter(
+      (input) => !nestedInputs.resultOutput.some((output) => output.id === input.id),
+    );
+    inputs = inputs.concat(filteredInputs);
 
     // Extract outputs from 'outputNode' type
     const outputNodes = ruleContent.nodes.filter((node) => node.type === 'outputNode');

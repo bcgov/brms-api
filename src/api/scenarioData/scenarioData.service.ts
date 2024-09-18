@@ -199,6 +199,7 @@ export class ScenarioDataService {
 
   private escapeCSVField(field: any): string {
     if (field == null) return '';
+    if (typeof field === 'object') return `${field.length}`;
     const stringField = typeof field === 'string' ? field : String(field);
     return stringField.includes(',') ? `"${stringField.replace(/"/g, '""')}"` : stringField;
   }

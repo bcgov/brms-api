@@ -1,11 +1,13 @@
 import { ZenEngineTrace } from '@gorules/zen-engine';
 
 export interface Field {
-  id: string;
+  id: string | number;
   name?: string;
   type?: string;
   field?: string;
   label?: string;
+  description?: string;
+  dataType?: string;
 }
 
 export interface InputField extends Field {}
