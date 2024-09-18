@@ -18,9 +18,12 @@ export class KlammService {
     });
   }
 
-  async getBREFields(): Promise<string[]> {
+  async getBREFields(searchText: string): Promise<string[]> {
     try {
-      const { data } = await this.axiosKlammInstance.get(`${process.env.KLAMM_API_URL}/api/brefields`);
+      const sanitizedSearchText = encodeURIComponent(searchText.trim());
+      const { data } = await this.axiosKlammInstance.get(
+        `${process.env.KLAMM_API_URL}/api/brefields?search=${sanitizedSearchText}`,
+      );
       return data;
     } catch (err) {
       throw new HttpException('Error fetching from Klamm', HttpStatus.INTERNAL_SERVER_ERROR);
@@ -29,8 +32,9 @@ export class KlammService {
 
   async getBREFieldFromName(fieldName: string): Promise<any[]> {
     try {
+      const sanitizedFieldName = encodeURIComponent(fieldName.trim());
       const { data } = await this.axiosKlammInstance.get(`${process.env.KLAMM_API_URL}/api/brefields`, {
-        params: { name: fieldName },
+        params: { name: sanitizedFieldName },
       });
       if (!data?.data || data.data.length < 1) {
         throw new InvalidFieldRequest('Field name does not exist');

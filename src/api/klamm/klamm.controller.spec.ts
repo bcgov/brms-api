@@ -25,7 +25,7 @@ describe('KlammController', () => {
   });
 
   it('should call getBREFields and return expected result', async () => {
-    expect(await controller.getBREFields()).toBe('expected result');
+    expect(await controller.getBREFields('test')).toBe('expected result');
     expect(service.getBREFields).toHaveBeenCalledTimes(1);
   });
 
