@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Node, Edge, TraceObject, Field, RuleContent } from './ruleMapping.interface';
 import { DocumentsService } from '../documents/documents.service';
 import { ConfigService } from '@nestjs/config';
-import { RuleSchema } from '../scenarioData/scenarioData.interface';
+import { RuleSchema, RuleField } from '../scenarioData/scenarioData.interface';
 
 export class InvalidRuleContent extends Error {
   constructor(message: string) {
@@ -40,22 +40,41 @@ export class RuleMappingService {
           };
         });
       } else if (node.type === 'functionNode' && node?.content) {
-        if (node.content.length > 10000) {
-          throw new Error('Input too large');
-        }
-        return (node.content.split('\n') || []).reduce((acc: any[], line: string) => {
-          const keyword = fieldKey === 'inputs' ? '@param' : '@returns';
-          if (line.includes(keyword)) {
-            const item = line.split(keyword)[1]?.trim();
-            if (item) {
-              acc.push({
-                key: item,
-                property: item,
-              });
-            }
+        if (node.content.source) {
+          if (node.content.source.length > 10000) {
+            throw new Error('Input too large');
           }
-          return acc;
-        }, []);
+          return (node.content.source.split('\n') || []).reduce((acc: any[], line: string) => {
+            const keyword = fieldKey === 'inputs' ? '@param' : '@returns';
+            if (line.includes(keyword)) {
+              const item = line.split(keyword)[1]?.trim();
+              if (item) {
+                acc.push({
+                  key: item,
+                  property: item,
+                });
+              }
+            }
+            return acc;
+          }, []);
+        } else {
+          if (node.content.length > 10000) {
+            throw new Error('Input too large');
+          }
+          return (node.content.split('\n') || []).reduce((acc: any[], line: string) => {
+            const keyword = fieldKey === 'inputs' ? '@param' : '@returns';
+            if (line.includes(keyword)) {
+              const item = line.split(keyword)[1]?.trim();
+              if (item) {
+                acc.push({
+                  key: item,
+                  property: item,
+                });
+              }
+            }
+            return acc;
+          }, []);
+        }
       } else {
         return (node.content?.[fieldKey] || []).map((field: Field) => ({
           id: field.id,
@@ -189,5 +208,68 @@ export class RuleMappingService {
       }
     }
     return { input, output };
+  }
+
+  async inputOutputSchema(ruleContent: RuleContent): Promise<RuleSchema> {
+    if (!ruleContent || !Array.isArray(ruleContent.nodes)) {
+      throw new Error('Invalid rule content or missing nodes');
+    }
+
+    const flattenNodes = async (nodes: Node[]): Promise<{ resultInput: RuleField[]; resultOutput: RuleField[] }> => {
+      const resultInput: RuleField[] = [];
+      const resultOutput: RuleField[] = [];
+
+      for (const node of nodes) {
+        if (node.type === 'decisionNode' && typeof node.content === 'object' && node.content?.key) {
+          const generateNestedInputs = await this.inputOutputSchemaFile(node.content.key);
+          const { inputs, resultOutputs } = generateNestedInputs;
+          resultInput.push(...inputs);
+          resultOutput.push(...resultOutputs);
+        }
+      }
+
+      return { resultInput, resultOutput };
+    };
+
+    // Helper function to map fields to the desired format
+    const mapFields = (fields: Field[]): RuleField[] =>
+      fields.map((field) => ({
+        id: field.id,
+        name: field.name,
+        field: field.field,
+        description: field.description,
+        type: field.dataType,
+        validationCriteria: field.validationCriteria,
+        validationType: field.validationType,
+        childFields: field.child_fields,
+      }));
+
+    // Extract inputs from 'inputNode' type
+    const inputNodes = ruleContent.nodes.filter((node) => node.type === 'inputNode');
+    let inputs = inputNodes.flatMap((node) =>
+      typeof node.content === 'object' && 'fields' in node.content ? mapFields(node.content.fields || []) : [],
+    );
+
+    // Fetch and concatenate nested inputs
+    const nestedInputs = await flattenNodes(ruleContent.nodes);
+    const filteredInputs = nestedInputs.resultInput.filter(
+      (input) => !nestedInputs.resultOutput.some((output) => output.id === input.id),
+    );
+    inputs = inputs.concat(filteredInputs);
+
+    // Extract outputs from 'outputNode' type
+    const outputNodes = ruleContent.nodes.filter((node) => node.type === 'outputNode');
+    const resultOutputs = outputNodes.flatMap((node) =>
+      typeof node.content === 'object' && 'fields' in node.content ? mapFields(node.content.fields || []) : [],
+    );
+
+    // Return the schema with inputs and outputs
+    return { inputs, resultOutputs };
+  }
+
+  async inputOutputSchemaFile(ruleFileName: string): Promise<RuleSchema> {
+    const fileContent = await this.documentsService.getFileContent(ruleFileName);
+    const ruleContent = JSON.parse(fileContent.toString());
+    return this.inputOutputSchema(ruleContent);
   }
 }

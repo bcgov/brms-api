@@ -1,7 +1,18 @@
+export interface RuleField {
+  id: string | number;
+  name?: string;
+  field?: string;
+  description?: string;
+  type?: string;
+  validationCriteria?: string;
+  validationType?: string;
+  childFields?: RuleField[];
+}
+
 export interface RuleSchema {
-  inputs: Array<{ id: string; name?: string; property: string }>;
-  outputs: Array<{ id: string; name?: string; property: string }>;
-  resultOutputs: Array<{ id: string; name?: string; property: string }>;
+  inputs: RuleField[];
+  outputs?: RuleField[];
+  resultOutputs: RuleField[];
 }
 
 export interface RuleRunResults {

@@ -14,7 +14,7 @@ export class RuleMappingController {
     @Body('ruleContent') ruleContent: EvaluateRuleMappingDto,
     @Res() res: Response,
   ) {
-    const rulemap = await this.ruleMappingService.ruleSchema(ruleContent);
+    const rulemap = await this.ruleMappingService.inputOutputSchema(ruleContent);
 
     try {
       res.setHeader('Content-Type', 'application/json');
@@ -33,7 +33,7 @@ export class RuleMappingController {
   @Post('/evaluate')
   async evaluateRuleMap(@Body() ruleContent: EvaluateRuleMappingDto) {
     try {
-      const result = await this.ruleMappingService.ruleSchema(ruleContent);
+      const result = await this.ruleMappingService.inputOutputSchema(ruleContent);
       return { result };
     } catch (error) {
       if (error instanceof InvalidRuleContent) {

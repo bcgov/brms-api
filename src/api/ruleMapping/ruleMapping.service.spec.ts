@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 
 describe('RuleMappingService', () => {
   let service: RuleMappingService;
+  let documentsService: DocumentsService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -13,15 +14,22 @@ describe('RuleMappingService', () => {
         RuleMappingService,
         DocumentsService,
         {
+          provide: DocumentsService,
+          useValue: {
+            getFileContent: jest.fn(),
+          },
+        },
+        {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue('mocked_value'), // Replace with your mocked config values
+            get: jest.fn().mockReturnValue('mocked_value'),
           },
         },
       ],
     }).compile();
 
     service = module.get<RuleMappingService>(RuleMappingService);
+    documentsService = module.get<DocumentsService>(DocumentsService);
   });
 
   it('should be defined', () => {
@@ -100,7 +108,6 @@ describe('RuleMappingService', () => {
         },
       ];
 
-      // Mock the ruleSchemaFile method to return a sample schema
       jest.spyOn(service, 'ruleSchemaFile').mockResolvedValue({
         inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
         resultOutputs: [{ id: '2', name: 'Output1', type: 'number', property: 'field2' }],
@@ -957,8 +964,8 @@ describe('RuleMappingService', () => {
         ],
       });
 
-      const mockGetFileContent = jest.fn().mockResolvedValue(mockFileContent);
-      DocumentsService.prototype.getFileContent = mockGetFileContent;
+      const mockGetFileContent = jest.fn().mockResolvedValue(Buffer.from(mockFileContent));
+      documentsService.getFileContent = mockGetFileContent;
 
       const filePath = 'path/to/mock/file.json';
       const result = await service.ruleSchemaFile(filePath);
@@ -970,6 +977,404 @@ describe('RuleMappingService', () => {
         outputs: [
           { id: '3', name: 'Output1', type: 'string', property: 'field2' },
           { id: '4', name: 'Output2', type: 'number', property: 'field3' },
+        ],
+      });
+    });
+  });
+
+  describe('inputOutputSchema', () => {
+    it('should throw an error if ruleContent is invalid or missing nodes', async () => {
+      const invalidRuleContent = { nodes: null };
+
+      await expect(service.inputOutputSchema(invalidRuleContent as any)).rejects.toThrowError(
+        'Invalid rule content or missing nodes',
+      );
+    });
+
+    it('should return empty inputs and resultOutputs if there are no input or output nodes', async () => {
+      const ruleContent: RuleContent = { nodes: [], edges: [] };
+
+      const result = await service.inputOutputSchema(ruleContent);
+
+      expect(result).toEqual({ inputs: [], resultOutputs: [] });
+    });
+
+    it('should map input fields from inputNode and output fields from outputNode correctly', async () => {
+      const ruleContent: RuleContent = {
+        nodes: [
+          {
+            id: '1',
+            type: 'inputNode',
+            content: {
+              fields: [
+                { id: 'input1', name: 'Name', field: 'name', description: 'User name', dataType: 'string' },
+                { id: 'input2', name: 'Age', field: 'age', description: 'User age', dataType: 'integer' },
+              ],
+            },
+          },
+          {
+            id: '2',
+            type: 'outputNode',
+            content: {
+              fields: [
+                {
+                  id: 'output1',
+                  name: 'Eligibility',
+                  field: 'eligibility',
+                  description: 'Is eligible',
+                  dataType: 'boolean',
+                },
+              ],
+            },
+          },
+        ],
+        edges: [],
+      };
+
+      const result = await service.inputOutputSchema(ruleContent);
+
+      expect(result).toEqual({
+        inputs: [
+          {
+            id: 'input1',
+            name: 'Name',
+            field: 'name',
+            description: 'User name',
+            type: 'string',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: undefined,
+          },
+          {
+            id: 'input2',
+            name: 'Age',
+            field: 'age',
+            description: 'User age',
+            type: 'integer',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: undefined,
+          },
+        ],
+        resultOutputs: [
+          {
+            id: 'output1',
+            name: 'Eligibility',
+            field: 'eligibility',
+            description: 'Is eligible',
+            type: 'boolean',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: undefined,
+          },
+        ],
+      });
+    });
+
+    it('should correctly handle nested decisionNode and flatten the inputs and outputs', async () => {
+      jest.spyOn(service, 'inputOutputSchemaFile').mockResolvedValue({
+        inputs: [
+          {
+            id: 101,
+            name: 'Income',
+            field: 'income',
+            description: 'Total annual income of the individual.',
+            type: 'number-input',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: [],
+          },
+          {
+            id: 102,
+            name: 'Age',
+            field: 'age',
+            description: 'Age of the individual.',
+            type: 'number-input',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: [],
+          },
+        ],
+        resultOutputs: [],
+      });
+
+      const ruleContent: RuleContent = {
+        nodes: [
+          {
+            id: '1',
+            type: 'decisionNode',
+            content: {
+              key: 'nested-key',
+            },
+          },
+          {
+            id: '2',
+            type: 'inputNode',
+            content: {
+              fields: [
+                {
+                  id: 1,
+                  name: 'Employment Status',
+                  field: 'employmentStatus',
+                  description: 'Employment status of the individual.',
+                  dataType: 'string',
+                },
+              ],
+            },
+          },
+        ],
+        edges: [],
+      };
+
+      const result = await service.inputOutputSchema(ruleContent);
+
+      expect(result).toEqual({
+        inputs: [
+          {
+            id: 1,
+            name: 'Employment Status',
+            field: 'employmentStatus',
+            description: 'Employment status of the individual.',
+            type: 'string',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: undefined,
+          },
+          {
+            id: 101,
+            name: 'Income',
+            field: 'income',
+            description: 'Total annual income of the individual.',
+            type: 'number-input',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: [],
+          },
+          {
+            id: 102,
+            name: 'Age',
+            field: 'age',
+            description: 'Age of the individual.',
+            type: 'number-input',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: [],
+          },
+        ],
+        resultOutputs: [],
+      });
+    });
+
+    it('should include inputs from both nested decisionNodes and inputNodes', async () => {
+      const mockNestedSchema = {
+        inputs: [
+          {
+            id: 1,
+            name: 'Employment Status',
+            field: 'employmentStatus',
+            description: 'Employment status of the individual.',
+            type: 'string',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: [],
+          },
+          {
+            id: 101,
+            name: 'Income',
+            field: 'income',
+            description: 'Total annual income of the individual.',
+            type: 'number-input',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: [],
+          },
+        ],
+        resultOutputs: [],
+      };
+
+      jest.spyOn(service, 'inputOutputSchemaFile').mockResolvedValue(mockNestedSchema);
+
+      const ruleContent: RuleContent = {
+        nodes: [
+          {
+            id: '1',
+            type: 'decisionNode',
+            content: {
+              key: 'nested-key',
+            },
+          },
+          {
+            id: '2',
+            type: 'inputNode',
+            content: {
+              fields: [
+                {
+                  id: 1,
+                  name: 'Employment Status',
+                  field: 'employmentStatus',
+                  description: 'Employment status of the individual.',
+                  dataType: 'string',
+                },
+              ],
+            },
+          },
+          {
+            id: '3',
+            type: 'outputNode',
+            content: {
+              fields: [
+                {
+                  id: '201',
+                  name: 'Eligibility Amount',
+                  field: 'eligibilityAmount',
+                  description: 'Amount eligible based on income.',
+                  dataType: 'number-output',
+                },
+              ],
+            },
+          },
+        ],
+        edges: [],
+      };
+
+      const result = await service.inputOutputSchema(ruleContent);
+
+      expect(result).toEqual({
+        inputs: [
+          {
+            id: 1,
+            name: 'Employment Status',
+            field: 'employmentStatus',
+            description: 'Employment status of the individual.',
+            type: 'string',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: undefined,
+          },
+          {
+            id: 1,
+            name: 'Employment Status',
+            field: 'employmentStatus',
+            description: 'Employment status of the individual.',
+            type: 'string',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: [],
+          },
+          {
+            id: 101,
+            name: 'Income',
+            field: 'income',
+            description: 'Total annual income of the individual.',
+            type: 'number-input',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: [],
+          },
+        ],
+        resultOutputs: [
+          {
+            id: '201',
+            name: 'Eligibility Amount',
+            field: 'eligibilityAmount',
+            description: 'Amount eligible based on income.',
+            type: 'number-output',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: undefined,
+          },
+        ],
+      });
+    });
+  });
+
+  describe('inputOutputSchemaFile', () => {
+    it('should generate a schema of inputs and outputs from a file', async () => {
+      const mockFileContent = JSON.stringify({
+        nodes: [
+          {
+            id: '1',
+            type: 'inputNode',
+            content: {
+              fields: [
+                { id: '1', name: 'Input1', dataType: 'string', field: 'field1' },
+                { id: '2', name: 'Input2', dataType: 'number', field: 'field2' },
+              ],
+            },
+          },
+          {
+            id: '2',
+            type: 'outputNode',
+            content: {
+              fields: [
+                { id: '3', name: 'Output1', dataType: 'string', field: 'field3' },
+                { id: '4', name: 'Output2', dataType: 'number', field: 'field4' },
+              ],
+            },
+          },
+        ],
+        edges: [
+          {
+            id: '1',
+            type: 'someType',
+            targetId: '2',
+            sourceId: '1',
+          },
+        ],
+      });
+
+      const mockGetFileContent = jest.fn().mockResolvedValue(Buffer.from(mockFileContent));
+      documentsService.getFileContent = mockGetFileContent;
+
+      const filePath = 'path/to/mock/file.json';
+      const result = await service.inputOutputSchemaFile(filePath);
+
+      expect(mockGetFileContent).toHaveBeenCalledWith(filePath);
+
+      expect(result).toEqual({
+        inputs: [
+          {
+            id: '1',
+            name: 'Input1',
+            type: 'string',
+            field: 'field1',
+            description: undefined,
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: undefined,
+          },
+          {
+            id: '2',
+            name: 'Input2',
+            type: 'number',
+            field: 'field2',
+            description: undefined,
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: undefined,
+          },
+        ],
+        resultOutputs: [
+          {
+            id: '3',
+            name: 'Output1',
+            type: 'string',
+            field: 'field3',
+            description: undefined,
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: undefined,
+          },
+          {
+            id: '4',
+            name: 'Output2',
+            type: 'number',
+            field: 'field4',
+            description: undefined,
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: undefined,
+          },
         ],
       });
     });

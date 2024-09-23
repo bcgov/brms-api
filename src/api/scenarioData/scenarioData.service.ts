@@ -109,7 +109,7 @@ export class ScenarioDataService {
       const fileContent = await this.documentsService.getFileContent(goRulesJSONFilename);
       ruleContent = await JSON.parse(fileContent.toString());
     }
-    const ruleSchema: RuleSchema = await this.ruleMappingService.ruleSchema(ruleContent);
+    const ruleSchema: RuleSchema = await this.ruleMappingService.inputOutputSchema(ruleContent);
     const results: { [scenarioId: string]: any } = {};
 
     for (const scenario of scenarios as ScenarioDataDocument[]) {
@@ -199,6 +199,7 @@ export class ScenarioDataService {
 
   private escapeCSVField(field: any): string {
     if (field == null) return '';
+    if (typeof field === 'object') return `${field.length}`;
     const stringField = typeof field === 'string' ? field : String(field);
     return stringField.includes(',') ? `"${stringField.replace(/"/g, '""')}"` : stringField;
   }
