@@ -61,4 +61,24 @@ export class RuleMappingController {
       }
     }
   }
+
+  // Map a rule file using only the rule content
+  @Post('/generateFromRuleContent')
+  async generateWithoutInputOutputNodes(
+    @Body('ruleContent') ruleContent: EvaluateRuleMappingDto,
+    @Res() res: Response,
+  ) {
+    const rulemap = await this.ruleMappingService.ruleSchema(ruleContent);
+
+    try {
+      res.setHeader('Content-Type', 'application/json');
+      res.send(rulemap);
+    } catch (error) {
+      if (error instanceof InvalidRuleContent) {
+        throw new HttpException('Invalid rule content', HttpStatus.BAD_REQUEST);
+      } else {
+        throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    }
+  }
 }

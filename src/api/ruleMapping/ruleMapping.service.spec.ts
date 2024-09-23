@@ -62,9 +62,9 @@ describe('RuleMappingService', () => {
       const result = await service.extractFields(nodes, 'inputs');
       expect(result).toEqual({
         inputs: [
-          { id: '1', name: 'Input1', type: 'string', property: 'field1' },
-          { id: '2', name: 'Input2', type: 'number', property: 'field2' },
-          { key: 'expr1', property: 'field3', exception: null },
+          { id: '1', name: 'Input1', type: 'string', field: 'field1' },
+          { id: '2', name: 'Input2', type: 'number', field: 'field2' },
+          { key: 'expr1', field: 'field3', exception: null },
         ],
       });
     });
@@ -86,8 +86,8 @@ describe('RuleMappingService', () => {
       const result = await service.extractFields(nodes, 'outputs');
       expect(result).toEqual({
         outputs: [
-          { id: '1', name: 'Output1', type: 'string', property: 'field1' },
-          { id: '2', name: 'Output2', type: 'number', property: 'field2' },
+          { id: '1', name: 'Output1', type: 'string', field: 'field1' },
+          { id: '2', name: 'Output2', type: 'number', field: 'field2' },
         ],
       });
     });
@@ -109,18 +109,18 @@ describe('RuleMappingService', () => {
       ];
 
       jest.spyOn(service, 'ruleSchemaFile').mockResolvedValue({
-        inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
-        resultOutputs: [{ id: '2', name: 'Output1', type: 'number', property: 'field2' }],
+        inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
+        resultOutputs: [{ id: '2', name: 'Output1', type: 'number', field: 'field2' }],
       });
 
       const result = await service.extractFields(nodes, 'inputs');
       expect(result).toEqual({
-        inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
+        inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
       });
 
       const resultOutputs = await service.extractFields(nodes, 'outputs');
       expect(resultOutputs).toEqual({
-        outputs: [{ id: '2', name: 'Output1', type: 'number', property: 'field2' }],
+        outputs: [{ id: '2', name: 'Output1', type: 'number', field: 'field2' }],
       });
     });
 
@@ -141,8 +141,8 @@ describe('RuleMappingService', () => {
       const result = await service.extractFields(nodes, 'inputs');
       expect(result).toEqual({
         inputs: [
-          { key: 'expr1', property: 'field3', exception: null },
-          { key: 'expr2', property: '123', exception: null },
+          { key: 'expr1', field: 'field3', exception: null },
+          { key: 'expr2', field: '123', exception: null },
         ],
       });
     });
@@ -164,8 +164,8 @@ describe('RuleMappingService', () => {
       const result = await service.extractFields(nodes, 'inputs');
       expect(result).toEqual({
         inputs: [
-          { key: 'expr1', property: 'expr1', exception: 'field3 > 5' },
-          { key: 'expr2', property: 'expr2', exception: 'complexExpr + 2' },
+          { key: 'expr1', field: 'expr1', exception: 'field3 > 5' },
+          { key: 'expr2', field: 'expr2', exception: 'complexExpr + 2' },
         ],
       });
     });
@@ -188,14 +188,14 @@ describe('RuleMappingService', () => {
       const result = await service.extractFields(nodes, 'inputs');
       expect(result).toEqual({
         inputs: [
-          { key: 'input1', property: 'input1' },
-          { key: 'input2', property: 'input2' },
+          { key: 'input1', field: 'input1' },
+          { key: 'input2', field: 'input2' },
         ],
       });
 
       const resultOutputs = await service.extractFields(nodes, 'outputs');
       expect(resultOutputs).toEqual({
-        outputs: [{ key: 'output1', property: 'output1' }],
+        outputs: [{ key: 'output1', field: 'output1' }],
       });
     });
 
@@ -212,7 +212,7 @@ describe('RuleMappingService', () => {
 
       const result = await service.extractFields(nodes, 'inputs');
       expect(result).toEqual({
-        inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
+        inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
       });
     });
 
@@ -249,7 +249,7 @@ describe('RuleMappingService', () => {
 
       const result = await service.extractFields(nodes, 'inputs');
       expect(result).toEqual({
-        inputs: [{ id: '2', name: 'Input2', type: 'number', property: 'field1' }],
+        inputs: [{ id: '2', name: 'Input2', type: 'number', field: 'field1' }],
       });
     });
   });
@@ -287,16 +287,16 @@ describe('RuleMappingService', () => {
 
       jest.spyOn(service, 'extractFields').mockResolvedValue({
         outputs: [
-          { id: '1', name: 'Output1', type: 'string', property: 'field2' },
-          { id: '2', name: 'Output2', type: 'number', property: 'field3' },
+          { id: '1', name: 'Output1', type: 'string', field: 'field2' },
+          { id: '2', name: 'Output2', type: 'number', field: 'field3' },
         ],
       });
 
       const result = await service.extractResultOutputs(nodes, edges);
       expect(result).toEqual({
         resultOutputs: [
-          { id: '1', name: 'Output1', type: 'string', property: 'field2' },
-          { id: '2', name: 'Output2', type: 'number', property: 'field3' },
+          { id: '1', name: 'Output1', type: 'string', field: 'field2' },
+          { id: '2', name: 'Output2', type: 'number', field: 'field3' },
         ],
       });
     });
@@ -384,16 +384,16 @@ describe('RuleMappingService', () => {
 
       jest.spyOn(service, 'extractFields').mockResolvedValue({
         outputs: [
-          { id: '1', name: 'Output1', type: 'string', property: 'field2' },
-          { id: '2', name: 'Output2', type: 'number', property: 'field3' },
+          { id: '1', name: 'Output1', type: 'string', field: 'field2' },
+          { id: '2', name: 'Output2', type: 'number', field: 'field3' },
         ],
       });
 
       const result = await service.extractResultOutputs(nodes, edges);
       expect(result).toEqual({
         resultOutputs: [
-          { id: '1', name: 'Output1', type: 'string', property: 'field2' },
-          { id: '2', name: 'Output2', type: 'number', property: 'field3' },
+          { id: '1', name: 'Output1', type: 'string', field: 'field2' },
+          { id: '2', name: 'Output2', type: 'number', field: 'field3' },
         ],
       });
     });
@@ -428,14 +428,14 @@ describe('RuleMappingService', () => {
       const result = await service.extractInputsAndOutputs(nodes);
       expect(result).toEqual({
         inputs: [
-          { id: '1', name: 'Input1', type: 'string', property: 'field1' },
-          { id: '2', name: 'Input2', type: 'number', property: 'field2' },
-          { key: 'expr1', property: 'field5', exception: null },
+          { id: '1', name: 'Input1', type: 'string', field: 'field1' },
+          { id: '2', name: 'Input2', type: 'number', field: 'field2' },
+          { key: 'expr1', field: 'field5', exception: null },
         ],
         outputs: [
-          { id: '3', name: 'Output1', type: 'string', property: 'field3' },
-          { id: '4', name: 'Output2', type: 'number', property: 'field4' },
-          { key: 'field5', property: 'expr1', exception: null },
+          { id: '3', name: 'Output1', type: 'string', field: 'field3' },
+          { id: '4', name: 'Output2', type: 'number', field: 'field4' },
+          { key: 'field5', field: 'expr1', exception: null },
         ],
       });
     });
@@ -450,13 +450,13 @@ describe('RuleMappingService', () => {
   describe('findUniqueFields', () => {
     it('should find unique fields', () => {
       const fields = [
-        { property: 'field1', name: 'Field 1' },
-        { property: 'field2', name: 'Field 2' },
+        { field: 'field1', name: 'Field 1' },
+        { field: 'field2', name: 'Field 2' },
       ];
       const otherFields = new Set(['field2']);
       const result = service.findUniqueFields(fields, otherFields);
       expect(result).toEqual({
-        field1: { property: 'field1', name: 'Field 1' },
+        field1: { field: 'field1', name: 'Field 1' },
       });
     });
   });
@@ -479,7 +479,7 @@ describe('RuleMappingService', () => {
 
       const result = await service.extractUniqueInputs(nodes);
       expect(result).toEqual({
-        uniqueInputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
+        uniqueInputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
       });
     });
 
@@ -517,8 +517,8 @@ describe('RuleMappingService', () => {
       const result = await service.extractUniqueInputs(nodes);
       expect(result).toEqual({
         uniqueInputs: [
-          { id: '1', name: 'Input1', type: 'string', property: 'field1' },
-          { id: '2', name: 'Input2', type: 'number', property: 'field2' },
+          { id: '1', name: 'Input1', type: 'string', field: 'field1' },
+          { id: '2', name: 'Input2', type: 'number', field: 'field2' },
         ],
       });
     });
@@ -573,8 +573,8 @@ describe('RuleMappingService', () => {
       const result = await service.extractUniqueInputs(nodes);
       expect(result).toEqual({
         uniqueInputs: [
-          { id: '1', name: 'Input1', type: 'string', property: 'field1' },
-          { id: '2', name: 'Input2', type: 'number', property: 'field2' },
+          { id: '1', name: 'Input1', type: 'string', field: 'field1' },
+          { id: '2', name: 'Input2', type: 'number', field: 'field2' },
         ],
       });
     });
@@ -605,8 +605,8 @@ describe('RuleMappingService', () => {
       const result = await service.extractUniqueInputs(nodes);
       expect(result).toEqual({
         uniqueInputs: [
-          { id: '1', name: 'Input1', type: 'string', property: 'field1' },
-          { id: '4', name: 'Input4', type: 'number', property: 'field4' },
+          { id: '1', name: 'Input1', type: 'string', field: 'field1' },
+          { id: '4', name: 'Input4', type: 'number', field: 'field4' },
         ],
       });
     });
@@ -643,7 +643,7 @@ describe('RuleMappingService', () => {
 
       const result = await service.extractUniqueInputs(nodes);
       expect(result).toEqual({
-        uniqueInputs: [{ id: '2', name: 'Input2', type: 'number', property: 'field2' }],
+        uniqueInputs: [{ id: '2', name: 'Input2', type: 'number', field: 'field2' }],
       });
     });
   });
@@ -677,10 +677,10 @@ describe('RuleMappingService', () => {
 
       const result = await service.ruleSchema({ nodes, edges });
       expect(result).toEqual({
-        inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
+        inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
         outputs: [
-          { id: '1', name: 'Output1', type: 'string', property: 'field2' },
-          { id: '2', name: 'Output2', type: 'number', property: 'field3' },
+          { id: '1', name: 'Output1', type: 'string', field: 'field2' },
+          { id: '2', name: 'Output2', type: 'number', field: 'field3' },
         ],
         resultOutputs: [],
       });
@@ -718,8 +718,8 @@ describe('RuleMappingService', () => {
 
       const result = await service.ruleSchema({ nodes, edges });
       expect(result).toEqual({
-        inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
-        outputs: [{ id: '1', name: 'Output1', type: 'string', property: 'field2' }],
+        inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
+        outputs: [{ id: '1', name: 'Output1', type: 'string', field: 'field2' }],
         resultOutputs: [],
       });
     });
@@ -739,7 +739,7 @@ describe('RuleMappingService', () => {
       const result = await service.ruleSchema({ nodes, edges });
       expect(result).toEqual({
         inputs: [],
-        outputs: [{ id: '1', name: 'Output1', type: 'string', property: 'field2' }],
+        outputs: [{ id: '1', name: 'Output1', type: 'string', field: 'field2' }],
         resultOutputs: [],
       });
     });
@@ -771,10 +771,10 @@ describe('RuleMappingService', () => {
 
       const result = await service.ruleSchema({ nodes, edges });
       expect(result).toEqual({
-        inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
+        inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
         outputs: [
-          { id: '1', name: 'Output1', type: 'string', property: 'field2' },
-          { id: '2', name: 'Output2', type: 'number', property: 'field3' },
+          { id: '1', name: 'Output1', type: 'string', field: 'field2' },
+          { id: '2', name: 'Output2', type: 'number', field: 'field3' },
         ],
         resultOutputs: [],
       });
@@ -804,16 +804,16 @@ describe('RuleMappingService', () => {
 
       // Mock the ruleSchemaFile method to return a sample schema
       jest.spyOn(service, 'ruleSchemaFile').mockResolvedValue({
-        inputs: [{ id: '1', name: 'DecisionInput1', type: 'string', property: 'field1' }],
-        resultOutputs: [{ id: '2', name: 'DecisionOutput1', type: 'number', property: 'field2' }],
+        inputs: [{ id: '1', name: 'DecisionInput1', type: 'string', field: 'field1' }],
+        resultOutputs: [{ id: '2', name: 'DecisionOutput1', type: 'number', field: 'field2' }],
       });
 
       const result = await service.ruleSchema({ nodes, edges });
       expect(result).toEqual({
-        inputs: [{ id: '1', name: 'DecisionInput1', type: 'string', property: 'field1' }],
+        inputs: [{ id: '1', name: 'DecisionInput1', type: 'string', field: 'field1' }],
         outputs: [
-          { id: '1', name: 'Output1', type: 'string', property: 'field2' },
-          { id: '2', name: 'Output2', type: 'number', property: 'field3' },
+          { id: '1', name: 'Output1', type: 'string', field: 'field2' },
+          { id: '2', name: 'Output2', type: 'number', field: 'field3' },
         ],
         resultOutputs: [],
       });
@@ -973,10 +973,10 @@ describe('RuleMappingService', () => {
       expect(mockGetFileContent).toHaveBeenCalledWith(filePath);
       expect(result).toEqual({
         resultOutputs: [],
-        inputs: [{ id: '1', name: 'Input1', type: 'string', property: 'field1' }],
+        inputs: [{ id: '1', name: 'Input1', type: 'string', field: 'field1' }],
         outputs: [
-          { id: '3', name: 'Output1', type: 'string', property: 'field2' },
-          { id: '4', name: 'Output2', type: 'number', property: 'field3' },
+          { id: '3', name: 'Output1', type: 'string', field: 'field2' },
+          { id: '4', name: 'Output2', type: 'number', field: 'field3' },
         ],
       });
     });
