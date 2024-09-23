@@ -1,4 +1,5 @@
 import { ZenEngineTrace } from '@gorules/zen-engine';
+import { RuleField } from '../scenarioData/scenarioData.interface';
 
 export interface Field {
   id: string | number;
@@ -8,6 +9,9 @@ export interface Field {
   label?: string;
   description?: string;
   dataType?: string;
+  validationCriteria?: string;
+  validationType?: string;
+  child_fields?: Field[] | RuleField[];
 }
 
 export interface InputField extends Field {}

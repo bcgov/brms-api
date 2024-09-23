@@ -1,12 +1,12 @@
 export interface RuleField {
   id: string | number;
   name?: string;
-  property: string;
+  field?: string;
   description?: string;
   type?: string;
   validationCriteria?: string;
   validationType?: string;
-  child_fields?: RuleField[];
+  childFields?: RuleField[];
 }
 
 export interface RuleSchema {

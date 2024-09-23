@@ -11,7 +11,7 @@ import { TraceObject } from '../api/ruleMapping/ruleMapping.interface';
 export const getPropertyById = (id: string, ruleSchema: RuleSchema, type: 'input' | 'output') => {
   const schema = type === 'input' ? ruleSchema.inputs : ruleSchema.resultOutputs;
   const item = schema.find((item: any) => item.id === id);
-  return item ? item.property : null;
+  return item ? item.field : null;
 };
 
 /**
@@ -51,9 +51,9 @@ export const mapTraceToResult = (trace: TraceObject, ruleSchema: RuleSchema, typ
       result[property] = value;
     } else {
       // Direct match without id
-      const directMatch = schema.find((item: any) => replaceSpecialCharacters(item.property ?? '', '') === key);
+      const directMatch = schema.find((item: any) => replaceSpecialCharacters(item.field ?? '', '') === key);
       if (directMatch) {
-        const formattedKey = replaceSpecialCharacters(directMatch.property, '');
+        const formattedKey = replaceSpecialCharacters(directMatch.field, '');
         result[formattedKey] = value;
       }
     }

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Node, Edge, TraceObject, Field, RuleContent } from './ruleMapping.interface';
 import { DocumentsService } from '../documents/documents.service';
 import { ConfigService } from '@nestjs/config';
-import { RuleSchema } from '../scenarioData/scenarioData.interface';
+import { RuleSchema, RuleField } from '../scenarioData/scenarioData.interface';
 
 export class InvalidRuleContent extends Error {
   constructor(message: string) {
@@ -215,9 +215,9 @@ export class RuleMappingService {
       throw new Error('Invalid rule content or missing nodes');
     }
 
-    const flattenNodes = async (nodes: Node[]): Promise<{ resultInput: any[]; resultOutput: any[] }> => {
-      const resultInput: any[] = [];
-      const resultOutput: any[] = [];
+    const flattenNodes = async (nodes: Node[]): Promise<{ resultInput: RuleField[]; resultOutput: RuleField[] }> => {
+      const resultInput: RuleField[] = [];
+      const resultOutput: RuleField[] = [];
 
       for (const node of nodes) {
         if (node.type === 'decisionNode' && typeof node.content === 'object' && node.content?.key) {
@@ -232,16 +232,16 @@ export class RuleMappingService {
     };
 
     // Helper function to map fields to the desired format
-    const mapFields = (fields: any[]) =>
+    const mapFields = (fields: Field[]): RuleField[] =>
       fields.map((field) => ({
         id: field.id,
         name: field.name,
-        property: field.field,
+        field: field.field,
         description: field.description,
         type: field.dataType,
         validationCriteria: field.validationCriteria,
         validationType: field.validationType,
-        child_fields: field.child_fields,
+        childFields: field.child_fields,
       }));
 
     // Extract inputs from 'inputNode' type
