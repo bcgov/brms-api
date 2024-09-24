@@ -35,7 +35,7 @@ export class RuleMappingService {
           const isSimpleValue = simpleExpressionRegex.test(expr.value);
           return {
             key: isSimpleValue ? (fieldKey === 'inputs' ? expr.key : expr.value) : expr.key,
-            property: isSimpleValue ? (fieldKey === 'inputs' ? expr.value : expr.key) : expr.key,
+            field: isSimpleValue ? (fieldKey === 'inputs' ? expr.value : expr.key) : expr.key,
             exception: isSimpleValue ? null : expr.value,
           };
         });
@@ -51,7 +51,7 @@ export class RuleMappingService {
               if (item) {
                 acc.push({
                   key: item,
-                  property: item,
+                  field: item,
                 });
               }
             }
@@ -68,7 +68,7 @@ export class RuleMappingService {
               if (item) {
                 acc.push({
                   key: item,
-                  property: item,
+                  field: item,
                 });
               }
             }
@@ -80,7 +80,7 @@ export class RuleMappingService {
           id: field.id,
           name: field.name,
           type: field.type,
-          property: field.field,
+          field: field.field,
         }));
       }
     });
@@ -88,7 +88,7 @@ export class RuleMappingService {
     const results = await Promise.all(promises);
     const fields = results.flat();
 
-    const uniqueFieldsMap = new Map(fields.map((field) => [field.property, field]));
+    const uniqueFieldsMap = new Map(fields.map((field) => [field.field, field]));
 
     const uniqueFields = Array.from(uniqueFieldsMap.values());
     return { [fieldKey]: uniqueFields };
@@ -124,7 +124,7 @@ export class RuleMappingService {
   findUniqueFields(fields: any[], otherFields: Set<string>): { [key: string]: any } {
     const uniqueFields: { [key: string]: any } = {};
     fields.forEach((field) => {
-      const fieldValue = field.property;
+      const fieldValue = field.field;
       if (!otherFields.has(fieldValue)) {
         uniqueFields[fieldValue] = field;
       }
@@ -147,7 +147,7 @@ export class RuleMappingService {
               : true
             : true,
         )
-        .map((outputField) => outputField.property),
+        .map((outputField) => outputField.field),
     );
     const uniqueInputFields = this.findUniqueFields(inputs, outputFields);
 
@@ -174,8 +174,7 @@ export class RuleMappingService {
       (output) =>
         !resultOutputs.some(
           (resultOutput) =>
-            resultOutput.id === output.id ||
-            (resultOutput.key === output.key && resultOutput.property === output.property),
+            resultOutput.id === output.id || (resultOutput.key === output.key && resultOutput.field === output.field),
         ),
     );
 
