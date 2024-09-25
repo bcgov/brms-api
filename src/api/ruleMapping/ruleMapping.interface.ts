@@ -12,6 +12,7 @@ export interface Field {
   validationCriteria?: string;
   validationType?: string;
   child_fields?: Field[] | RuleField[];
+  childFields?: Field[] | RuleField[];
 }
 
 export interface InputField extends Field {}
