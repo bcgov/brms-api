@@ -240,7 +240,7 @@ export class RuleMappingService {
         type: field.dataType,
         validationCriteria: field.validationCriteria,
         validationType: field.validationType,
-        childFields: field.child_fields,
+        childFields: field.childFields,
       }));
 
     // Extract inputs from 'inputNode' type
