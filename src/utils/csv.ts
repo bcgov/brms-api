@@ -84,3 +84,43 @@ export const formatVariables = (row: string[], keys: string[], startIndex: numbe
     type: Array.isArray(value) ? 'array' : typeof value,
   }));
 };
+
+/**
+ * Generates a cartesian product of arrays.
+ * @param arrays The arrays to generate the product from.
+ * @returns The generated product.
+ */
+export const cartesianProduct = (arrays: any[][]): any[][] => {
+  return arrays.reduce((a, b) => a.flatMap((d) => b.map((e) => [...d, e])), [[]]);
+};
+
+/**
+ * Generates a cartesian product of arrays in a more memory-efficient way, with the ability to adjust the maximum number of combinations.
+ * @param arrays The arrays to generate the product from.
+ * @param limit The maximum number of combinations to generate.
+ * @returns The generated product.
+ */
+export const complexCartesianProduct = (arrays: any[][], limit: number = 1000): any[][] => {
+  const result: any[][] = [];
+  const maxIndex = arrays.map((arr) => arr.length - 1);
+  const indices = new Array(arrays.length).fill(0);
+
+  while (indices[0] <= maxIndex[0] && result.length < limit) {
+    result.push(indices.map((index, i) => arrays[i][index]));
+
+    let currentDimension = indices.length - 1;
+    while (currentDimension >= 0) {
+      if (indices[currentDimension] < maxIndex[currentDimension]) {
+        indices[currentDimension]++;
+        break;
+      } else {
+        indices[currentDimension] = 0;
+        currentDimension--;
+      }
+    }
+
+    if (currentDimension < 0) break;
+  }
+
+  return result;
+};

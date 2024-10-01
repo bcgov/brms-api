@@ -162,4 +162,27 @@ export class ScenarioDataController {
       throw new HttpException('Error processing CSV file', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+  @Post('/test')
+  async getCSVTests(
+    @Body('goRulesJSONFilename') goRulesJSONFilename: string,
+    @Body('ruleContent') ruleContent: RuleContent,
+    @Body('simulationContext') simulationContext: unknown,
+    @Body('testScenarioCount') testScenarioCount: number,
+    @Res() res: Response,
+  ) {
+    try {
+      const fileContent = await this.scenarioDataService.generateTestCSVScenarios(
+        goRulesJSONFilename,
+        ruleContent,
+        simulationContext,
+        testScenarioCount,
+      );
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=${goRulesJSONFilename.replace(/\.json$/, '.csv')}`);
+      res.status(HttpStatus.OK).send(fileContent);
+    } catch (error) {
+      throw new HttpException('Error generating CSV for rule run', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }
