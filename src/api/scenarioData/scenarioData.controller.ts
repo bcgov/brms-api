@@ -19,6 +19,7 @@ import { ScenarioData } from './scenarioData.schema';
 import { RuleContent } from '../ruleMapping/ruleMapping.interface';
 import { CreateScenarioDto } from './dto/create-scenario.dto';
 import { FileNotFoundError } from '../../utils/readFile';
+import { RuleRunResults } from './scenarioData.interface';
 
 @Controller('api/scenario')
 export class ScenarioDataController {
@@ -173,7 +174,7 @@ export class ScenarioDataController {
   async getCSVTests(
     @Body('goRulesJSONFilename') goRulesJSONFilename: string,
     @Body('ruleContent') ruleContent: RuleContent,
-    @Body('simulationContext') simulationContext: unknown,
+    @Body('simulationContext') simulationContext: RuleRunResults,
     @Body('testScenarioCount') testScenarioCount: number,
     @Res() res: Response,
   ) {

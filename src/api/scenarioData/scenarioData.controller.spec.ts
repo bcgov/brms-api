@@ -23,6 +23,8 @@ describe('ScenarioDataController', () => {
     deleteScenarioData: jest.fn(),
     getCSVForRuleRun: jest.fn(),
     processProvidedScenarios: jest.fn(),
+    generateTestScenarios: jest.fn(),
+    generateTestCSVScenarios: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -208,9 +210,11 @@ describe('ScenarioDataController', () => {
       const goRulesJSONFilename = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       const csvContent = `Scenario,Input: familyComposition,Input: numberOfChildren,Output: isEligible,Output: baseAmount
-Scenario 1,single,,true,
-Scenario 2,couple,3,,200`;
+  Scenario 1,single,,true,
+  Scenario 2,couple,3,,200`;
 
+      const bom = '\uFEFF';
+      const utf8CsvContent = bom + csvContent;
       jest.spyOn(service, 'getCSVForRuleRun').mockResolvedValue(csvContent);
 
       const mockResponse = {
@@ -222,14 +226,13 @@ Scenario 2,couple,3,,200`;
       await controller.getCSVForRuleRun(goRulesJSONFilename, ruleContent, mockResponse as any);
 
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.OK);
-      expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv; charset=utf-8');
       expect(mockResponse.setHeader).toHaveBeenCalledWith(
         'Content-Disposition',
         `attachment; filename=${goRulesJSONFilename.replace(/\.json$/, '.csv')}`,
       );
-      expect(mockResponse.send).toHaveBeenCalledWith(csvContent);
+      expect(mockResponse.send).toHaveBeenCalledWith(utf8CsvContent); // Expect CSV content with BOM
     });
-
     it('should throw an error if service fails', async () => {
       const errorMessage = 'Error generating CSV for rule run';
       const goRulesJSONFilename = 'test.json';
@@ -271,7 +274,8 @@ Scenario 2,couple,3,,200`;
     });
 
     it('should process the CSV and return processed data', async () => {
-      const csvContent = Buffer.from('Title,Input: Age\nScenario 1,25\nScenario 2,30');
+      const bom = '\uFEFF';
+      const csvContent = Buffer.from(bom + 'Title,Input: Age\nScenario 1,25\nScenario 2,30');
       const file: Express.Multer.File = {
         buffer: csvContent,
         fieldname: '',
@@ -311,10 +315,11 @@ Scenario 2,couple,3,,200`;
 
       expect(service.processProvidedScenarios).toHaveBeenCalledWith('test.json', file);
       expect(service.getCSVForRuleRun).toHaveBeenCalledWith('test.json', ruleContent, scenarios);
-      expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
+      expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv; charset=utf-8');
       expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename=processed_data.csv');
       expect(res.status).toHaveBeenCalledWith(HttpStatus.OK);
-      expect(res.send).toHaveBeenCalledWith(csvResult);
+      const receivedBuffer = Buffer.from((res.send as jest.Mock).mock.calls[0][0]);
+      expect(receivedBuffer.slice(3)).toEqual(Buffer.from(csvResult));
     });
 
     it('should handle errors during processing', async () => {
@@ -349,6 +354,80 @@ Scenario 2,couple,3,,200`;
       expect(res.setHeader).not.toHaveBeenCalled();
       expect(res.status).not.toHaveBeenCalledWith(HttpStatus.OK);
       expect(res.send).not.toHaveBeenCalled();
+    });
+  });
+  describe('getCSVTests', () => {
+    it('should return CSV content with correct headers', async () => {
+      const goRulesJSONFilename = 'test.json';
+      const ruleContent = { nodes: [], edges: [] };
+      const simulationContext = { someKey: 'someValue' };
+      const testScenarioCount = 5;
+      const csvContent = 'Test CSV Content';
+
+      const bom = '\uFEFF';
+      const utf8CsvContent = bom + csvContent;
+
+      jest.spyOn(service, 'generateTestCSVScenarios').mockResolvedValue(csvContent);
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+        setHeader: jest.fn(),
+      };
+
+      await controller.getCSVTests(
+        goRulesJSONFilename,
+        ruleContent,
+        simulationContext,
+        testScenarioCount,
+        mockResponse as any,
+      );
+
+      expect(service.generateTestCSVScenarios).toHaveBeenCalledWith(
+        goRulesJSONFilename,
+        ruleContent,
+        simulationContext,
+        testScenarioCount,
+      );
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.OK);
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv; charset=utf-8');
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename=test.csv');
+      expect(mockResponse.send).toHaveBeenCalledWith(utf8CsvContent);
+    });
+
+    it('should throw an error if service fails', async () => {
+      const goRulesJSONFilename = 'test.json';
+      const ruleContent = { nodes: [], edges: [] };
+      const simulationContext = { someKey: 'someValue' };
+      const testScenarioCount = 5;
+
+      jest.spyOn(service, 'generateTestCSVScenarios').mockRejectedValue(new Error('Service error'));
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+        setHeader: jest.fn(),
+      };
+
+      await expect(
+        controller.getCSVTests(
+          goRulesJSONFilename,
+          ruleContent,
+          simulationContext,
+          testScenarioCount,
+          mockResponse as any,
+        ),
+      ).rejects.toThrow(HttpException);
+
+      expect(service.generateTestCSVScenarios).toHaveBeenCalledWith(
+        goRulesJSONFilename,
+        ruleContent,
+        simulationContext,
+        testScenarioCount,
+      );
+      expect(mockResponse.status).not.toHaveBeenCalled();
+      expect(mockResponse.setHeader).not.toHaveBeenCalled();
+      expect(mockResponse.send).not.toHaveBeenCalled();
     });
   });
 });

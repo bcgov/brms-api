@@ -267,47 +267,10 @@ export class ScenarioDataService {
     return scenarios;
   }
 
-  async generateCSVScenarios(
-    goRulesJSONFilename: string,
-    ruleContent: RuleContent,
-    newScenarios?: ScenarioData[],
-  ): Promise<string> {
-    const ruleRunResults: RuleRunResults = await this.runDecisionsForScenarios(
-      goRulesJSONFilename,
-      ruleContent,
-      newScenarios,
-    );
-
-    const keys = {
-      inputs: extractUniqueKeys(ruleRunResults, 'inputs'),
-      expectedResults: extractUniqueKeys(ruleRunResults, 'expectedResults'),
-      result: extractUniqueKeys(ruleRunResults, 'result'),
-    };
-
-    const headers = [
-      'Scenario',
-      'Results Match Expected (Pass/Fail)',
-      ...this.prefixKeys(keys.inputs, 'Input'),
-      ...this.prefixKeys(keys.expectedResults, 'Expected Result'),
-      ...this.prefixKeys(keys.result, 'Result'),
-    ];
-
-    const rows = Object.entries(ruleRunResults).map(([scenarioName, data]) => [
-      this.escapeCSVField(scenarioName),
-      data.resultMatch ? 'Pass' : 'Fail',
-      ...this.mapFields(data.inputs, keys.inputs),
-      ...this.mapFields(data.expectedResults, keys.expectedResults),
-      ...this.mapFields(data.result, keys.result),
-    ]);
-
-    return [headers, ...rows].map((row) => row.join(',')).join('\n');
-  }
-
-  private generatePossibleValues(input: any, defaultValue?: any): any[] {
+  generatePossibleValues(input: any, defaultValue?: any): any[] {
     const { type, dataType, validationCriteria, validationType, childFields } = input;
     //Determine how many versions of each field to generate
     const complexityGeneration = 5;
-
     if (defaultValue !== null && defaultValue !== undefined) return [defaultValue];
 
     switch (type || dataType) {
@@ -411,7 +374,7 @@ export class ScenarioDataService {
     }
   }
 
-  private generateCombinations(data: any, simulationContext?: RuleRunResults, testScenarioCount: number = 5) {
+  generateCombinations(data: any, simulationContext?: RuleRunResults, testScenarioCount: number = 5) {
     const generateFieldPath = (field: string, parentPath: string = ''): string => {
       return parentPath ? `${parentPath}.${field}` : field;
     };
@@ -447,13 +410,13 @@ export class ScenarioDataService {
 
     const { fields, values } = mapInputs(data.inputs);
 
-    const inputCombinations = complexCartesianProduct(values, testScenarioCount);
+    const inputCombinations = complexCartesianProduct(values, testScenarioCount) || [];
 
     const resultObjects = this.generateObjectsFromCombinations(fields, inputCombinations);
-    return resultObjects.slice(0, testScenarioCount);
+    return resultObjects.slice(0, testScenarioCount) || [];
   }
 
-  private generateObjectsFromCombinations(fields: string[], combinations: any[][]) {
+  generateObjectsFromCombinations(fields: string[], combinations: any[][]) {
     return combinations.map((combination) => {
       const obj: { [key: string]: any } = {};
       fields.forEach((field, index) => {
