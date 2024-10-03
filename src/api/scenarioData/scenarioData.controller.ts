@@ -120,9 +120,12 @@ export class ScenarioDataController {
   ) {
     try {
       const fileContent = await this.scenarioDataService.getCSVForRuleRun(goRulesJSONFilename, ruleContent);
-      res.setHeader('Content-Type', 'text/csv');
+      // UTF- 8 encoding with BOM
+      const bom = '\uFEFF';
+      const utf8FileContent = bom + fileContent;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename=${goRulesJSONFilename.replace(/\.json$/, '.csv')}`);
-      res.status(HttpStatus.OK).send(fileContent);
+      res.status(HttpStatus.OK).send(utf8FileContent);
     } catch (error) {
       throw new HttpException('Error generating CSV for rule run', HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -155,9 +158,12 @@ export class ScenarioDataController {
     try {
       const scenarios = await this.scenarioDataService.processProvidedScenarios(goRulesJSONFilename, file);
       const csvContent = await this.scenarioDataService.getCSVForRuleRun(goRulesJSONFilename, ruleContent, scenarios);
-      res.setHeader('Content-Type', 'text/csv');
+      // UTF- 8 encoding with BOM
+      const bom = '\uFEFF';
+      const utf8FileContent = bom + csvContent;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename=processed_data.csv`);
-      res.status(HttpStatus.OK).send(csvContent);
+      res.status(HttpStatus.OK).send(utf8FileContent);
     } catch (error) {
       throw new HttpException('Error processing CSV file', HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -178,9 +184,12 @@ export class ScenarioDataController {
         simulationContext,
         testScenarioCount,
       );
-      res.setHeader('Content-Type', 'text/csv');
+      // UTF- 8 encoding with BOM
+      const bom = '\uFEFF';
+      const utf8FileContent = bom + fileContent;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename=${goRulesJSONFilename.replace(/\.json$/, '.csv')}`);
-      res.status(HttpStatus.OK).send(fileContent);
+      res.status(HttpStatus.OK).send(utf8FileContent);
     } catch (error) {
       throw new HttpException('Error generating CSV for rule run', HttpStatus.INTERNAL_SERVER_ERROR);
     }

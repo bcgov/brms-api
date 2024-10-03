@@ -9,7 +9,14 @@ import { DocumentsService } from '../documents/documents.service';
 import { RuleSchema, RuleRunResults } from './scenarioData.interface';
 import { isEqual, reduceToCleanObj, extractUniqueKeys } from '../../utils/helpers';
 import { mapTraces } from '../../utils/handleTrace';
-import { parseCSV, extractKeys, formatVariables, cartesianProduct, complexCartesianProduct } from '../../utils/csv';
+import {
+  parseCSV,
+  extractKeys,
+  formatVariables,
+  cartesianProduct,
+  complexCartesianProduct,
+  generateCombinationsWithLimit,
+} from '../../utils/csv';
 
 @Injectable()
 export class ScenarioDataService {
@@ -199,7 +206,21 @@ export class ScenarioDataService {
 
   private escapeCSVField(field: any): string {
     if (field == null) return '';
-    if (typeof field === 'object') return `${field.length}`;
+    if (typeof field === 'object') {
+      if (Array.isArray(field)) {
+        const allObjects = field.every((item) => typeof item === 'object' && item !== null);
+        if (!allObjects) {
+          const fieldList = field
+            .filter((item) => typeof item !== 'object' || item === null)
+            .map((item) => item.replace(/"/g, '""'))
+            .join(', ');
+
+          return `"[${fieldList}]"`;
+        }
+      }
+      return `${field.length}`;
+    }
+
     const stringField = typeof field === 'string' ? field : String(field);
     return stringField.includes(',') ? `"${stringField.replace(/"/g, '""')}"` : stringField;
   }
@@ -285,6 +306,8 @@ export class ScenarioDataService {
 
   private generatePossibleValues(input: any, defaultValue?: any): any[] {
     const { type, dataType, validationCriteria, validationType, childFields } = input;
+    //Determine how many versions of each field to generate
+    const complexityGeneration = 5;
 
     if (defaultValue !== null && defaultValue !== undefined) return [defaultValue];
 
@@ -307,21 +330,25 @@ export class ScenarioDataService {
 
         switch (validationType) {
           case '>=':
-            return generateRandomNumbers(5);
+            return generateRandomNumbers(complexityGeneration);
           case '<=':
-            return generateRandomNumbers(5);
+            return generateRandomNumbers(complexityGeneration);
           case '>':
-            return generateRandomNumbers(5).filter((val) => val > minValue);
+            return generateRandomNumbers(complexityGeneration).filter((val) => val > minValue);
           case '<':
-            return generateRandomNumbers(5).filter((val) => val < maxValue);
+            return generateRandomNumbers(complexityGeneration).filter((val) => val < maxValue);
           // range exclusive
           case '(num)':
-            return generateRandomNumbers(5).filter((val) => val > minValue && val < maxValue);
+            return generateRandomNumbers(complexityGeneration).filter((val) => val > minValue && val < maxValue);
           // range inclusive
           case '[num]':
-            return generateRandomNumbers(5);
+            return generateRandomNumbers(complexityGeneration);
+          case '[=num]':
+            return validationCriteria.split(',').map((val: string) => val.trim());
+          case '[=nums]':
+            return [validationCriteria.split(',').map((val: string) => val.trim())];
           default:
-            return generateRandomNumbers(5);
+            return generateRandomNumbers(complexityGeneration);
         }
 
       case 'date':
@@ -337,26 +364,35 @@ export class ScenarioDataService {
           );
         switch (validationType) {
           case '>=':
-            return generateRandomDates(5);
+            return generateRandomDates(complexityGeneration);
           case '<=':
-            return generateRandomDates(5);
+            return generateRandomDates(complexityGeneration);
           case '>':
-            return generateRandomDates(5).filter((date) => new Date(date).getTime() > minDate);
+            return generateRandomDates(complexityGeneration).filter((date) => new Date(date).getTime() > minDate);
           case '<':
-            return generateRandomDates(5).filter((date) => new Date(date).getTime() < maxDate);
+            return generateRandomDates(complexityGeneration).filter((date) => new Date(date).getTime() < maxDate);
           // range exclusive
           case '(date)':
-            return generateRandomDates(5).filter(
+            return generateRandomDates(complexityGeneration).filter(
               (date) => new Date(date).getTime() > minDate && new Date(date).getTime() < maxDate,
             );
           // range inclusive
           case '[date]':
-            return generateRandomDates(5);
+            return generateRandomDates(complexityGeneration);
+          case '[=date]':
+          case '[=dates]':
+            return validationCriteria.split(',').map((val: string) => val.trim());
           default:
-            return generateRandomDates(5);
+            return generateRandomDates(complexityGeneration);
         }
 
       case 'text-input':
+        if (validationType === '[=texts]') {
+          const textOptionsArray = validationCriteria.split(',').map((val: string) => val.trim());
+          const arrayCombinations = generateCombinationsWithLimit(textOptionsArray);
+
+          return arrayCombinations;
+        }
         return validationCriteria.split(',').map((val: string) => val.trim());
 
       case 'true-false':
@@ -401,6 +437,7 @@ export class ScenarioDataService {
     };
 
     const { fields, values } = mapInputs(data.inputs);
+    console.log(fields, values, 'these are fields and values');
 
     const possibleCombinationLength = values.reduce((acc, val) => acc * val.length, 1);
     const inputCombinations =

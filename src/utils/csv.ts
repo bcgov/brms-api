@@ -49,7 +49,10 @@ export const formatVariables = (row: string[], keys: string[], startIndex: numbe
     }
 
     const parts = key.match(/^([^\[]+)(?:\[(\d+)\])?(.*)$/);
-    if (parts) {
+    if (typeof value === 'string' && value.startsWith('[') && value.endsWith(']')) {
+      const valueToArray = value.slice(1, value.length - 1).split(', ');
+      result[key] = valueToArray;
+    } else if (parts) {
       const [, baseKey, arrayIndex, remainingKey] = parts;
 
       const pluralizedKey = `${baseKey}${Number(arrayIndex) > 0 ? 's' : ''}`;
@@ -122,5 +125,27 @@ export const complexCartesianProduct = (arrays: any[][], limit: number = 1000): 
     if (currentDimension < 0) break;
   }
 
+  return result;
+};
+
+/**
+ * Generates all combinations of a given array with varying lengths.
+ * @param arr The input array to generate combinations from.
+ * @param limit The maximum number of combinations to generate.
+ * @returns The generated product.
+ */
+export const generateCombinationsWithLimit = (arr: string[], limit: number = 1000): string[][] => {
+  const result: string[][] = [];
+
+  const combine = (prefix: string[], remaining: string[], start: number) => {
+    if (result.length >= limit) return; // Stop when the limit is reached
+    for (let i = start; i < remaining.length; i++) {
+      const newPrefix = [...prefix, remaining[i]];
+      result.push(newPrefix);
+      combine(newPrefix, remaining, i + 1);
+    }
+  };
+
+  combine([], arr, 0);
   return result;
 };
