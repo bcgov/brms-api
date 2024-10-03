@@ -13,7 +13,6 @@ import {
   parseCSV,
   extractKeys,
   formatVariables,
-  cartesianProduct,
   complexCartesianProduct,
   generateCombinationsWithLimit,
 } from '../../utils/csv';
@@ -313,8 +312,17 @@ export class ScenarioDataService {
 
     switch (type || dataType) {
       case 'object-array':
-        const childCombinations = this.generateCombinations({ inputs: childFields });
-        return [childCombinations];
+        const scenarios = [];
+        for (let i = 0; i < complexityGeneration; i++) {
+          const numItems = Math.floor(Math.random() * 4) + 1;
+          const items = [];
+          for (let j = 0; j < numItems; j++) {
+            const item = this.generateCombinations({ inputs: childFields }, undefined, 1);
+            items.push(item[0]);
+          }
+          scenarios.push(items);
+        }
+        return scenarios;
 
       case 'number-input':
         const numberValues = validationCriteria?.split(',').map((val: string) => val.trim());
@@ -396,14 +404,14 @@ export class ScenarioDataService {
         return validationCriteria.split(',').map((val: string) => val.trim());
 
       case 'true-false':
-        return [true, false];
+        return Array.from({ length: complexityGeneration }, () => Math.random() < 0.5);
 
       default:
         return [];
     }
   }
 
-  private generateCombinations(data: any, simulationContext?, testScenarioCount?) {
+  private generateCombinations(data: any, simulationContext?: RuleRunResults, testScenarioCount: number = 5) {
     const generateFieldPath = (field: string, parentPath: string = ''): string => {
       return parentPath ? `${parentPath}.${field}` : field;
     };
@@ -413,9 +421,10 @@ export class ScenarioDataService {
         (acc, input) => {
           const currentPath = generateFieldPath(input.field, parentPath);
           if (input.type === 'object-array') {
+            const childCombinations = this.generatePossibleValues(input, simulationContext?.[input.field]);
             return {
               fields: [...acc.fields, currentPath],
-              values: [...acc.values, this.generatePossibleValues(input)],
+              values: [...acc.values, childCombinations],
             };
           } else if (input.childFields && input.childFields.length > 0) {
             const childResult = mapInputs(input.childFields, currentPath);
@@ -437,15 +446,11 @@ export class ScenarioDataService {
     };
 
     const { fields, values } = mapInputs(data.inputs);
-    console.log(fields, values, 'these are fields and values');
 
-    const possibleCombinationLength = values.reduce((acc, val) => acc * val.length, 1);
-    const inputCombinations =
-      possibleCombinationLength > 1000 ? complexCartesianProduct(values, testScenarioCount) : cartesianProduct(values);
+    const inputCombinations = complexCartesianProduct(values, testScenarioCount);
 
-    // Map combinations back to fields
     const resultObjects = this.generateObjectsFromCombinations(fields, inputCombinations);
-    return resultObjects;
+    return resultObjects.slice(0, testScenarioCount);
   }
 
   private generateObjectsFromCombinations(fields: string[], combinations: any[][]) {
@@ -461,11 +466,7 @@ export class ScenarioDataService {
           currentObj = currentObj[fieldParts[i]];
         }
         const lastPart = fieldParts[fieldParts.length - 1];
-        if (Array.isArray(combination[index])) {
-          currentObj[lastPart] = combination[index];
-        } else {
-          currentObj[lastPart] = combination[index];
-        }
+        currentObj[lastPart] = combination[index];
       });
       return obj;
     });
@@ -474,7 +475,7 @@ export class ScenarioDataService {
   async generateTestScenarios(
     goRulesJSONFilename: string,
     ruleContent?: RuleContent,
-    simulationContext?,
+    simulationContext?: RuleRunResults,
     testScenarioCount?: number,
   ): Promise<{ [scenarioId: string]: any }> {
     if (!ruleContent) {
