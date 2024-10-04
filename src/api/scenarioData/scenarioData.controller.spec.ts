@@ -110,7 +110,7 @@ describe('ScenarioDataController', () => {
         title: 'title',
         ruleID: 'ruleID',
         variables: [],
-        goRulesJSONFilename: 'filename',
+        filepath: 'filename',
         expectedResults: [],
       };
 
@@ -127,7 +127,7 @@ describe('ScenarioDataController', () => {
         title: result.title,
         ruleID: result.ruleID,
         variables: variables,
-        goRulesJSONFilename: result.goRulesJSONFilename,
+        filepath: result.filepath,
         expectedResults: expectedResults,
       };
 
@@ -142,7 +142,7 @@ describe('ScenarioDataController', () => {
         title: 'title',
         ruleID: 'ruleID',
         variables: [],
-        goRulesJSONFilename: 'filename',
+        filepath: 'filename',
         expectedResults: [],
       };
 
@@ -156,7 +156,7 @@ describe('ScenarioDataController', () => {
         title: 'title',
         ruleID: 'ruleID',
         variables: [],
-        goRulesJSONFilename: 'filename',
+        filepath: 'filename',
         expectedResults: [],
       };
 
@@ -166,7 +166,7 @@ describe('ScenarioDataController', () => {
         title: result.title,
         ruleID: result.ruleID,
         variables: [],
-        goRulesJSONFilename: result.goRulesJSONFilename,
+        filepath: result.filepath,
         expectedResults: [],
       };
 
@@ -181,7 +181,7 @@ describe('ScenarioDataController', () => {
         title: 'title',
         ruleID: 'ruleID',
         variables: [],
-        goRulesJSONFilename: 'filename',
+        filepath: 'filename',
         expectedResults: [],
       };
 
@@ -205,7 +205,7 @@ describe('ScenarioDataController', () => {
 
   describe('getCSVForRuleRun', () => {
     it('should return CSV content with correct headers', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       const csvContent = `Scenario,Input: familyComposition,Input: numberOfChildren,Output: isEligible,Output: baseAmount
 Scenario 1,single,,true,
@@ -219,20 +219,20 @@ Scenario 2,couple,3,,200`;
         setHeader: jest.fn(),
       };
 
-      await controller.getCSVForRuleRun(goRulesJSONFilename, ruleContent, mockResponse as any);
+      await controller.getCSVForRuleRun(filepath, ruleContent, mockResponse as any);
 
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.OK);
       expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
       expect(mockResponse.setHeader).toHaveBeenCalledWith(
         'Content-Disposition',
-        `attachment; filename=${goRulesJSONFilename.replace(/\.json$/, '.csv')}`,
+        `attachment; filename=${filepath.replace(/\.json$/, '.csv')}`,
       );
       expect(mockResponse.send).toHaveBeenCalledWith(csvContent);
     });
 
     it('should throw an error if service fails', async () => {
       const errorMessage = 'Error generating CSV for rule run';
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       jest.spyOn(service, 'getCSVForRuleRun').mockRejectedValue(new Error(errorMessage));
 
@@ -242,11 +242,11 @@ Scenario 2,couple,3,,200`;
       };
 
       await expect(async () => {
-        await controller.getCSVForRuleRun(goRulesJSONFilename, ruleContent, mockResponse as any);
+        await controller.getCSVForRuleRun(filepath, ruleContent, mockResponse as any);
       }).rejects.toThrow(Error);
 
       try {
-        await controller.getCSVForRuleRun(goRulesJSONFilename, ruleContent, mockResponse as any);
+        await controller.getCSVForRuleRun(filepath, ruleContent, mockResponse as any);
       } catch (error) {
         expect(error.message).toBe('Error generating CSV for rule run');
       }
@@ -292,7 +292,7 @@ Scenario 2,couple,3,,200`;
           title: 'Scenario 1',
           ruleID: '',
           variables: [{ name: 'Age', value: 25, type: 'number' }],
-          goRulesJSONFilename: 'test.json',
+          filepath: 'test.json',
         },
       ];
 

@@ -7,11 +7,14 @@ export class RuleData {
   @Prop({ required: true, description: 'The GoRules ID' })
   _id: string;
 
+  @Prop({ unique: true, description: 'A unique name currently derived from the filepath' })
+  name: string;
+
   @Prop({ description: 'The title of the rule' })
   title: string;
 
-  @Prop({ required: true, description: 'The filename of the JSON file containing the rule' })
-  goRulesJSONFilename: string;
+  @Prop({ required: true, description: 'The filepath of the JSON file containing the rule' })
+  filepath: string;
 
   @Prop({ type: Types.ObjectId, description: 'Draft of updated rule content', ref: 'RuleDraft' })
   ruleDraft?: RuleDraftDocument | Types.ObjectId;
@@ -21,6 +24,10 @@ export class RuleData {
 
   @Prop({ description: 'If the rule has been published' })
   isPublished?: boolean;
+
+  // TODO: REMOVE AFTER MIGRATIONS ALL COMPLETE
+  @Prop({ description: 'This is being deprecated' })
+  goRulesJSONFilename?: string;
 }
 
 export type RuleDataDocument = RuleData & Document;
