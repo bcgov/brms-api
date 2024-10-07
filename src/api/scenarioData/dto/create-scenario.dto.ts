@@ -28,5 +28,5 @@ export class CreateScenarioDto {
 
   @IsNotEmpty()
   @IsString()
-  goRulesJSONFilename: string;
+  filepath: string;
 }

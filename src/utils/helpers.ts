@@ -107,3 +107,12 @@ export const formatValue = (value: string): boolean | number | string | null => 
   }
   return value;
 };
+
+/**
+ * Gets the "name" from the filepath
+ * @param filepath
+ * @returns The name
+ */
+export const deriveNameFromFilepath = (filepath: string): string => {
+  return filepath.split('/').pop().replace('.json', '');
+};

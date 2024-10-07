@@ -112,7 +112,7 @@ describe('ScenarioDataController', () => {
         title: 'title',
         ruleID: 'ruleID',
         variables: [],
-        goRulesJSONFilename: 'filename',
+        filepath: 'filename',
         expectedResults: [],
       };
 
@@ -129,7 +129,7 @@ describe('ScenarioDataController', () => {
         title: result.title,
         ruleID: result.ruleID,
         variables: variables,
-        goRulesJSONFilename: result.goRulesJSONFilename,
+        filepath: result.filepath,
         expectedResults: expectedResults,
       };
 
@@ -144,7 +144,7 @@ describe('ScenarioDataController', () => {
         title: 'title',
         ruleID: 'ruleID',
         variables: [],
-        goRulesJSONFilename: 'filename',
+        filepath: 'filename',
         expectedResults: [],
       };
 
@@ -158,7 +158,7 @@ describe('ScenarioDataController', () => {
         title: 'title',
         ruleID: 'ruleID',
         variables: [],
-        goRulesJSONFilename: 'filename',
+        filepath: 'filename',
         expectedResults: [],
       };
 
@@ -168,7 +168,7 @@ describe('ScenarioDataController', () => {
         title: result.title,
         ruleID: result.ruleID,
         variables: [],
-        goRulesJSONFilename: result.goRulesJSONFilename,
+        filepath: result.filepath,
         expectedResults: [],
       };
 
@@ -183,7 +183,7 @@ describe('ScenarioDataController', () => {
         title: 'title',
         ruleID: 'ruleID',
         variables: [],
-        goRulesJSONFilename: 'filename',
+        filepath: 'filename',
         expectedResults: [],
       };
 
@@ -207,7 +207,7 @@ describe('ScenarioDataController', () => {
 
   describe('getCSVForRuleRun', () => {
     it('should return CSV content with correct headers', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       const csvContent = `Scenario,Input: familyComposition,Input: numberOfChildren,Output: isEligible,Output: baseAmount
   Scenario 1,single,,true,
@@ -223,19 +223,19 @@ describe('ScenarioDataController', () => {
         setHeader: jest.fn(),
       };
 
-      await controller.getCSVForRuleRun(goRulesJSONFilename, ruleContent, mockResponse as any);
+      await controller.getCSVForRuleRun(filepath, ruleContent, mockResponse as any);
 
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.OK);
       expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv; charset=utf-8');
       expect(mockResponse.setHeader).toHaveBeenCalledWith(
         'Content-Disposition',
-        `attachment; filename=${goRulesJSONFilename.replace(/\.json$/, '.csv')}`,
+        `attachment; filename=${filepath.replace(/\.json$/, '.csv')}`,
       );
       expect(mockResponse.send).toHaveBeenCalledWith(utf8CsvContent); // Expect CSV content with BOM
     });
     it('should throw an error if service fails', async () => {
       const errorMessage = 'Error generating CSV for rule run';
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       jest.spyOn(service, 'getCSVForRuleRun').mockRejectedValue(new Error(errorMessage));
 
@@ -245,11 +245,11 @@ describe('ScenarioDataController', () => {
       };
 
       await expect(async () => {
-        await controller.getCSVForRuleRun(goRulesJSONFilename, ruleContent, mockResponse as any);
+        await controller.getCSVForRuleRun(filepath, ruleContent, mockResponse as any);
       }).rejects.toThrow(Error);
 
       try {
-        await controller.getCSVForRuleRun(goRulesJSONFilename, ruleContent, mockResponse as any);
+        await controller.getCSVForRuleRun(filepath, ruleContent, mockResponse as any);
       } catch (error) {
         expect(error.message).toBe('Error generating CSV for rule run');
       }
@@ -296,7 +296,7 @@ describe('ScenarioDataController', () => {
           title: 'Scenario 1',
           ruleID: '',
           variables: [{ name: 'Age', value: 25, type: 'number' }],
-          goRulesJSONFilename: 'test.json',
+          filepath: 'test.json',
         },
       ];
 
@@ -358,7 +358,7 @@ describe('ScenarioDataController', () => {
   });
   describe('getCSVTests', () => {
     it('should return CSV content with correct headers', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       const simulationContext = { someKey: 'someValue' };
       const testScenarioCount = 5;
@@ -375,16 +375,10 @@ describe('ScenarioDataController', () => {
         setHeader: jest.fn(),
       };
 
-      await controller.getCSVTests(
-        goRulesJSONFilename,
-        ruleContent,
-        simulationContext,
-        testScenarioCount,
-        mockResponse as any,
-      );
+      await controller.getCSVTests(filepath, ruleContent, simulationContext, testScenarioCount, mockResponse as any);
 
       expect(service.generateTestCSVScenarios).toHaveBeenCalledWith(
-        goRulesJSONFilename,
+        filepath,
         ruleContent,
         simulationContext,
         testScenarioCount,
@@ -396,7 +390,7 @@ describe('ScenarioDataController', () => {
     });
 
     it('should throw an error if service fails', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       const simulationContext = { someKey: 'someValue' };
       const testScenarioCount = 5;
@@ -410,17 +404,11 @@ describe('ScenarioDataController', () => {
       };
 
       await expect(
-        controller.getCSVTests(
-          goRulesJSONFilename,
-          ruleContent,
-          simulationContext,
-          testScenarioCount,
-          mockResponse as any,
-        ),
+        controller.getCSVTests(filepath, ruleContent, simulationContext, testScenarioCount, mockResponse as any),
       ).rejects.toThrow(HttpException);
 
       expect(service.generateTestCSVScenarios).toHaveBeenCalledWith(
-        goRulesJSONFilename,
+        filepath,
         ruleContent,
         simulationContext,
         testScenarioCount,

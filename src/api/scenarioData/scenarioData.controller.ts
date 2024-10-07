@@ -48,9 +48,9 @@ export class ScenarioDataController {
   }
 
   @Post('/by-filename')
-  async getScenariosByFilename(@Body('goRulesJSONFilename') goRulesJSONFilename: string): Promise<ScenarioData[]> {
+  async getScenariosByFilename(@Body('filepath') filepath: string): Promise<ScenarioData[]> {
     try {
-      return await this.scenarioDataService.getScenariosByFilename(goRulesJSONFilename);
+      return await this.scenarioDataService.getScenariosByFilename(filepath);
     } catch (error) {
       if (error instanceof FileNotFoundError) {
         throw new HttpException('Rule not found', HttpStatus.NOT_FOUND);
@@ -76,7 +76,7 @@ export class ScenarioDataController {
         title: createScenarioDto.title,
         ruleID: createScenarioDto.ruleID,
         variables: createScenarioDto.variables,
-        goRulesJSONFilename: createScenarioDto.goRulesJSONFilename,
+        filepath: createScenarioDto.filepath,
         expectedResults: createScenarioDto.expectedResults,
       };
       return await this.scenarioDataService.createScenarioData(scenarioData);
@@ -95,7 +95,7 @@ export class ScenarioDataController {
         title: updateScenarioDto.title,
         ruleID: updateScenarioDto.ruleID,
         variables: updateScenarioDto.variables,
-        goRulesJSONFilename: updateScenarioDto.goRulesJSONFilename,
+        filepath: updateScenarioDto.filepath,
         expectedResults: updateScenarioDto.expectedResults,
       };
       return await this.scenarioDataService.updateScenarioData(scenarioId, scenarioData);
@@ -115,17 +115,17 @@ export class ScenarioDataController {
 
   @Post('/evaluation')
   async getCSVForRuleRun(
-    @Body('goRulesJSONFilename') goRulesJSONFilename: string,
+    @Body('filepath') filepath: string,
     @Body('ruleContent') ruleContent: RuleContent,
     @Res() res: Response,
   ) {
     try {
-      const fileContent = await this.scenarioDataService.getCSVForRuleRun(goRulesJSONFilename, ruleContent);
+      const fileContent = await this.scenarioDataService.getCSVForRuleRun(filepath, ruleContent);
       // UTF- 8 encoding with BOM
       const bom = '\uFEFF';
       const utf8FileContent = bom + fileContent;
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename=${goRulesJSONFilename.replace(/\.json$/, '.csv')}`);
+      res.setHeader('Content-Disposition', `attachment; filename=${filepath.replace(/\.json$/, '.csv')}`);
       res.status(HttpStatus.OK).send(utf8FileContent);
     } catch (error) {
       throw new HttpException('Error generating CSV for rule run', HttpStatus.INTERNAL_SERVER_ERROR);
@@ -134,11 +134,11 @@ export class ScenarioDataController {
 
   @Post('/run-decisions')
   async runDecisionsForScenarios(
-    @Body('goRulesJSONFilename') goRulesJSONFilename: string,
+    @Body('filepath') filepath: string,
     @Body('ruleContent') ruleContent: RuleContent,
   ): Promise<{ [scenarioId: string]: any }> {
     try {
-      return await this.scenarioDataService.runDecisionsForScenarios(goRulesJSONFilename, ruleContent);
+      return await this.scenarioDataService.runDecisionsForScenarios(filepath, ruleContent);
     } catch (error) {
       throw new HttpException('Error running scenario decisions', HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -149,7 +149,7 @@ export class ScenarioDataController {
   async uploadCSVAndProcess(
     @UploadedFile() file: Express.Multer.File | undefined,
     @Res() res: Response,
-    @Body('goRulesJSONFilename') goRulesJSONFilename: string,
+    @Body('filepath') filepath: string,
     @Body('ruleContent') ruleContent: RuleContent,
   ) {
     if (!file) {
@@ -157,8 +157,8 @@ export class ScenarioDataController {
     }
 
     try {
-      const scenarios = await this.scenarioDataService.processProvidedScenarios(goRulesJSONFilename, file);
-      const csvContent = await this.scenarioDataService.getCSVForRuleRun(goRulesJSONFilename, ruleContent, scenarios);
+      const scenarios = await this.scenarioDataService.processProvidedScenarios(filepath, file);
+      const csvContent = await this.scenarioDataService.getCSVForRuleRun(filepath, ruleContent, scenarios);
       // UTF- 8 encoding with BOM
       const bom = '\uFEFF';
       const utf8FileContent = bom + csvContent;
@@ -172,7 +172,7 @@ export class ScenarioDataController {
 
   @Post('/test')
   async getCSVTests(
-    @Body('goRulesJSONFilename') goRulesJSONFilename: string,
+    @Body('filepath') filepath: string,
     @Body('ruleContent') ruleContent: RuleContent,
     @Body('simulationContext') simulationContext: RuleRunResults,
     @Body('testScenarioCount') testScenarioCount: number,
@@ -180,7 +180,7 @@ export class ScenarioDataController {
   ) {
     try {
       const fileContent = await this.scenarioDataService.generateTestCSVScenarios(
-        goRulesJSONFilename,
+        filepath,
         ruleContent,
         simulationContext,
         testScenarioCount && testScenarioCount > 0 ? testScenarioCount : undefined,
@@ -189,7 +189,7 @@ export class ScenarioDataController {
       const bom = '\uFEFF';
       const utf8FileContent = bom + fileContent;
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename=${goRulesJSONFilename.replace(/\.json$/, '.csv')}`);
+      res.setHeader('Content-Disposition', `attachment; filename=${filepath.replace(/\.json$/, '.csv')}`);
       res.status(HttpStatus.OK).send(utf8FileContent);
     } catch (error) {
       throw new HttpException('Error generating CSV for rule run', HttpStatus.INTERNAL_SERVER_ERROR);

@@ -10,7 +10,7 @@ export class RuleMappingController {
   // Map a rule file to its unique inputs, and all outputs
   @Post('/')
   async getRuleSchema(
-    @Body('goRulesJSONFilename') goRulesJSONFilename: string,
+    @Body('filepath') filepath: string,
     @Body('ruleContent') ruleContent: EvaluateRuleMappingDto,
     @Res() res: Response,
   ) {
@@ -18,7 +18,7 @@ export class RuleMappingController {
 
     try {
       res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename=${goRulesJSONFilename}`);
+      res.setHeader('Content-Disposition', `attachment; filename=${filepath}`);
       res.send(rulemap);
     } catch (error) {
       if (error instanceof InvalidRuleContent) {

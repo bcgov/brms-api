@@ -92,9 +92,9 @@ export class ScenarioDataService {
     }
   }
 
-  async getScenariosByFilename(goRulesJSONFilename: string): Promise<ScenarioData[]> {
+  async getScenariosByFilename(filepath: string): Promise<ScenarioData[]> {
     try {
-      return await this.scenarioDataModel.find({ goRulesJSONFilename: { $eq: goRulesJSONFilename } }).exec();
+      return await this.scenarioDataModel.find({ filepath: { $eq: filepath } }).exec();
     } catch (error) {
       throw new Error(`Error getting scenarios by filename: ${error.message}`);
     }
@@ -106,13 +106,13 @@ export class ScenarioDataService {
    * Maps inputs and outputs from decision traces to structured results.
    */
   async runDecisionsForScenarios(
-    goRulesJSONFilename: string,
+    filepath: string,
     ruleContent?: RuleContent,
     newScenarios?: ScenarioData[],
   ): Promise<{ [scenarioId: string]: any }> {
-    const scenarios = newScenarios || (await this.getScenariosByFilename(goRulesJSONFilename));
+    const scenarios = newScenarios || (await this.getScenariosByFilename(filepath));
     if (!ruleContent) {
-      const fileContent = await this.documentsService.getFileContent(goRulesJSONFilename);
+      const fileContent = await this.documentsService.getFileContent(filepath);
       ruleContent = await JSON.parse(fileContent.toString());
     }
     const ruleSchema: RuleSchema = await this.ruleMappingService.inputOutputSchema(ruleContent);
@@ -125,7 +125,7 @@ export class ScenarioDataService {
       try {
         const decisionResult = await this.decisionsService.runDecision(
           ruleContent,
-          goRulesJSONFilename,
+          filepath,
           formattedVariablesObject,
           {
             trace: true,
@@ -159,16 +159,8 @@ export class ScenarioDataService {
    * Retrieves scenario results, extracts unique input and output keys, and maps them to CSV rows.
    * Constructs CSV headers and rows based on input and output keys.
    */
-  async getCSVForRuleRun(
-    goRulesJSONFilename: string,
-    ruleContent: RuleContent,
-    newScenarios?: ScenarioData[],
-  ): Promise<string> {
-    const ruleRunResults: RuleRunResults = await this.runDecisionsForScenarios(
-      goRulesJSONFilename,
-      ruleContent,
-      newScenarios,
-    );
+  async getCSVForRuleRun(filepath: string, ruleContent: RuleContent, newScenarios?: ScenarioData[]): Promise<string> {
+    const ruleRunResults: RuleRunResults = await this.runDecisionsForScenarios(filepath, ruleContent, newScenarios);
 
     const keys = {
       inputs: extractUniqueKeys(ruleRunResults, 'inputs'),
@@ -226,14 +218,11 @@ export class ScenarioDataService {
 
   /**
    * Processes a CSV file containing scenario data and returns an array of ScenarioData objects based on the inputs.
-   * @param goRulesJSONFilename The name of the Go rules JSON file.
+   * @param filepath The name of the Go rules JSON file.
    * @param csvContent The CSV file content.
    * @returns An array of ScenarioData objects.
    */
-  async processProvidedScenarios(
-    goRulesJSONFilename: string,
-    csvContent: Express.Multer.File,
-  ): Promise<ScenarioData[]> {
+  async processProvidedScenarios(filepath: string, csvContent: Express.Multer.File): Promise<ScenarioData[]> {
     const parsedData = await parseCSV(csvContent);
     if (!parsedData || parsedData.length === 0) {
       throw new Error('CSV content is empty or invalid');
@@ -257,7 +246,7 @@ export class ScenarioDataService {
         title: scenarioTitle,
         ruleID: '',
         variables: inputs,
-        goRulesJSONFilename: goRulesJSONFilename,
+        filepath: filepath,
         expectedResults: expectedResults,
       };
 
@@ -270,7 +259,7 @@ export class ScenarioDataService {
   generatePossibleValues(input: any, defaultValue?: any): any[] {
     const { type, dataType, validationCriteria, validationType, childFields } = input;
     //Determine how many versions of each field to generate
-    const complexityGeneration = 5;
+    const complexityGeneration = 10;
     if (defaultValue !== null && defaultValue !== undefined) return [defaultValue];
 
     switch (type || dataType) {
@@ -367,7 +356,8 @@ export class ScenarioDataService {
         return validationCriteria.split(',').map((val: string) => val.trim());
 
       case 'true-false':
-        return Array.from({ length: complexityGeneration }, () => Math.random() < 0.5);
+        const firstValue = Math.random() < 0.5;
+        return [firstValue, !firstValue];
 
       default:
         return [];
@@ -410,10 +400,24 @@ export class ScenarioDataService {
 
     const { fields, values } = mapInputs(data.inputs);
 
-    const inputCombinations = complexCartesianProduct(values, testScenarioCount) || [];
+    const removeDuplicates = (array: any[]): any[] => {
+      const seen = new Set();
+      return array.filter((item) => {
+        const itemString = JSON.stringify(item);
+        if (!seen.has(itemString)) {
+          seen.add(itemString);
+          return true;
+        }
+        return false;
+      });
+    };
 
-    const resultObjects = this.generateObjectsFromCombinations(fields, inputCombinations);
-    return resultObjects.slice(0, testScenarioCount) || [];
+    const inputCombinations = complexCartesianProduct(values) || [];
+    const uniqueInputCombinations = removeDuplicates(inputCombinations) || [];
+
+    const resultObjects = this.generateObjectsFromCombinations(fields, uniqueInputCombinations);
+    const uniqueResultObjects = removeDuplicates(resultObjects) || [];
+    return uniqueResultObjects.slice(0, testScenarioCount) || [];
   }
 
   generateObjectsFromCombinations(fields: string[], combinations: any[][]) {
@@ -429,20 +433,22 @@ export class ScenarioDataService {
           currentObj = currentObj[fieldParts[i]];
         }
         const lastPart = fieldParts[fieldParts.length - 1];
-        currentObj[lastPart] = combination[index];
+        const randomIndex = Math.floor(Math.random() * combinations.length);
+        const value = combinations[randomIndex][index];
+        currentObj[lastPart] = value;
       });
       return obj;
     });
   }
 
   async generateTestScenarios(
-    goRulesJSONFilename: string,
+    filepath: string,
     ruleContent?: RuleContent,
     simulationContext?: RuleRunResults,
     testScenarioCount?: number,
   ): Promise<{ [scenarioId: string]: any }> {
     if (!ruleContent) {
-      const fileContent = await this.documentsService.getFileContent(goRulesJSONFilename);
+      const fileContent = await this.documentsService.getFileContent(filepath);
       ruleContent = await JSON.parse(fileContent.toString());
     }
     const ruleSchema: RuleSchema = await this.ruleMappingService.inputOutputSchema(ruleContent);
@@ -462,7 +468,7 @@ export class ScenarioDataService {
       try {
         const decisionResult = await this.decisionsService.runDecision(
           ruleContent,
-          goRulesJSONFilename,
+          filepath,
           formattedVariablesObject,
           {
             trace: true,
@@ -492,13 +498,13 @@ export class ScenarioDataService {
   }
 
   async generateTestCSVScenarios(
-    goRulesJSONFilename: string,
+    filepath: string,
     ruleContent: RuleContent,
     simulationContext: RuleRunResults,
     testScenarioCount?: number,
   ) {
     const ruleRunResults: RuleRunResults = await this.generateTestScenarios(
-      goRulesJSONFilename,
+      filepath,
       ruleContent,
       simulationContext,
       testScenarioCount,

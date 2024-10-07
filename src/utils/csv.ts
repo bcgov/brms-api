@@ -103,7 +103,7 @@ export const cartesianProduct = (arrays: any[][]): any[][] => {
  * @param limit The maximum number of combinations to generate.
  * @returns The generated product.
  */
-export const complexCartesianProduct = (arrays: any[][], limit: number = 1000): any[][] => {
+export const complexCartesianProduct = (arrays: any[][], limit: number = 3000): any[][] => {
   const result: any[][] = [];
   const maxIndex = arrays.map((arr) => arr.length - 1);
   const indices = new Array(arrays.length).fill(0);
