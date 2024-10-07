@@ -24,7 +24,7 @@ describe('ScenarioDataService', () => {
     title: 'Test Title',
     ruleID: 'ruleID',
     variables: [],
-    goRulesJSONFilename: 'test.json',
+    filepath: 'test.json',
     expectedResults: [],
   };
 
@@ -266,19 +266,19 @@ describe('ScenarioDataService', () => {
 
   describe('getScenariosByFilename', () => {
     it('should return scenarios by filename', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const scenarioDataList: ScenarioData[] = [mockScenarioData];
-      scenarioDataList[0].goRulesJSONFilename = goRulesJSONFilename;
+      scenarioDataList[0].filepath = filepath;
       MockScenarioDataModel.find = jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(scenarioDataList) });
 
-      const result = await service.getScenariosByFilename(goRulesJSONFilename);
+      const result = await service.getScenariosByFilename(filepath);
 
       expect(result).toEqual(scenarioDataList);
-      expect(MockScenarioDataModel.find).toHaveBeenCalledWith({ goRulesJSONFilename: { $eq: goRulesJSONFilename } });
+      expect(MockScenarioDataModel.find).toHaveBeenCalledWith({ filepath: { $eq: filepath } });
     });
 
     it('should throw an error if an error occurs while retrieving scenarios by filename', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const errorMessage = 'DB Error';
 
       MockScenarioDataModel.find = jest
@@ -286,15 +286,15 @@ describe('ScenarioDataService', () => {
         .mockReturnValue({ exec: jest.fn().mockRejectedValue(new Error(errorMessage)) });
 
       await expect(async () => {
-        await service.getScenariosByFilename(goRulesJSONFilename);
+        await service.getScenariosByFilename(filepath);
       }).rejects.toThrowError(`Error getting scenarios by filename: ${errorMessage}`);
 
-      expect(MockScenarioDataModel.find).toHaveBeenCalledWith({ goRulesJSONFilename: { $eq: goRulesJSONFilename } });
+      expect(MockScenarioDataModel.find).toHaveBeenCalledWith({ filepath: { $eq: filepath } });
     });
   });
   describe('runDecisionsForScenarios', () => {
     it('should run decisions for scenarios and map inputs/outputs correctly', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = {
         nodes: [
           {
@@ -326,7 +326,7 @@ describe('ScenarioDataService', () => {
           title: 'Scenario 1',
           variables: [{ name: 'familyComposition', value: 'single' }],
           ruleID: 'ruleID',
-          goRulesJSONFilename: 'test.json',
+          filepath: 'test.json',
           expectedResults: [],
         },
         {
@@ -334,7 +334,7 @@ describe('ScenarioDataService', () => {
           title: 'Scenario 2',
           variables: [{ name: 'numberOfChildren', value: 2 }],
           ruleID: 'ruleID',
-          goRulesJSONFilename: 'test.json',
+          filepath: 'test.json',
           expectedResults: [],
         },
       ];
@@ -373,7 +373,7 @@ describe('ScenarioDataService', () => {
       jest.spyOn(ruleMappingService, 'ruleSchema').mockResolvedValue(ruleSchemaOutput);
       jest.spyOn(decisionsService, 'runDecisionByContent').mockResolvedValue(decisionResult);
 
-      const results = await service.runDecisionsForScenarios(goRulesJSONFilename, ruleContent);
+      const results = await service.runDecisionsForScenarios(filepath, ruleContent);
 
       expect(results).toEqual({
         'Scenario 1': {
@@ -397,7 +397,7 @@ describe('ScenarioDataService', () => {
       });
     });
     it('should handle errors in decision execution', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       const scenarios = [
         {
@@ -405,7 +405,7 @@ describe('ScenarioDataService', () => {
           title: 'Scenario 1',
           variables: [{ name: 'familyComposition', value: 'single' }],
           ruleID: 'ruleID',
-          goRulesJSONFilename: 'test.json',
+          filepath: 'test.json',
           expectedResults: [],
         },
       ];
@@ -419,14 +419,14 @@ describe('ScenarioDataService', () => {
       jest.spyOn(ruleMappingService, 'ruleSchema').mockResolvedValue(ruleSchema);
       jest.spyOn(decisionsService, 'runDecisionByContent').mockRejectedValue(new Error('Decision execution error'));
 
-      const results = await service.runDecisionsForScenarios(goRulesJSONFilename, ruleContent);
+      const results = await service.runDecisionsForScenarios(filepath, ruleContent);
       expect(results).toEqual({
         [testObjectId.toString()]: { error: 'Decision execution error' },
       });
     });
 
     it('should handle scenarios with no variables', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       const scenarios = [
         {
@@ -434,7 +434,7 @@ describe('ScenarioDataService', () => {
           title: 'Scenario 1',
           variables: [],
           ruleID: 'ruleID',
-          goRulesJSONFilename: 'test.json',
+          filepath: 'test.json',
           expectedResults: [],
         },
       ];
@@ -460,7 +460,7 @@ describe('ScenarioDataService', () => {
       jest.spyOn(ruleMappingService, 'ruleSchema').mockResolvedValue(ruleSchema);
       jest.spyOn(decisionsService, 'runDecisionByContent').mockResolvedValue(decisionResult);
 
-      const results = await service.runDecisionsForScenarios(goRulesJSONFilename, ruleContent);
+      const results = await service.runDecisionsForScenarios(filepath, ruleContent);
 
       expect(results).toEqual({
         'Scenario 1': {
@@ -478,7 +478,7 @@ describe('ScenarioDataService', () => {
 
   describe('getCSVForRuleRun', () => {
     it('should generate a CSV with correct headers and data', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       const ruleRunResults = {
         'Scenario 1': {
@@ -497,7 +497,7 @@ describe('ScenarioDataService', () => {
 
       jest.spyOn(service, 'runDecisionsForScenarios').mockResolvedValue(ruleRunResults);
 
-      const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename, ruleContent);
+      const csvContent = await service.getCSVForRuleRun(filepath, ruleContent);
 
       const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren\nScenario 1,Fail,single,2\nScenario 2,Fail,couple,3`;
 
@@ -505,7 +505,7 @@ describe('ScenarioDataService', () => {
     });
 
     it('should generate a CSV with missing inputs/outputs filled as empty strings', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       const ruleRunResults = {
         'Scenario 1': {
@@ -522,7 +522,7 @@ describe('ScenarioDataService', () => {
 
       jest.spyOn(service, 'runDecisionsForScenarios').mockResolvedValue(ruleRunResults);
 
-      const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename, ruleContent);
+      const csvContent = await service.getCSVForRuleRun(filepath, ruleContent);
 
       const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren\nScenario 1,Fail,single,\nScenario 2,Fail,couple,3`;
 
@@ -530,7 +530,7 @@ describe('ScenarioDataService', () => {
     });
 
     it('should generate a CSV with only one scenario', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       const ruleRunResults = {
         'Scenario 1': {
@@ -542,7 +542,7 @@ describe('ScenarioDataService', () => {
 
       jest.spyOn(service, 'runDecisionsForScenarios').mockResolvedValue(ruleRunResults);
 
-      const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename, ruleContent);
+      const csvContent = await service.getCSVForRuleRun(filepath, ruleContent);
 
       const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren\nScenario 1,Fail,single,2`;
 
@@ -550,13 +550,13 @@ describe('ScenarioDataService', () => {
     });
 
     it('should generate an empty CSV if no scenarios are present', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       const ruleRunResults = {};
 
       jest.spyOn(service, 'runDecisionsForScenarios').mockResolvedValue(ruleRunResults);
 
-      const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename, ruleContent);
+      const csvContent = await service.getCSVForRuleRun(filepath, ruleContent);
 
       const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail)`;
 
@@ -564,7 +564,7 @@ describe('ScenarioDataService', () => {
     });
 
     it('should handle scenarios with no variables or outputs', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       const ruleRunResults = {
         'Scenario 1': {
@@ -575,7 +575,7 @@ describe('ScenarioDataService', () => {
 
       jest.spyOn(service, 'runDecisionsForScenarios').mockResolvedValue(ruleRunResults);
 
-      const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename, ruleContent);
+      const csvContent = await service.getCSVForRuleRun(filepath, ruleContent);
 
       const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail)\nScenario 1,Fail`;
 
@@ -583,7 +583,7 @@ describe('ScenarioDataService', () => {
     });
 
     it('should escape inputs and outputs containing commas or quotes', async () => {
-      const goRulesJSONFilename = 'test.json';
+      const filepath = 'test.json';
       const ruleContent = { nodes: [], edges: [] };
       const ruleRunResults = {
         'Scenario 1': {
@@ -595,7 +595,7 @@ describe('ScenarioDataService', () => {
 
       jest.spyOn(service, 'runDecisionsForScenarios').mockResolvedValue(ruleRunResults);
 
-      const csvContent = await service.getCSVForRuleRun(goRulesJSONFilename, ruleContent);
+      const csvContent = await service.getCSVForRuleRun(filepath, ruleContent);
 
       const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: input1,Input: input2\nScenario 1,Fail,"value, with, commas",value "with" quotes`;
 
@@ -626,12 +626,12 @@ describe('ScenarioDataService', () => {
       expect(result[0]).toMatchObject({
         title: 'Scenario 1',
         ruleID: '',
-        goRulesJSONFilename: 'test.json',
+        filepath: 'test.json',
       });
       expect(result[1]).toMatchObject({
         title: 'Scenario 2',
         ruleID: '',
-        goRulesJSONFilename: 'test.json',
+        filepath: 'test.json',
       });
 
       expect(result[0]).toHaveProperty('variables');

@@ -57,7 +57,7 @@ export class ScenarioData {
   expectedResults: Variable[];
 
   @Prop({ required: true, description: 'The filename of the JSON file containing the rule' })
-  goRulesJSONFilename: string;
+  filepath: string;
 }
 
 export const ScenarioDataSchema = SchemaFactory.createForClass(ScenarioData);
