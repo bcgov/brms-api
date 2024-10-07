@@ -147,5 +147,5 @@ export const generateCombinationsWithLimit = (arr: string[], limit: number = 100
   };
 
   combine([], arr, 0);
-  return result;
+  return result.slice(0, limit);
 };

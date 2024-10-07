@@ -696,6 +696,16 @@ describe('ScenarioDataService', () => {
       });
     });
 
+    it('should generate possible values for number-input with range', () => {
+      const input = { type: 'number-input', validationType: '[num]', validationCriteria: '1,10' };
+      const result = service.generatePossibleValues(input);
+      expect(result.length).toBe(5);
+      result.forEach((value) => {
+        expect(value).toBeGreaterThanOrEqual(1);
+        expect(value).toBeLessThanOrEqual(10);
+      });
+    });
+
     it('should handle date inputs and generate valid dates', () => {
       const input = { type: 'date', validationCriteria: '2020-01-01,2022-01-01', validationType: '(date)' };
       const result = service.generatePossibleValues(input);
@@ -704,6 +714,18 @@ describe('ScenarioDataService', () => {
         const date = new Date(value).getTime();
         expect(date).toBeGreaterThan(new Date('2020-01-01').getTime());
         expect(date).toBeLessThan(new Date('2022-01-01').getTime());
+      });
+    });
+
+    it('should generate possible values for date input based on a range', () => {
+      const input = { type: 'date', validationType: '[date]', validationCriteria: '2022-01-01,2023-01-01' };
+      const result = service.generatePossibleValues(input);
+      expect(result.length).toBe(5);
+      result.forEach((value) => {
+        const date = new Date(value);
+        expect(date).toBeInstanceOf(Date);
+        expect(date.getTime()).toBeGreaterThanOrEqual(new Date('2022-01-01').getTime());
+        expect(date.getTime()).toBeLessThanOrEqual(new Date('2023-01-01').getTime());
       });
     });
 
@@ -774,6 +796,30 @@ describe('ScenarioDataService', () => {
       });
     });
 
+    it('should generate combinations for multiple simple inputs', () => {
+      const data = {
+        inputs: [
+          { field: 'field1', type: 'number-input', validationType: '[num]', validationCriteria: '1,10' },
+          { field: 'field2', type: 'text-input', validationCriteria: 'a,b,c', validationType: '[=text]' },
+        ],
+      };
+      const mockProduct = [
+        [7, 'a'],
+        [8, 'b'],
+        [9, 'c'],
+      ];
+      (complexCartesianProduct as jest.Mock).mockReturnValue(mockProduct);
+      const result = service.generateCombinations(data, undefined);
+      // expect(result.length).toBe(3);
+      result.forEach((item) => {
+        expect(item).toHaveProperty('field1');
+        expect(item).toHaveProperty('field2');
+        expect(item.field1).toBeGreaterThanOrEqual(1);
+        expect(item.field1).toBeLessThanOrEqual(10);
+        expect(['a', 'b', 'c']).toContain(item.field2);
+      });
+    });
+
     it('should handle nested object fields', () => {
       const data = {
         inputs: [
@@ -831,6 +877,51 @@ describe('ScenarioDataService', () => {
         expect([true, false]).toContain(item.dependentsList[0].inSchool);
       });
     });
+
+    it('should generate combinations for nested object fields', () => {
+      const data = {
+        inputs: [
+          {
+            field: 'nested',
+            type: 'object-array',
+            childFields: [
+              { field: 'subfield1', dataType: 'number-input', validationType: '[num]', validationCriteria: '1,5' },
+              { field: 'subfield2', dataType: 'true-false' },
+            ],
+          },
+        ],
+      };
+      jest.spyOn(service, 'generatePossibleValues').mockImplementation((input) => {
+        if (input.type === 'object-array') {
+          return [
+            [{ subfield1: 3, subfield2: true }],
+            [
+              { subfield1: 4, subfield2: false },
+              { subfield1: 5, subfield2: true },
+            ],
+          ];
+        }
+        return [];
+      });
+      (complexCartesianProduct as jest.Mock).mockReturnValueOnce([
+        [[{ subfield1: 3, subfield2: true }]],
+        [[{ subfield1: 4, subfield2: false }]],
+        [[{ subfield1: 5, subfield2: true }]],
+      ]);
+      const result = service.generateCombinations(data, undefined, 3);
+      expect(result.length).toBe(3);
+      result.forEach((item) => {
+        expect(item).toHaveProperty('nested');
+        expect(Array.isArray(item.nested)).toBe(true);
+        item.nested.forEach((nestedItem: any) => {
+          expect(nestedItem).toHaveProperty('subfield1');
+          expect(nestedItem).toHaveProperty('subfield2');
+          expect(nestedItem.subfield1).toBeGreaterThanOrEqual(1);
+          expect(nestedItem.subfield1).toBeLessThanOrEqual(5);
+          expect(typeof nestedItem.subfield2).toBe('boolean');
+        });
+      });
+    });
   });
 
   describe('generateObjectsFromCombinations', () => {
@@ -852,6 +943,36 @@ describe('ScenarioDataService', () => {
       const combinations = [];
       const result = service.generateObjectsFromCombinations(fields, combinations);
       expect(result).toEqual([]);
+    });
+
+    it('should generate objects from simple combinations', () => {
+      const fields = ['field1', 'field2'];
+      const combinations = [
+        [1, 'a'],
+        [2, 'b'],
+        [3, 'c'],
+      ];
+      const result = service.generateObjectsFromCombinations(fields, combinations);
+      expect(result).toEqual([
+        { field1: 1, field2: 'a' },
+        { field1: 2, field2: 'b' },
+        { field1: 3, field2: 'c' },
+      ]);
+    });
+
+    it('should generate objects from nested combinations', () => {
+      const fields = ['field1', 'nested.subfield1', 'nested.subfield2'];
+      const combinations = [
+        [1, 'a', true],
+        [2, 'b', false],
+        [3, 'c', true],
+      ];
+      const result = service.generateObjectsFromCombinations(fields, combinations);
+      expect(result).toEqual([
+        { field1: 1, nested: { subfield1: 'a', subfield2: true } },
+        { field1: 2, nested: { subfield1: 'b', subfield2: false } },
+        { field1: 3, nested: { subfield1: 'c', subfield2: true } },
+      ]);
     });
   });
 

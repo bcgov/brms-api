@@ -183,7 +183,7 @@ export class ScenarioDataController {
         goRulesJSONFilename,
         ruleContent,
         simulationContext,
-        testScenarioCount,
+        testScenarioCount && testScenarioCount > 0 ? testScenarioCount : undefined,
       );
       // UTF- 8 encoding with BOM
       const bom = '\uFEFF';
