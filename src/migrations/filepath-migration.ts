@@ -5,16 +5,24 @@
  */
 
 import { connect, connection, model } from 'mongoose';
-import { RuleDataDocument, RuleDataSchema } from '../api/ruleData/ruleData.schema';
+import { Prop, SchemaFactory } from '@nestjs/mongoose';
+import { RuleData } from '../api/ruleData/ruleData.schema';
 import { deriveNameFromFilepath } from '../utils/helpers';
 
-const RuleData = model<RuleDataDocument>('RuleData', RuleDataSchema);
+class OldRuleData extends RuleData {
+  @Prop({ description: 'This has now been deprecated' })
+  goRulesJSONFilename?: string;
+}
+
+export const RuleDataSchema = SchemaFactory.createForClass(OldRuleData);
+
+const oldRuleData = model('RuleData', RuleDataSchema);
 
 export default async function filepathMigration() {
   await connect(process.env.MONGODB_URL);
 
   try {
-    const documents = await RuleData.find();
+    const documents = await oldRuleData.find();
 
     for (const doc of documents) {
       if (!doc.filepath) {
