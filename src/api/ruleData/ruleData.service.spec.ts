@@ -8,8 +8,9 @@ import axios from 'axios';
 
 export const mockRuleData = {
   _id: 'testId',
+  name: 'title',
   title: 'Title',
-  goRulesJSONFilename: 'filename.json',
+  filepath: 'title.json',
 };
 const mockRuleDraft = { content: { nodes: [], edges: [] } };
 
@@ -98,20 +99,23 @@ describe('RuleDataService', () => {
   it('should correctly remove inReview statuses when branches no longer exist', async () => {
     const ruleWithBranchToRemove: RuleData = {
       _id: 'testId1',
+      name: 'title1',
       title: 'Title 1',
-      goRulesJSONFilename: 'filename1.json',
+      filepath: 'title1.json',
       reviewBranch: 'myoldbranch',
     };
     const ruleWithBranchToKeep: RuleData = {
       _id: 'testId2',
+      name: 'title2',
       title: 'Title 2',
-      goRulesJSONFilename: 'filename2.json',
+      filepath: 'title2.json',
       reviewBranch: 'branch2',
     };
     const ruleWithoutBranch: RuleData = {
       _id: 'testId3',
+      name: 'title3',
       title: 'Title 3',
-      goRulesJSONFilename: 'filename3.json',
+      filepath: 'path/title3.json',
     };
     const mockedbranches = { data: [{ name: 'branch1' }, { name: ruleWithBranchToKeep.reviewBranch }] };
     jest.spyOn(axios, 'get').mockResolvedValue(mockedbranches);
@@ -137,7 +141,7 @@ describe('RuleDataService', () => {
   });
 
   it('should handle adding duplicate files gracefully', async () => {
-    const unsyncedFiles = ['file1.txt', mockRuleData.goRulesJSONFilename];
+    const unsyncedFiles = ['file1.txt', mockRuleData.filepath];
     jest.spyOn(documentsService, 'getAllJSONFiles').mockResolvedValue(unsyncedFiles);
     jest.spyOn(service, 'createRuleData').mockImplementation((rData: RuleData) => Promise.resolve(rData));
     jest

@@ -16,6 +16,8 @@ Before running your application locally, you'll need some environment variables.
 - FRONTEND_URI: The URI for the frontend application. Set it to http://localhost:8080.
 - GITHUB_APP_CLIENT_ID
 - GITHUB_APP_CLIENT_SECRET
+- KLAMM_API_URL: The base URL of your Klamm API
+- KLAMM_API_AUTH_TOKEN: The Klamm API auth token
 
 ### Including Rules from the Rules Repository
 

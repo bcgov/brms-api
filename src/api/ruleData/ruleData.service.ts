@@ -2,10 +2,11 @@ import { ObjectId } from 'mongodb';
 import { Model } from 'mongoose';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import axios from 'axios';
 import { DocumentsService } from '../documents/documents.service';
 import { RuleData, RuleDataDocument } from './ruleData.schema';
 import { RuleDraft, RuleDraftDocument } from './ruleDraft.schema';
-import axios from 'axios';
+import { deriveNameFromFilepath } from '../../utils/helpers';
 
 @Injectable()
 export class RuleDataService {
@@ -70,6 +71,7 @@ export class RuleDataService {
         const newRuleID = new ObjectId();
         ruleData._id = newRuleID.toHexString();
       }
+      ruleData.name = deriveNameFromFilepath(ruleData.filepath);
       ruleData = await this._addOrUpdateDraft(ruleData);
       const newRuleData = new this.ruleDataModel(ruleData);
       const response = await newRuleData.save();
@@ -85,6 +87,9 @@ export class RuleDataService {
       const existingRuleData = await this.ruleDataModel.findOne({ _id: ruleId }).exec();
       if (!existingRuleData) {
         throw new Error('Rule data not found');
+      }
+      if (updatedData.filepath) {
+        updatedData.name = deriveNameFromFilepath(updatedData.filepath);
       }
       updatedData = await this._addOrUpdateDraft(updatedData);
       Object.assign(existingRuleData, updatedData);
@@ -130,10 +135,10 @@ export class RuleDataService {
   async addUnsyncedFiles(existingRules: RuleData[]) {
     // Find rules not yet defined in db (but with an exisitng JSON file) and add them
     const jsonRuleDocuments = await this.documentsService.getAllJSONFiles();
-    jsonRuleDocuments.forEach((goRulesJSONFilename: string) => {
-      const existingRule = existingRules.find((rule) => rule.goRulesJSONFilename === goRulesJSONFilename);
+    jsonRuleDocuments.forEach((filepath: string) => {
+      const existingRule = existingRules.find((rule) => rule.filepath === filepath);
       if (!existingRule) {
-        this.createRuleData({ goRulesJSONFilename, isPublished: true });
+        this.createRuleData({ filepath, isPublished: true });
       } else if (!existingRule.isPublished) {
         // Update status to isPublished if it isn't yet
         this.updateRuleData(existingRule._id, { isPublished: true });

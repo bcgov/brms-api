@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Redirect, Res } from '@nestjs/common';
+import { Controller, Get, Query, Redirect, Res, Post } from '@nestjs/common';
 import { GithubAuthService } from './github-auth.service';
 
 @Controller('auth/github')
@@ -33,5 +33,17 @@ export class GithubAuthController {
     // Decode to get the redirect url and redirect there
     const returnUrl = decodeURIComponent(state);
     res.redirect(returnUrl || '/');
+  }
+
+  /**
+   * Remove a user's github oauth token/username to log then out
+   * @param res
+   */
+  @Post('logout')
+  async logoutOfGithubApp(@Res() res) {
+    // Set the server-side cookies to empty in order to 'logout' the user from their github oauth
+    res.cookie('github-authentication-token', '', { httpOnly: true });
+    res.cookie('github-authentication-username', '', { httpOnly: true });
+    res.status(200).send({ message: 'Logged out successfully' });
   }
 }

@@ -86,9 +86,9 @@ export class ScenarioDataService {
     }
   }
 
-  async getScenariosByFilename(goRulesJSONFilename: string): Promise<ScenarioData[]> {
+  async getScenariosByFilename(filepath: string): Promise<ScenarioData[]> {
     try {
-      return await this.scenarioDataModel.find({ goRulesJSONFilename: { $eq: goRulesJSONFilename } }).exec();
+      return await this.scenarioDataModel.find({ filepath: { $eq: filepath } }).exec();
     } catch (error) {
       throw new Error(`Error getting scenarios by filename: ${error.message}`);
     }
@@ -100,16 +100,16 @@ export class ScenarioDataService {
    * Maps inputs and outputs from decision traces to structured results.
    */
   async runDecisionsForScenarios(
-    goRulesJSONFilename: string,
+    filepath: string,
     ruleContent?: RuleContent,
     newScenarios?: ScenarioData[],
   ): Promise<{ [scenarioId: string]: any }> {
-    const scenarios = newScenarios || (await this.getScenariosByFilename(goRulesJSONFilename));
+    const scenarios = newScenarios || (await this.getScenariosByFilename(filepath));
     if (!ruleContent) {
-      const fileContent = await this.documentsService.getFileContent(goRulesJSONFilename);
+      const fileContent = await this.documentsService.getFileContent(filepath);
       ruleContent = await JSON.parse(fileContent.toString());
     }
-    const ruleSchema: RuleSchema = await this.ruleMappingService.ruleSchema(ruleContent);
+    const ruleSchema: RuleSchema = await this.ruleMappingService.inputOutputSchema(ruleContent);
     const results: { [scenarioId: string]: any } = {};
 
     for (const scenario of scenarios as ScenarioDataDocument[]) {
@@ -119,7 +119,7 @@ export class ScenarioDataService {
       try {
         const decisionResult = await this.decisionsService.runDecision(
           ruleContent,
-          goRulesJSONFilename,
+          filepath,
           formattedVariablesObject,
           {
             trace: true,
@@ -153,16 +153,8 @@ export class ScenarioDataService {
    * Retrieves scenario results, extracts unique input and output keys, and maps them to CSV rows.
    * Constructs CSV headers and rows based on input and output keys.
    */
-  async getCSVForRuleRun(
-    goRulesJSONFilename: string,
-    ruleContent: RuleContent,
-    newScenarios?: ScenarioData[],
-  ): Promise<string> {
-    const ruleRunResults: RuleRunResults = await this.runDecisionsForScenarios(
-      goRulesJSONFilename,
-      ruleContent,
-      newScenarios,
-    );
+  async getCSVForRuleRun(filepath: string, ruleContent: RuleContent, newScenarios?: ScenarioData[]): Promise<string> {
+    const ruleRunResults: RuleRunResults = await this.runDecisionsForScenarios(filepath, ruleContent, newScenarios);
 
     const keys = {
       inputs: extractUniqueKeys(ruleRunResults, 'inputs'),
@@ -199,20 +191,18 @@ export class ScenarioDataService {
 
   private escapeCSVField(field: any): string {
     if (field == null) return '';
+    if (typeof field === 'object') return `${field.length}`;
     const stringField = typeof field === 'string' ? field : String(field);
     return stringField.includes(',') ? `"${stringField.replace(/"/g, '""')}"` : stringField;
   }
 
   /**
    * Processes a CSV file containing scenario data and returns an array of ScenarioData objects based on the inputs.
-   * @param goRulesJSONFilename The name of the Go rules JSON file.
+   * @param filepath The name of the Go rules JSON file.
    * @param csvContent The CSV file content.
    * @returns An array of ScenarioData objects.
    */
-  async processProvidedScenarios(
-    goRulesJSONFilename: string,
-    csvContent: Express.Multer.File,
-  ): Promise<ScenarioData[]> {
+  async processProvidedScenarios(filepath: string, csvContent: Express.Multer.File): Promise<ScenarioData[]> {
     const parsedData = await parseCSV(csvContent);
     if (!parsedData || parsedData.length === 0) {
       throw new Error('CSV content is empty or invalid');
@@ -236,7 +226,7 @@ export class ScenarioDataService {
         title: scenarioTitle,
         ruleID: '',
         variables: inputs,
-        goRulesJSONFilename: goRulesJSONFilename,
+        filepath: filepath,
         expectedResults: expectedResults,
       };
 

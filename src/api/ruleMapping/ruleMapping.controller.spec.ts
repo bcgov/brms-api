@@ -15,7 +15,7 @@ describe('RuleMappingController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RuleMappingController],
       providers: [
-        RuleMappingService, // Actual service if needed for testing interactions
+        RuleMappingService,
         {
           provide: ConfigService,
           useValue: {
@@ -27,6 +27,7 @@ describe('RuleMappingController', () => {
           useValue: {
             ruleSchema: jest.fn(),
             evaluateRuleSchema: jest.fn(),
+            inputOutputSchema: jest.fn(),
           },
         },
       ],
@@ -40,8 +41,8 @@ describe('RuleMappingController', () => {
     it('should return the rule schema with the correct headers', async () => {
       const ruleFileName = 'test-rule.json';
       const ruleContent = { nodes: [], edges: [] };
-      const rulemap = { inputs: [], outputs: [], resultOutputs: [] };
-      jest.spyOn(service, 'ruleSchema').mockResolvedValue(rulemap);
+      const rulemap = { inputs: [], resultOutputs: [] };
+      jest.spyOn(service, 'inputOutputSchema').mockResolvedValue(rulemap);
 
       const mockResponse = {
         setHeader: jest.fn(),
@@ -50,7 +51,7 @@ describe('RuleMappingController', () => {
 
       await controller.getRuleSchema(ruleFileName, ruleContent, mockResponse);
 
-      expect(service.ruleSchema).toHaveBeenCalledWith(ruleContent);
+      expect(service.inputOutputSchema).toHaveBeenCalledWith(ruleContent);
       expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'application/json');
       expect(mockResponse.setHeader).toHaveBeenCalledWith(
         'Content-Disposition',
@@ -65,12 +66,12 @@ describe('RuleMappingController', () => {
       const nodes = [{ id: '1', type: 'someType', content: { inputs: [], outputs: [] } }];
       const edges = [{ id: '2', type: 'someType', targetId: '1', sourceId: '1' }];
       const result = { inputs: [], outputs: [], resultOutputs: [] };
-      jest.spyOn(service, 'ruleSchema').mockResolvedValue(result);
+      jest.spyOn(service, 'inputOutputSchema').mockResolvedValue(result);
 
       const dto: EvaluateRuleMappingDto = { nodes, edges };
       const response = await controller.evaluateRuleMap(dto);
 
-      expect(service.ruleSchema).toHaveBeenCalledWith({ nodes, edges });
+      expect(service.inputOutputSchema).toHaveBeenCalledWith({ nodes, edges });
       expect(response).toEqual({ result });
     });
 
@@ -78,7 +79,7 @@ describe('RuleMappingController', () => {
       const nodes = [{ id: '1', type: 'someType', content: { inputs: [], outputs: [] } }];
       const edges = [{ id: '2', type: 'someType', targetId: '1', sourceId: '1' }];
       const error = new Error('Unexpected error');
-      jest.spyOn(service, 'ruleSchema').mockImplementation(() => {
+      jest.spyOn(service, 'inputOutputSchema').mockImplementation(() => {
         throw error;
       });
 

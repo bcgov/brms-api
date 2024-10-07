@@ -11,7 +11,7 @@ import { TraceObject } from '../api/ruleMapping/ruleMapping.interface';
 export const getPropertyById = (id: string, ruleSchema: RuleSchema, type: 'input' | 'output') => {
   const schema = type === 'input' ? ruleSchema.inputs : ruleSchema.resultOutputs;
   const item = schema.find((item: any) => item.id === id);
-  return item ? item.property : null;
+  return item ? item.field : null;
 };
 
 /**
@@ -24,7 +24,7 @@ export const mapTraceToResult = (trace: TraceObject, ruleSchema: RuleSchema, typ
   const result: { [key: string]: any } = {};
   const schema = type === 'input' ? ruleSchema.inputs : ruleSchema.resultOutputs;
   for (const [key, value] of Object.entries(trace)) {
-    if (trace[key] && typeof trace[key] === 'object') {
+    if (trace[key] && typeof trace[key] === 'object' && key !== '$' && key !== '$nodes') {
       const newArray: any[] = [];
       const arrayName = key;
       for (const item in trace[key]) {
@@ -34,7 +34,7 @@ export const mapTraceToResult = (trace: TraceObject, ruleSchema: RuleSchema, typ
       }
       newArray.forEach((item, index) => {
         index++;
-        const keyName = `${arrayName.toString().slice(0, -1)}[${index}]`;
+        const keyName = `${arrayName.toString()}[${index}]`;
         if (Object.keys(item).length === 0) {
           result[`${keyName}${key}`] = item;
         } else {
@@ -51,9 +51,9 @@ export const mapTraceToResult = (trace: TraceObject, ruleSchema: RuleSchema, typ
       result[property] = value;
     } else {
       // Direct match without id
-      const directMatch = schema.find((item: any) => replaceSpecialCharacters(item.property, '') === key);
+      const directMatch = schema.find((item: any) => replaceSpecialCharacters(item.field ?? '', '') === key);
       if (directMatch) {
-        const formattedKey = replaceSpecialCharacters(directMatch.property, '');
+        const formattedKey = replaceSpecialCharacters(directMatch.field, '');
         result[formattedKey] = value;
       }
     }

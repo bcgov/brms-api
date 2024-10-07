@@ -10,15 +10,15 @@ export class RuleMappingController {
   // Map a rule file to its unique inputs, and all outputs
   @Post('/')
   async getRuleSchema(
-    @Body('goRulesJSONFilename') goRulesJSONFilename: string,
+    @Body('filepath') filepath: string,
     @Body('ruleContent') ruleContent: EvaluateRuleMappingDto,
     @Res() res: Response,
   ) {
-    const rulemap = await this.ruleMappingService.ruleSchema(ruleContent);
+    const rulemap = await this.ruleMappingService.inputOutputSchema(ruleContent);
 
     try {
       res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename=${goRulesJSONFilename}`);
+      res.setHeader('Content-Disposition', `attachment; filename=${filepath}`);
       res.send(rulemap);
     } catch (error) {
       if (error instanceof InvalidRuleContent) {
@@ -33,7 +33,7 @@ export class RuleMappingController {
   @Post('/evaluate')
   async evaluateRuleMap(@Body() ruleContent: EvaluateRuleMappingDto) {
     try {
-      const result = await this.ruleMappingService.ruleSchema(ruleContent);
+      const result = await this.ruleMappingService.inputOutputSchema(ruleContent);
       return { result };
     } catch (error) {
       if (error instanceof InvalidRuleContent) {
@@ -56,6 +56,26 @@ export class RuleMappingController {
     } catch (error) {
       if (error instanceof HttpException && error.getStatus() === HttpStatus.BAD_REQUEST) {
         throw error;
+      } else {
+        throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    }
+  }
+
+  // Map a rule file using only the rule content
+  @Post('/generateFromRuleContent')
+  async generateWithoutInputOutputNodes(
+    @Body('ruleContent') ruleContent: EvaluateRuleMappingDto,
+    @Res() res: Response,
+  ) {
+    const rulemap = await this.ruleMappingService.ruleSchema(ruleContent);
+
+    try {
+      res.setHeader('Content-Type', 'application/json');
+      res.send(rulemap);
+    } catch (error) {
+      if (error instanceof InvalidRuleContent) {
+        throw new HttpException('Invalid rule content', HttpStatus.BAD_REQUEST);
       } else {
         throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
       }
