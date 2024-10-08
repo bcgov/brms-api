@@ -7,7 +7,7 @@ describe('CSV Utility Functions', () => {
         [1, 2],
         ['a', 'b'],
       ];
-      const result = complexCartesianProduct(input);
+      const result = complexCartesianProduct<number | string>(input);
       expect(result).toEqual([
         [1, 'a'],
         [1, 'b'],
@@ -22,7 +22,7 @@ describe('CSV Utility Functions', () => {
         ['a', 'b', 'c'],
         [true, false],
       ];
-      const result = complexCartesianProduct(input, 5);
+      const result = complexCartesianProduct<number | string | boolean>(input, 5);
       expect(result.length).toBe(5);
     });
 
@@ -34,7 +34,7 @@ describe('CSV Utility Functions', () => {
 
     it('should handle input with empty sub-arrays', () => {
       const input = [[1, 2], ['a', 'b'], []];
-      const result = complexCartesianProduct(input);
+      const result = complexCartesianProduct<number | string>(input);
       expect(result).toEqual([
         [1, 'a'],
         [1, 'b'],
@@ -45,7 +45,7 @@ describe('CSV Utility Functions', () => {
 
     it('should handle large input without exceeding memory limits', () => {
       const largeInput = Array(10).fill([1, 2, 3, 4, 5]);
-      const result = complexCartesianProduct(largeInput, 1000000);
+      const result = complexCartesianProduct<number>(largeInput, 1000000);
       expect(result.length).toBe(1000000);
     });
   });

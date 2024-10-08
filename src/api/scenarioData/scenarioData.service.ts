@@ -17,6 +17,8 @@ import {
   generateCombinationsWithLimit,
 } from '../../utils/csv';
 
+const DEFAULT_TEST_SCENARIO_COUNT = 100;
+
 @Injectable()
 export class ScenarioDataService {
   constructor(
@@ -364,7 +366,11 @@ export class ScenarioDataService {
     }
   }
 
-  generateCombinations(data: any, simulationContext?: RuleRunResults, testScenarioCount: number = 5) {
+  generateCombinations(
+    data: any,
+    simulationContext?: RuleRunResults,
+    testScenarioCount: number = DEFAULT_TEST_SCENARIO_COUNT,
+  ) {
     const generateFieldPath = (field: string, parentPath: string = ''): string => {
       return parentPath ? `${parentPath}.${field}` : field;
     };
@@ -445,26 +451,22 @@ export class ScenarioDataService {
     filepath: string,
     ruleContent?: RuleContent,
     simulationContext?: RuleRunResults,
-    testScenarioCount?: number,
+    testScenarioCount: number = DEFAULT_TEST_SCENARIO_COUNT,
   ): Promise<{ [scenarioId: string]: any }> {
     if (!ruleContent) {
       const fileContent = await this.documentsService.getFileContent(filepath);
       ruleContent = await JSON.parse(fileContent.toString());
     }
     const ruleSchema: RuleSchema = await this.ruleMappingService.inputOutputSchema(ruleContent);
-    const results: { [scenarioId: string]: any } = {};
-
     const combinations = this.generateCombinations(ruleSchema, simulationContext, testScenarioCount).slice(
       0,
-      testScenarioCount || 100,
+      testScenarioCount,
     );
-
     const formattedExpectedResultsObject = reduceToCleanObj(ruleSchema.resultOutputs, 'field', 'value');
-    let nameCounter = 1;
-    for (const scenario of combinations as ScenarioDataDocument[]) {
-      const formattedVariablesObject = scenario;
-      const title = `testCase${nameCounter++}`;
 
+    const scenarioPromises = combinations.map(async (scenario: ScenarioDataDocument, index: number) => {
+      const formattedVariablesObject = scenario;
+      const title = `testCase${index + 1}`;
       try {
         const decisionResult = await this.decisionsService.runDecision(
           ruleContent,
@@ -474,26 +476,33 @@ export class ScenarioDataService {
             trace: true,
           },
         );
-
         const resultMatches =
           Object.keys(formattedExpectedResultsObject).length > 0
             ? isEqual(decisionResult.result, formattedExpectedResultsObject)
             : true;
-
-        const scenarioResult = {
-          inputs: mapTraces(decisionResult.trace, ruleSchema, 'input'),
-          outputs: mapTraces(decisionResult.trace, ruleSchema, 'output'),
-          expectedResults: formattedExpectedResultsObject || {},
-          result: decisionResult.result || {},
-          resultMatch: resultMatches,
+        return {
+          title,
+          scenarioResult: {
+            inputs: mapTraces(decisionResult.trace, ruleSchema, 'input'),
+            outputs: mapTraces(decisionResult.trace, ruleSchema, 'output'),
+            expectedResults: formattedExpectedResultsObject || {},
+            result: decisionResult.result || {},
+            resultMatch: resultMatches,
+          },
         };
-
-        results[title] = scenarioResult;
       } catch (error) {
         console.error(`Error running decision for scenario ${title}: ${error.message}`);
-        results[title] = { error: error.message };
+        return { title, scenarioResult: { error: error.message } };
       }
+    });
+
+    const scenarioResults = await Promise.all(scenarioPromises);
+
+    const results: { [scenarioId: string]: any } = {};
+    for (const { title, scenarioResult } of scenarioResults) {
+      results[title] = scenarioResult;
     }
+
     return results;
   }
 
@@ -501,37 +510,41 @@ export class ScenarioDataService {
     filepath: string,
     ruleContent: RuleContent,
     simulationContext: RuleRunResults,
-    testScenarioCount?: number,
+    testScenarioCount: number = DEFAULT_TEST_SCENARIO_COUNT,
   ) {
-    const ruleRunResults: RuleRunResults = await this.generateTestScenarios(
-      filepath,
-      ruleContent,
-      simulationContext,
-      testScenarioCount,
-    );
+    try {
+      const ruleRunResults: RuleRunResults = await this.generateTestScenarios(
+        filepath,
+        ruleContent,
+        simulationContext,
+        testScenarioCount,
+      );
 
-    const keys = {
-      inputs: extractUniqueKeys(ruleRunResults, 'inputs'),
-      expectedResults: extractUniqueKeys(ruleRunResults, 'expectedResults'),
-      result: extractUniqueKeys(ruleRunResults, 'result'),
-    };
+      const keys = {
+        inputs: extractUniqueKeys(ruleRunResults, 'inputs'),
+        expectedResults: extractUniqueKeys(ruleRunResults, 'expectedResults'),
+        result: extractUniqueKeys(ruleRunResults, 'result'),
+      };
 
-    const headers = [
-      'Scenario',
-      'Results Match Expected (Pass/Fail)',
-      ...this.prefixKeys(keys.inputs, 'Input'),
-      ...this.prefixKeys(keys.expectedResults, 'Expected Result'),
-      ...this.prefixKeys(keys.result, 'Result'),
-    ];
+      const headers = [
+        'Scenario',
+        'Results Match Expected (Pass/Fail)',
+        ...this.prefixKeys(keys.inputs, 'Input'),
+        ...this.prefixKeys(keys.expectedResults, 'Expected Result'),
+        ...this.prefixKeys(keys.result, 'Result'),
+      ];
 
-    const rows = Object.entries(ruleRunResults).map(([scenarioName, data]) => [
-      this.escapeCSVField(scenarioName),
-      `n/a`,
-      ...this.mapFields(data.inputs, keys.inputs),
-      ...this.mapFields(data.expectedResults, keys.expectedResults),
-      ...this.mapFields(data.result, keys.result),
-    ]);
+      const rows = Object.entries(ruleRunResults).map(([scenarioName, data]) => [
+        this.escapeCSVField(scenarioName),
+        `n/a`,
+        ...this.mapFields(data.inputs, keys.inputs),
+        ...this.mapFields(data.expectedResults, keys.expectedResults),
+        ...this.mapFields(data.result, keys.result),
+      ]);
 
-    return [headers, ...rows].map((row) => row.join(',')).join('\n');
+      return [headers, ...rows].map((row) => row.join(',')).join('\n');
+    } catch (error) {
+      throw new Error(`Error in generating test scenarios CSV: ${error.message}`);
+    }
   }
 }

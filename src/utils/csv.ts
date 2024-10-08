@@ -90,7 +90,7 @@ export const formatVariables = (row: string[], keys: string[], startIndex: numbe
  * @param arrays The arrays to generate the product from.
  * @returns The generated product.
  */
-export const cartesianProduct = (arrays: any[][]): any[][] => {
+export const cartesianProduct = <T>(arrays: T[][]): T[][] => {
   return arrays.reduce((a, b) => a.flatMap((d) => b.map((e) => [...d, e])), [[]]);
 };
 
@@ -100,8 +100,8 @@ export const cartesianProduct = (arrays: any[][]): any[][] => {
  * @param limit The maximum number of combinations to generate.
  * @returns The generated product.
  */
-export const complexCartesianProduct = (arrays: any[][], limit: number = 3000): any[][] => {
-  const result: any[][] = [];
+export const complexCartesianProduct = <T>(arrays: T[][], limit: number = 3000): T[][] => {
+  const result: T[][] = [];
   const maxIndex = arrays.map((arr) => arr.length - 1);
   const indices = new Array(arrays.length).fill(0);
 
