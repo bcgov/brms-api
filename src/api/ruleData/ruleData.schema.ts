@@ -24,10 +24,6 @@ export class RuleData {
 
   @Prop({ description: 'If the rule has been published' })
   isPublished?: boolean;
-
-  // TODO: REMOVE AFTER MIGRATIONS ALL COMPLETE
-  @Prop({ description: 'This is being deprecated' })
-  goRulesJSONFilename?: string;
 }
 
 export type RuleDataDocument = RuleData & Document;
