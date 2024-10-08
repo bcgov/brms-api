@@ -9,7 +9,15 @@ import { DocumentsService } from '../documents/documents.service';
 import { RuleSchema, RuleRunResults } from './scenarioData.interface';
 import { isEqual, reduceToCleanObj, extractUniqueKeys } from '../../utils/helpers';
 import { mapTraces } from '../../utils/handleTrace';
-import { parseCSV, extractKeys, formatVariables } from '../../utils/csv';
+import {
+  parseCSV,
+  extractKeys,
+  formatVariables,
+  complexCartesianProduct,
+  generateCombinationsWithLimit,
+} from '../../utils/csv';
+
+const DEFAULT_TEST_SCENARIO_COUNT = 100;
 
 @Injectable()
 export class ScenarioDataService {
@@ -64,7 +72,7 @@ export class ScenarioDataService {
       throw new Error(`Failed to update scenario data: ${error.message}`);
     }
   }
-  ƒ;
+
   async deleteScenarioData(scenarioId: string): Promise<void> {
     try {
       const objectId = new Types.ObjectId(scenarioId);
@@ -191,7 +199,21 @@ export class ScenarioDataService {
 
   private escapeCSVField(field: any): string {
     if (field == null) return '';
-    if (typeof field === 'object') return `${field.length}`;
+    if (typeof field === 'object') {
+      if (Array.isArray(field)) {
+        const allObjects = field.every((item) => typeof item === 'object' && item !== null);
+        if (!allObjects) {
+          const fieldList = field
+            .filter((item) => typeof item !== 'object' || item === null)
+            .map((item) => item.replace(/"/g, '""'))
+            .join(', ');
+
+          return `"[${fieldList}]"`;
+        }
+      }
+      return `${field.length}`;
+    }
+
     const stringField = typeof field === 'string' ? field : String(field);
     return stringField.includes(',') ? `"${stringField.replace(/"/g, '""')}"` : stringField;
   }
@@ -234,5 +256,295 @@ export class ScenarioDataService {
     });
 
     return scenarios;
+  }
+
+  generatePossibleValues(input: any, defaultValue?: any): any[] {
+    const { type, dataType, validationCriteria, validationType, childFields } = input;
+    //Determine how many versions of each field to generate
+    const complexityGeneration = 10;
+    if (defaultValue !== null && defaultValue !== undefined) return [defaultValue];
+
+    switch (type || dataType) {
+      case 'object-array':
+        const scenarios = [];
+        for (let i = 0; i < complexityGeneration; i++) {
+          const numItems = Math.floor(Math.random() * 4) + 1;
+          const items = [];
+          for (let j = 0; j < numItems; j++) {
+            const item = this.generateCombinations({ inputs: childFields }, undefined, 1);
+            items.push(item[0]);
+          }
+          scenarios.push(items);
+        }
+        return scenarios;
+
+      case 'number-input':
+        const numberValues = validationCriteria?.split(',').map((val: string) => val.trim());
+        const minValue = (numberValues && parseInt(numberValues[0], 10)) || 0;
+
+        const maxValue =
+          numberValues && numberValues[numberValues?.length - 1] !== minValue.toString()
+            ? numberValues[numberValues?.length - 1]
+            : 20;
+
+        const generateRandomNumbers = (count: number) =>
+          Array.from({ length: count }, () => Math.floor(Math.random() * (maxValue - minValue + 1)) + minValue);
+
+        switch (validationType) {
+          case '>=':
+            return generateRandomNumbers(complexityGeneration);
+          case '<=':
+            return generateRandomNumbers(complexityGeneration);
+          case '>':
+            return generateRandomNumbers(complexityGeneration).filter((val) => val > minValue);
+          case '<':
+            return generateRandomNumbers(complexityGeneration).filter((val) => val < maxValue);
+          // range exclusive
+          case '(num)':
+            return generateRandomNumbers(complexityGeneration).filter((val) => val > minValue && val < maxValue);
+          // range inclusive
+          case '[num]':
+            return generateRandomNumbers(complexityGeneration);
+          case '[=num]':
+            return validationCriteria.split(',').map((val: string) => val.trim());
+          case '[=nums]':
+            return [validationCriteria.split(',').map((val: string) => val.trim())];
+          default:
+            return generateRandomNumbers(complexityGeneration);
+        }
+
+      case 'date':
+        const dateValues = validationCriteria?.split(',').map((val: string) => new Date(val.trim()).getTime());
+        const minDate = (dateValues && dateValues[0]) || new Date().getTime();
+        const maxDate =
+          dateValues && dateValues[dateValues?.length - 1] !== minDate
+            ? dateValues[dateValues?.length - 1]
+            : new Date().setFullYear(new Date().getFullYear() + 1);
+        const generateRandomDates = (count: number) =>
+          Array.from({ length: count }, () =>
+            new Date(minDate + Math.random() * (maxDate - minDate)).toISOString().slice(0, 10),
+          );
+        switch (validationType) {
+          case '>=':
+            return generateRandomDates(complexityGeneration);
+          case '<=':
+            return generateRandomDates(complexityGeneration);
+          case '>':
+            return generateRandomDates(complexityGeneration).filter((date) => new Date(date).getTime() > minDate);
+          case '<':
+            return generateRandomDates(complexityGeneration).filter((date) => new Date(date).getTime() < maxDate);
+          // range exclusive
+          case '(date)':
+            return generateRandomDates(complexityGeneration).filter(
+              (date) => new Date(date).getTime() > minDate && new Date(date).getTime() < maxDate,
+            );
+          // range inclusive
+          case '[date]':
+            return generateRandomDates(complexityGeneration);
+          case '[=date]':
+          case '[=dates]':
+            return validationCriteria.split(',').map((val: string) => val.trim());
+          default:
+            return generateRandomDates(complexityGeneration);
+        }
+
+      case 'text-input':
+        if (validationType === '[=texts]') {
+          const textOptionsArray = validationCriteria.split(',').map((val: string) => val.trim());
+          const arrayCombinations = generateCombinationsWithLimit(textOptionsArray);
+
+          return arrayCombinations;
+        }
+        return validationCriteria.split(',').map((val: string) => val.trim());
+
+      case 'true-false':
+        const firstValue = Math.random() < 0.5;
+        return [firstValue, !firstValue];
+
+      default:
+        return [];
+    }
+  }
+
+  generateCombinations(
+    data: any,
+    simulationContext?: RuleRunResults,
+    testScenarioCount: number = DEFAULT_TEST_SCENARIO_COUNT,
+  ) {
+    const generateFieldPath = (field: string, parentPath: string = ''): string => {
+      return parentPath ? `${parentPath}.${field}` : field;
+    };
+
+    const mapInputs = (inputs: any[], parentPath: string = ''): { fields: string[]; values: any[][] } => {
+      return inputs.reduce(
+        (acc, input) => {
+          const currentPath = generateFieldPath(input.field, parentPath);
+          if (input.type === 'object-array') {
+            const childCombinations = this.generatePossibleValues(input, simulationContext?.[input.field]);
+            return {
+              fields: [...acc.fields, currentPath],
+              values: [...acc.values, childCombinations],
+            };
+          } else if (input.childFields && input.childFields.length > 0) {
+            const childResult = mapInputs(input.childFields, currentPath);
+            return {
+              fields: [...acc.fields, ...childResult.fields],
+              values: [...acc.values, ...childResult.values],
+            };
+          } else {
+            const defaultValue = simulationContext?.[input.field];
+            const possibleValues = this.generatePossibleValues(input, defaultValue);
+            return {
+              fields: [...acc.fields, currentPath],
+              values: [...acc.values, possibleValues],
+            };
+          }
+        },
+        { fields: [], values: [] },
+      );
+    };
+
+    const { fields, values } = mapInputs(data.inputs);
+
+    const removeDuplicates = (array: any[]): any[] => {
+      const seen = new Set();
+      return array.filter((item) => {
+        const itemString = JSON.stringify(item);
+        if (!seen.has(itemString)) {
+          seen.add(itemString);
+          return true;
+        }
+        return false;
+      });
+    };
+
+    const inputCombinations = complexCartesianProduct(values) || [];
+    const uniqueInputCombinations = removeDuplicates(inputCombinations) || [];
+
+    const resultObjects = this.generateObjectsFromCombinations(fields, uniqueInputCombinations);
+    const uniqueResultObjects = removeDuplicates(resultObjects) || [];
+    return uniqueResultObjects.slice(0, testScenarioCount) || [];
+  }
+
+  generateObjectsFromCombinations(fields: string[], combinations: any[][]) {
+    return combinations.map((combination) => {
+      const obj: { [key: string]: any } = {};
+      fields.forEach((field, index) => {
+        const fieldParts = field.split('.');
+        let currentObj = obj;
+        for (let i = 0; i < fieldParts.length - 1; i++) {
+          if (!currentObj[fieldParts[i]]) {
+            currentObj[fieldParts[i]] = Array.isArray(combination[index]) ? [] : {};
+          }
+          currentObj = currentObj[fieldParts[i]];
+        }
+        const lastPart = fieldParts[fieldParts.length - 1];
+        const randomIndex = Math.floor(Math.random() * combinations.length);
+        const value = combinations[randomIndex][index];
+        currentObj[lastPart] = value;
+      });
+      return obj;
+    });
+  }
+
+  async generateTestScenarios(
+    filepath: string,
+    ruleContent?: RuleContent,
+    simulationContext?: RuleRunResults,
+    testScenarioCount: number = DEFAULT_TEST_SCENARIO_COUNT,
+  ): Promise<{ [scenarioId: string]: any }> {
+    if (!ruleContent) {
+      const fileContent = await this.documentsService.getFileContent(filepath);
+      ruleContent = await JSON.parse(fileContent.toString());
+    }
+    const ruleSchema: RuleSchema = await this.ruleMappingService.inputOutputSchema(ruleContent);
+    const combinations = this.generateCombinations(ruleSchema, simulationContext, testScenarioCount).slice(
+      0,
+      testScenarioCount,
+    );
+    const formattedExpectedResultsObject = reduceToCleanObj(ruleSchema.resultOutputs, 'field', 'value');
+
+    const scenarioPromises = combinations.map(async (scenario: ScenarioDataDocument, index: number) => {
+      const formattedVariablesObject = scenario;
+      const title = `testCase${index + 1}`;
+      try {
+        const decisionResult = await this.decisionsService.runDecision(
+          ruleContent,
+          filepath,
+          formattedVariablesObject,
+          {
+            trace: true,
+          },
+        );
+        const resultMatches =
+          Object.keys(formattedExpectedResultsObject).length > 0
+            ? isEqual(decisionResult.result, formattedExpectedResultsObject)
+            : true;
+        return {
+          title,
+          scenarioResult: {
+            inputs: mapTraces(decisionResult.trace, ruleSchema, 'input'),
+            outputs: mapTraces(decisionResult.trace, ruleSchema, 'output'),
+            expectedResults: formattedExpectedResultsObject || {},
+            result: decisionResult.result || {},
+            resultMatch: resultMatches,
+          },
+        };
+      } catch (error) {
+        console.error(`Error running decision for scenario ${title}: ${error.message}`);
+        return { title, scenarioResult: { error: error.message } };
+      }
+    });
+
+    const scenarioResults = await Promise.all(scenarioPromises);
+
+    const results: { [scenarioId: string]: any } = {};
+    for (const { title, scenarioResult } of scenarioResults) {
+      results[title] = scenarioResult;
+    }
+
+    return results;
+  }
+
+  async generateTestCSVScenarios(
+    filepath: string,
+    ruleContent: RuleContent,
+    simulationContext: RuleRunResults,
+    testScenarioCount: number = DEFAULT_TEST_SCENARIO_COUNT,
+  ) {
+    try {
+      const ruleRunResults: RuleRunResults = await this.generateTestScenarios(
+        filepath,
+        ruleContent,
+        simulationContext,
+        testScenarioCount,
+      );
+
+      const keys = {
+        inputs: extractUniqueKeys(ruleRunResults, 'inputs'),
+        expectedResults: extractUniqueKeys(ruleRunResults, 'expectedResults'),
+        result: extractUniqueKeys(ruleRunResults, 'result'),
+      };
+
+      const headers = [
+        'Scenario',
+        'Results Match Expected (Pass/Fail)',
+        ...this.prefixKeys(keys.inputs, 'Input'),
+        ...this.prefixKeys(keys.expectedResults, 'Expected Result'),
+        ...this.prefixKeys(keys.result, 'Result'),
+      ];
+
+      const rows = Object.entries(ruleRunResults).map(([scenarioName, data]) => [
+        this.escapeCSVField(scenarioName),
+        `n/a`,
+        ...this.mapFields(data.inputs, keys.inputs),
+        ...this.mapFields(data.expectedResults, keys.expectedResults),
+        ...this.mapFields(data.result, keys.result),
+      ]);
+
+      return [headers, ...rows].map((row) => row.join(',')).join('\n');
+    } catch (error) {
+      throw new Error(`Error in generating test scenarios CSV: ${error.message}`);
+    }
   }
 }

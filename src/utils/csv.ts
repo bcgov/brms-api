@@ -1,5 +1,5 @@
 import * as csvParser from 'csv-parser';
-import { formatValue } from './helpers';
+import { formatValue, filterKeys } from './helpers';
 import { Variable } from '../api/scenarioData/scenarioData.schema';
 
 /**
@@ -41,37 +41,37 @@ export const extractKeys = (headers: string[], prefix: string): string[] => {
  */
 export const formatVariables = (row: string[], keys: string[], startIndex: number, filterEmpty = false): Variable[] => {
   const result: { [key: string]: any } = {};
-
-  keys.forEach((key, index) => {
+  filterKeys(keys).forEach((key, index) => {
     const value = row[startIndex + index] ? formatValue(row[startIndex + index]) : null;
     if (filterEmpty && (value === null || value === undefined || value === '')) {
       return;
     }
 
     const parts = key.match(/^([^\[]+)(?:\[(\d+)\])?(.*)$/);
-    if (parts) {
+    if (typeof value === 'string' && value.startsWith('[') && value.endsWith(']')) {
+      const valueToArray = value.slice(1, value.length - 1).split(', ');
+      result[key] = valueToArray;
+    } else if (parts) {
       const [, baseKey, arrayIndex, remainingKey] = parts;
 
-      const pluralizedKey = `${baseKey}${Number(arrayIndex) > 0 ? 's' : ''}`;
-
-      if (!result[pluralizedKey]) {
-        result[pluralizedKey] = arrayIndex ? [] : {};
+      if (!result[baseKey]) {
+        result[baseKey] = arrayIndex ? [] : {};
       }
 
       if (arrayIndex) {
         const idx = parseInt(arrayIndex, 10) - 1;
-        if (!result[pluralizedKey][idx]) {
-          result[pluralizedKey][idx] = {};
+        if (!result[baseKey][idx]) {
+          result[baseKey][idx] = {};
         }
         if (remainingKey) {
-          result[pluralizedKey][idx][remainingKey] = value;
+          result[baseKey][idx][remainingKey] = value;
         } else {
-          result[pluralizedKey][idx] = value;
+          result[baseKey][idx] = value;
         }
       } else if (remainingKey) {
-        result[pluralizedKey][remainingKey] = value;
+        result[baseKey][remainingKey] = value;
       } else {
-        result[pluralizedKey] = value;
+        result[baseKey] = value;
       }
     } else {
       result[key] = value;
@@ -83,4 +83,66 @@ export const formatVariables = (row: string[], keys: string[], startIndex: numbe
     value: Array.isArray(value) ? value.filter((v) => v !== undefined) : value,
     type: Array.isArray(value) ? 'array' : typeof value,
   }));
+};
+
+/**
+ * Generates a cartesian product of arrays.
+ * @param arrays The arrays to generate the product from.
+ * @returns The generated product.
+ */
+export const cartesianProduct = <T>(arrays: T[][]): T[][] => {
+  return arrays.reduce((a, b) => a.flatMap((d) => b.map((e) => [...d, e])), [[]]);
+};
+
+/**
+ * Generates a cartesian product of arrays in a more memory-efficient way, with the ability to adjust the maximum number of combinations.
+ * @param arrays The arrays to generate the product from.
+ * @param limit The maximum number of combinations to generate.
+ * @returns The generated product.
+ */
+export const complexCartesianProduct = <T>(arrays: T[][], limit: number = 3000): T[][] => {
+  const result: T[][] = [];
+  const maxIndex = arrays.map((arr) => arr.length - 1);
+  const indices = new Array(arrays.length).fill(0);
+
+  while (indices[0] <= maxIndex[0] && result.length < limit) {
+    result.push(indices.map((index, i) => arrays[i][index]));
+
+    let currentDimension = indices.length - 1;
+    while (currentDimension >= 0) {
+      if (indices[currentDimension] < maxIndex[currentDimension]) {
+        indices[currentDimension]++;
+        break;
+      } else {
+        indices[currentDimension] = 0;
+        currentDimension--;
+      }
+    }
+
+    if (currentDimension < 0) break;
+  }
+
+  return result;
+};
+
+/**
+ * Generates all combinations of a given array with varying lengths.
+ * @param arr The input array to generate combinations from.
+ * @param limit The maximum number of combinations to generate.
+ * @returns The generated product.
+ */
+export const generateCombinationsWithLimit = (arr: string[], limit: number = 1000): string[][] => {
+  const result: string[][] = [];
+
+  const combine = (prefix: string[], remaining: string[], start: number) => {
+    if (result.length >= limit) return; // Stop when the limit is reached
+    for (let i = start; i < remaining.length; i++) {
+      const newPrefix = [...prefix, remaining[i]];
+      result.push(newPrefix);
+      combine(newPrefix, remaining, i + 1);
+    }
+  };
+
+  combine([], arr, 0);
+  return result.slice(0, limit);
 };

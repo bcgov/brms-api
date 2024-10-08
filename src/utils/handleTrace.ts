@@ -35,12 +35,14 @@ export const mapTraceToResult = (trace: TraceObject, ruleSchema: RuleSchema, typ
       newArray.forEach((item, index) => {
         index++;
         const keyName = `${arrayName.toString()}[${index}]`;
-        if (Object.keys(item).length === 0) {
-          result[`${keyName}${key}`] = item;
-        } else {
-          Object.keys(item).forEach((key) => {
-            result[`${keyName}${key}`] = item[key];
-          });
+        if (typeof item == 'object') {
+          if (Object.keys(item).length === 0) {
+            result[`${keyName}${key}`] = item;
+          } else {
+            Object.keys(item).forEach((key) => {
+              result[`${keyName}${key}`] = item[key];
+            });
+          }
         }
       });
     }

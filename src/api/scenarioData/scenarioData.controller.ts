@@ -19,6 +19,7 @@ import { ScenarioData } from './scenarioData.schema';
 import { RuleContent } from '../ruleMapping/ruleMapping.interface';
 import { CreateScenarioDto } from './dto/create-scenario.dto';
 import { FileNotFoundError } from '../../utils/readFile';
+import { RuleRunResults } from './scenarioData.interface';
 
 @Controller('api/scenario')
 export class ScenarioDataController {
@@ -112,6 +113,15 @@ export class ScenarioDataController {
     }
   }
 
+  sendCSV = (res: Response, fileContent: string, filepath: string = 'processed_data.csv') => {
+    // UTF- 8 encoding with BOM
+    const bom = '\uFEFF';
+    const utf8CsvContent = bom + fileContent;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename=${filepath.replace(/\.json$/, '.csv')}`);
+    res.status(HttpStatus.OK).send(utf8CsvContent);
+  };
+
   @Post('/evaluation')
   async getCSVForRuleRun(
     @Body('filepath') filepath: string,
@@ -120,9 +130,7 @@ export class ScenarioDataController {
   ) {
     try {
       const fileContent = await this.scenarioDataService.getCSVForRuleRun(filepath, ruleContent);
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename=${filepath.replace(/\.json$/, '.csv')}`);
-      res.status(HttpStatus.OK).send(fileContent);
+      this.sendCSV(res, fileContent, filepath);
     } catch (error) {
       throw new HttpException('Error generating CSV for rule run', HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -155,11 +163,30 @@ export class ScenarioDataController {
     try {
       const scenarios = await this.scenarioDataService.processProvidedScenarios(filepath, file);
       const csvContent = await this.scenarioDataService.getCSVForRuleRun(filepath, ruleContent, scenarios);
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename=processed_data.csv`);
-      res.status(HttpStatus.OK).send(csvContent);
+      this.sendCSV(res, csvContent);
     } catch (error) {
       throw new HttpException('Error processing CSV file', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('/test')
+  async getCSVTests(
+    @Body('filepath') filepath: string,
+    @Body('ruleContent') ruleContent: RuleContent,
+    @Body('simulationContext') simulationContext: RuleRunResults,
+    @Body('testScenarioCount') testScenarioCount: number,
+    @Res() res: Response,
+  ) {
+    try {
+      const fileContent = await this.scenarioDataService.generateTestCSVScenarios(
+        filepath,
+        ruleContent,
+        simulationContext,
+        testScenarioCount && testScenarioCount > 0 ? testScenarioCount : undefined,
+      );
+      this.sendCSV(res, fileContent, filepath);
+    } catch (error) {
+      throw new HttpException('Error generating CSV for rule run', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }
