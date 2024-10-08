@@ -70,7 +70,7 @@ export class ScenarioDataService {
       throw new Error(`Failed to update scenario data: ${error.message}`);
     }
   }
-  ƒ;
+
   async deleteScenarioData(scenarioId: string): Promise<void> {
     try {
       const objectId = new Types.ObjectId(scenarioId);
@@ -459,7 +459,7 @@ export class ScenarioDataService {
       testScenarioCount || 100,
     );
 
-    const formattedExpectedResultsObject = reduceToCleanObj(ruleSchema.resultOutputs, 'name', 'value');
+    const formattedExpectedResultsObject = reduceToCleanObj(ruleSchema.resultOutputs, 'field', 'value');
     let nameCounter = 1;
     for (const scenario of combinations as ScenarioDataDocument[]) {
       const formattedVariablesObject = scenario;

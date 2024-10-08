@@ -1,5 +1,5 @@
 import * as csvParser from 'csv-parser';
-import { formatValue } from './helpers';
+import { formatValue, filterKeys } from './helpers';
 import { Variable } from '../api/scenarioData/scenarioData.schema';
 
 /**
@@ -41,8 +41,7 @@ export const extractKeys = (headers: string[], prefix: string): string[] => {
  */
 export const formatVariables = (row: string[], keys: string[], startIndex: number, filterEmpty = false): Variable[] => {
   const result: { [key: string]: any } = {};
-
-  keys.forEach((key, index) => {
+  filterKeys(keys).forEach((key, index) => {
     const value = row[startIndex + index] ? formatValue(row[startIndex + index]) : null;
     if (filterEmpty && (value === null || value === undefined || value === '')) {
       return;
@@ -55,26 +54,24 @@ export const formatVariables = (row: string[], keys: string[], startIndex: numbe
     } else if (parts) {
       const [, baseKey, arrayIndex, remainingKey] = parts;
 
-      const pluralizedKey = `${baseKey}${Number(arrayIndex) > 0 ? 's' : ''}`;
-
-      if (!result[pluralizedKey]) {
-        result[pluralizedKey] = arrayIndex ? [] : {};
+      if (!result[baseKey]) {
+        result[baseKey] = arrayIndex ? [] : {};
       }
 
       if (arrayIndex) {
         const idx = parseInt(arrayIndex, 10) - 1;
-        if (!result[pluralizedKey][idx]) {
-          result[pluralizedKey][idx] = {};
+        if (!result[baseKey][idx]) {
+          result[baseKey][idx] = {};
         }
         if (remainingKey) {
-          result[pluralizedKey][idx][remainingKey] = value;
+          result[baseKey][idx][remainingKey] = value;
         } else {
-          result[pluralizedKey][idx] = value;
+          result[baseKey][idx] = value;
         }
       } else if (remainingKey) {
-        result[pluralizedKey][remainingKey] = value;
+        result[baseKey][remainingKey] = value;
       } else {
-        result[pluralizedKey] = value;
+        result[baseKey] = value;
       }
     } else {
       result[key] = value;

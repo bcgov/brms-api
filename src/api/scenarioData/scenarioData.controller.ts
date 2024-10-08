@@ -113,6 +113,15 @@ export class ScenarioDataController {
     }
   }
 
+  sendCSV = (res: Response, fileContent: string, filepath: string = 'processed_data.csv') => {
+    // UTF- 8 encoding with BOM
+    const bom = '\uFEFF';
+    const utf8CsvContent = bom + fileContent;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename=${filepath.replace(/\.json$/, '.csv')}`);
+    res.status(HttpStatus.OK).send(utf8CsvContent);
+  };
+
   @Post('/evaluation')
   async getCSVForRuleRun(
     @Body('filepath') filepath: string,
@@ -121,12 +130,7 @@ export class ScenarioDataController {
   ) {
     try {
       const fileContent = await this.scenarioDataService.getCSVForRuleRun(filepath, ruleContent);
-      // UTF- 8 encoding with BOM
-      const bom = '\uFEFF';
-      const utf8FileContent = bom + fileContent;
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename=${filepath.replace(/\.json$/, '.csv')}`);
-      res.status(HttpStatus.OK).send(utf8FileContent);
+      this.sendCSV(res, fileContent, filepath);
     } catch (error) {
       throw new HttpException('Error generating CSV for rule run', HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -159,12 +163,7 @@ export class ScenarioDataController {
     try {
       const scenarios = await this.scenarioDataService.processProvidedScenarios(filepath, file);
       const csvContent = await this.scenarioDataService.getCSVForRuleRun(filepath, ruleContent, scenarios);
-      // UTF- 8 encoding with BOM
-      const bom = '\uFEFF';
-      const utf8FileContent = bom + csvContent;
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename=processed_data.csv`);
-      res.status(HttpStatus.OK).send(utf8FileContent);
+      this.sendCSV(res, csvContent);
     } catch (error) {
       throw new HttpException('Error processing CSV file', HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -185,12 +184,7 @@ export class ScenarioDataController {
         simulationContext,
         testScenarioCount && testScenarioCount > 0 ? testScenarioCount : undefined,
       );
-      // UTF- 8 encoding with BOM
-      const bom = '\uFEFF';
-      const utf8FileContent = bom + fileContent;
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename=${filepath.replace(/\.json$/, '.csv')}`);
-      res.status(HttpStatus.OK).send(utf8FileContent);
+      this.sendCSV(res, fileContent, filepath);
     } catch (error) {
       throw new HttpException('Error generating CSV for rule run', HttpStatus.INTERNAL_SERVER_ERROR);
     }

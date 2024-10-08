@@ -65,6 +65,17 @@ export const reduceToCleanObj = (
   }, {});
 };
 
+//Filter out keys that have square brackets with the same base part (parent objects)
+export const filterKeys = (keyArray: string[]) => {
+  return keyArray.filter((key) => {
+    const baseKey = key.split('[')[0];
+    if (!key.includes('[')) {
+      return !keyArray.some((otherKey) => otherKey.includes(baseKey + '['));
+    }
+    return true;
+  });
+};
+
 /**
  * Extracts unique keys from a specified property.
  * @param object The object to extract keys from.
@@ -72,7 +83,7 @@ export const reduceToCleanObj = (
  * @returns An array of unique keys.
  */
 export const extractUniqueKeys = (object: Record<string, any>, property: string): string[] => {
-  return Array.from(
+  const uniqueKeyArray = Array.from(
     new Set(
       Object.values(object).flatMap((each) => {
         if (each[property]) {
@@ -82,6 +93,7 @@ export const extractUniqueKeys = (object: Record<string, any>, property: string)
       }),
     ),
   );
+  return filterKeys(uniqueKeyArray);
 };
 
 /**
