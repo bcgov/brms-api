@@ -7,6 +7,7 @@ import { DocumentsService } from '../documents/documents.service';
 import { RuleData, RuleDataDocument } from './ruleData.schema';
 import { RuleDraft, RuleDraftDocument } from './ruleDraft.schema';
 import { deriveNameFromFilepath } from '../../utils/helpers';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Injectable()
 export class RuleDataService {
@@ -18,15 +19,73 @@ export class RuleDataService {
 
   async onModuleInit() {
     console.info('Syncing existing rules with any updates to the rules repository');
-    const existingRules = await this.getAllRuleData();
-    this.updateInReviewStatus(existingRules);
-    this.addUnsyncedFiles(existingRules);
+    const params: PaginationDto = { page: 1, pageSize: 5000 };
+    const existingRules = await this.getAllRuleData(params);
+    const { data: existingRuleData } = existingRules;
+    this.updateInReviewStatus(existingRuleData);
+    this.addUnsyncedFiles(existingRuleData);
   }
-
-  async getAllRuleData(): Promise<RuleData[]> {
+  async getAllRuleData(params: PaginationDto): Promise<{ data: RuleData[]; total: number; categories: Array<string> }> {
     try {
-      const ruleDataList = await this.ruleDataModel.find().exec();
-      return ruleDataList;
+      const { page, pageSize, sortField, sortOrder, filters, searchTerm } = params || {};
+      const queryConditions: any[] = [];
+
+      // search
+      if (searchTerm) {
+        queryConditions.push({
+          $or: [{ title: { $regex: searchTerm, $options: 'i' } }, { filepath: { $regex: searchTerm, $options: 'i' } }],
+        });
+      }
+
+      // filters
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value) {
+            if (key === 'filepath') {
+              if (Array.isArray(value) && value.length > 0) {
+                queryConditions.push({
+                  $or: value.map((filter: string) => ({
+                    filepath: { $regex: filter, $options: 'i' },
+                  })),
+                });
+              }
+            } else if (Array.isArray(value)) {
+              queryConditions.push({ [key]: { $in: value } });
+            } else {
+              queryConditions.push({ [key]: value });
+            }
+          }
+        });
+      }
+
+      // Construct the final query using $and
+      const query = queryConditions.length > 0 ? { $and: queryConditions } : {};
+
+      // Prepare sort options
+      const sortOptions: any = {};
+      if (sortField && sortOrder) {
+        sortOptions[sortField] = sortOrder === 'ascend' ? 1 : -1;
+      }
+
+      const filePaths = await this.ruleDataModel.find({}, 'filepath -_id').exec();
+      const total = filePaths.length;
+      const filePathsArray = filePaths.map((filePath) => filePath.filepath);
+      const splitFilePaths = filePathsArray.map((filepath) => {
+        const parts = filepath.split('/');
+        return parts.slice(0, -1);
+      });
+      const categories = [...new Set(splitFilePaths.flat())];
+
+      // Execute the query with pagination and sorting
+      const data = await this.ruleDataModel
+        .find(query)
+        .sort(sortOptions)
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .lean()
+        .exec();
+
+      return { data, total, categories };
     } catch (error) {
       throw new Error(`Error getting all rule data: ${error.message}`);
     }

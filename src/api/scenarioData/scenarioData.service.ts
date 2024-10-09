@@ -355,7 +355,19 @@ export class ScenarioDataService {
 
           return arrayCombinations;
         }
-        return validationCriteria.split(',').map((val: string) => val.trim());
+        if (validationType === '[=text]') {
+          return validationCriteria.split(',').map((val: string) => val.trim());
+        }
+        // TODO: Future update to include regex generation
+        const generateRandomText = (
+          count: number,
+          charPool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+        ) => Array.from({ length: count }, () => charPool.charAt(Math.floor(Math.random() * charPool.length)));
+        const textArray = Array.from({ length: complexityGeneration }, () =>
+          generateRandomText(complexityGeneration).join(''),
+        );
+
+        return textArray;
 
       case 'true-false':
         const firstValue = Math.random() < 0.5;
