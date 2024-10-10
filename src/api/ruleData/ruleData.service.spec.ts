@@ -17,10 +17,16 @@ const mockRuleDraft = { content: { nodes: [], edges: [] } };
 class MockRuleDataModel {
   constructor(private data: RuleData) {}
   save = jest.fn().mockResolvedValue(this.data);
-  static find = jest.fn();
+  static find = jest.fn().mockReturnThis();
   static findById = jest.fn().mockReturnThis();
-  static findOne = jest.fn();
-  static findOneAndDelete = jest.fn();
+  static findOne = jest.fn().mockReturnThis();
+  static findOneAndDelete = jest.fn().mockReturnThis();
+  static countDocuments = jest.fn().mockResolvedValue(1);
+  static sort = jest.fn().mockReturnThis();
+  static skip = jest.fn().mockReturnThis();
+  static limit = jest.fn().mockReturnThis();
+  static lean = jest.fn().mockReturnThis();
+  static exec = jest.fn().mockResolvedValue([mockRuleData]);
 }
 
 export const mockServiceProviders = [
@@ -58,10 +64,74 @@ describe('RuleDataService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should get all rule data', async () => {
-    const ruleDataList: RuleData[] = [mockRuleData];
-    MockRuleDataModel.find = jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(ruleDataList) });
-    expect(await service.getAllRuleData()).toEqual(ruleDataList);
+  describe('getAllRuleData', () => {
+    it('should get all rule data with default pagination', async () => {
+      const result = await service.getAllRuleData();
+      expect(result).toEqual({
+        data: [mockRuleData],
+        total: 1,
+        categories: expect.any(Array),
+      });
+      expect(MockRuleDataModel.find).toHaveBeenCalledWith({});
+      expect(MockRuleDataModel.sort).toHaveBeenCalledWith({});
+      expect(MockRuleDataModel.skip).toHaveBeenCalledWith(0);
+      expect(MockRuleDataModel.limit).toHaveBeenCalledWith(5000);
+    });
+
+    it('should handle search term', async () => {
+      await service.getAllRuleData({ page: 1, pageSize: 10, searchTerm: 'test' });
+      expect(MockRuleDataModel.find).toHaveBeenCalledWith({
+        $and: [
+          {
+            $or: [{ title: { $regex: 'test', $options: 'i' } }, { filepath: { $regex: 'test', $options: 'i' } }],
+          },
+        ],
+      });
+    });
+
+    it('should handle filters', async () => {
+      await service.getAllRuleData({
+        page: 1,
+        pageSize: 10,
+        filters: { filepath: ['category'] },
+      });
+      expect(MockRuleDataModel.find).toHaveBeenCalledWith({
+        $and: [
+          {
+            $or: [
+              {
+                filepath: {
+                  $regex: new RegExp('(^category/|/category/)', 'i'),
+                },
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('should handle sorting', async () => {
+      await service.getAllRuleData({
+        page: 1,
+        pageSize: 10,
+        sortField: 'title',
+        sortOrder: 'descend',
+      });
+      expect(MockRuleDataModel.sort).toHaveBeenCalledWith({ title: -1 });
+    });
+
+    it('should handle pagination', async () => {
+      await service.getAllRuleData({ page: 2, pageSize: 20 });
+      expect(MockRuleDataModel.skip).toHaveBeenCalledWith(20);
+      expect(MockRuleDataModel.limit).toHaveBeenCalledWith(20);
+    });
+
+    it('should handle errors', async () => {
+      MockRuleDataModel.find.mockImplementationOnce(() => {
+        throw new Error('Test error');
+      });
+      await expect(service.getAllRuleData()).rejects.toThrow('Error getting all rule data: Test error');
+    });
   });
 
   it('should return a rule draft for a given ruleId', async () => {
@@ -153,5 +223,23 @@ describe('RuleDataService', () => {
     expect(documentsService.getAllJSONFiles).toHaveBeenCalled();
     expect(service.createRuleData).toHaveBeenCalledTimes(1);
     expect(service.updateRuleData).toHaveBeenCalledTimes(1);
+  });
+  describe('onModuleInit', () => {
+    it('should initialize categories, update review status, and add unsynced files', async () => {
+      const mockGetAllRuleData = jest.spyOn(service, 'getAllRuleData').mockResolvedValue({
+        data: [mockRuleData],
+        total: 1,
+        categories: [],
+      });
+      const mockUpdateInReviewStatus = jest.spyOn(service, 'updateInReviewStatus').mockResolvedValue();
+      const mockAddUnsyncedFiles = jest.spyOn(service, 'addUnsyncedFiles').mockResolvedValue();
+
+      await service.onModuleInit();
+
+      expect(mockGetAllRuleData).toHaveBeenCalled();
+      expect(mockUpdateInReviewStatus).toHaveBeenCalledWith([mockRuleData]);
+      expect(mockAddUnsyncedFiles).toHaveBeenCalledWith([mockRuleData]);
+      expect(service['categories']).toEqual([]);
+    });
   });
 });

@@ -27,3 +27,10 @@ export class PaginationDto {
   @IsString()
   searchTerm?: string;
 }
+
+export class CategoryObject {
+  @IsObject()
+  @Type(() => Object)
+  text: string;
+  value: string;
+}

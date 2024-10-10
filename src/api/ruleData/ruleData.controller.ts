@@ -2,7 +2,7 @@ import { Controller, Get, Param, Post, Body, Put, Delete, HttpException, HttpSta
 import { RuleDataService } from './ruleData.service';
 import { RuleData } from './ruleData.schema';
 import { RuleDraft } from './ruleDraft.schema';
-import { PaginationDto } from './dto/pagination.dto';
+import { CategoryObject, PaginationDto } from './dto/pagination.dto';
 
 @Controller('api/ruleData')
 export class RuleDataController {
@@ -10,8 +10,8 @@ export class RuleDataController {
 
   @Get('/list')
   async getAllRulesData(
-    @Query() query: PaginationDto,
-  ): Promise<{ data: RuleData[]; total: number; categories: Array<string> }> {
+    @Query() query?: PaginationDto,
+  ): Promise<{ data: RuleData[]; total: number; categories: Array<CategoryObject> }> {
     try {
       const { data, total, categories } = await this.ruleDataService.getAllRuleData(query);
       return { data, total, categories };
