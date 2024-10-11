@@ -24,7 +24,7 @@ export class RuleDataService {
       const parts = filepath.split('/');
       return parts.slice(0, -1);
     });
-    const categorySet = [...new Set(splitFilePaths.flat())];
+    const categorySet = [...new Set(splitFilePaths.flat())].sort((a, b) => a.localeCompare(b));
     this.categories = categorySet.map((category: string) => ({ text: category, value: category }));
   }
 
