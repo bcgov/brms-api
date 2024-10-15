@@ -2,7 +2,6 @@ import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ZenEngine, ZenDecision, ZenEvaluateOptions } from '@gorules/zen-engine';
 import { DecisionsService } from './decisions.service';
-import { ValidationService } from './validations/validations.service';
 import { readFileSafely } from '../../utils/readFile';
 
 jest.mock('../../utils/readFile', () => ({
@@ -12,7 +11,6 @@ jest.mock('../../utils/readFile', () => ({
 
 describe('DecisionsService', () => {
   let service: DecisionsService;
-  let validationService: ValidationService;
   let mockEngine: Partial<ZenEngine>;
   let mockDecision: Partial<ZenDecision>;
 
@@ -25,13 +23,11 @@ describe('DecisionsService', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ConfigService, DecisionsService, ValidationService, { provide: ZenEngine, useValue: mockEngine }],
+      providers: [ConfigService, DecisionsService, { provide: ZenEngine, useValue: mockEngine }],
     }).compile();
 
     service = module.get<DecisionsService>(DecisionsService);
-    validationService = module.get<ValidationService>(ValidationService);
     service.engine = mockEngine as ZenEngine;
-    jest.spyOn(validationService, 'validateInputs').mockImplementation(() => {});
   });
 
   describe('runDecision', () => {
