@@ -8,7 +8,7 @@ import { RuleSchema } from './scenarioData.interface';
 import { DecisionsService } from '../decisions/decisions.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
 import { DocumentsService } from '../documents/documents.service';
-import { parseCSV } from '../../utils/csv';
+import { parseCSV, complexCartesianProduct } from '../../utils/csv';
 
 jest.mock('../../utils/csv');
 
@@ -677,6 +677,340 @@ describe('ScenarioDataService', () => {
 
       expect(result).toBeInstanceOf(Array);
       expect(result).toHaveLength(0);
+    });
+  });
+  describe('generatePossibleValues', () => {
+    it('should return default value when provided', () => {
+      const input = { type: 'number' };
+      const result = service.generatePossibleValues(input, 5);
+      expect(result).toEqual([5]);
+    });
+
+    it('should generate random numbers for number-input', () => {
+      const input = { type: 'number-input', validationCriteria: '10,100', validationType: '>=' };
+      const result = service.generatePossibleValues(input);
+      expect(result.length).toBe(10);
+      result.forEach((value) => {
+        expect(value).toBeGreaterThanOrEqual(10);
+        expect(value).toBeLessThanOrEqual(100);
+      });
+    });
+
+    it('should generate possible values for number-input with range', () => {
+      const input = { type: 'number-input', validationType: '[num]', validationCriteria: '1,10' };
+      const result = service.generatePossibleValues(input);
+      expect(result.length).toBe(10);
+      result.forEach((value) => {
+        expect(value).toBeGreaterThanOrEqual(1);
+        expect(value).toBeLessThanOrEqual(10);
+      });
+    });
+
+    it('should handle date inputs and generate valid dates', () => {
+      const input = { type: 'date', validationCriteria: '2020-01-01,2022-01-01', validationType: '(date)' };
+      const result = service.generatePossibleValues(input);
+      expect(result.length).toBe(10);
+      result.forEach((value) => {
+        const date = new Date(value).getTime();
+        expect(date).toBeGreaterThan(new Date('2020-01-01').getTime());
+        expect(date).toBeLessThan(new Date('2022-01-01').getTime());
+      });
+    });
+
+    it('should generate possible values for date input based on a range', () => {
+      const input = { type: 'date', validationType: '[date]', validationCriteria: '2022-01-01,2023-01-01' };
+      const result = service.generatePossibleValues(input);
+      expect(result.length).toBe(10);
+      result.forEach((value) => {
+        const date = new Date(value);
+        expect(date).toBeInstanceOf(Date);
+        expect(date.getTime()).toBeGreaterThanOrEqual(new Date('2022-01-01').getTime());
+        expect(date.getTime()).toBeLessThanOrEqual(new Date('2023-01-01').getTime());
+      });
+    });
+
+    it('should generate true/false values for true-false type', () => {
+      const input = { type: 'true-false' };
+      const result = service.generatePossibleValues(input);
+      expect(result.length).toBe(2);
+      expect(result.every((val) => typeof val === 'boolean')).toBe(true);
+    });
+
+    it('should handle text-input with multiple values', () => {
+      const input = { type: 'text-input', validationCriteria: 'option1,option2,option3' };
+      const result = service.generatePossibleValues(input);
+      expect(result).toEqual(['option1', 'option2', 'option3']);
+    });
+
+    it('should handle object-array type and generate combinations', () => {
+      const input = {
+        id: 8,
+        name: 'Dependents List',
+        field: 'dependentsList',
+        description: 'A list of dependent active on a case with their relevant properties.',
+        type: 'object-array',
+        validationCriteria: undefined,
+        validationType: undefined,
+        childFields: [
+          {
+            id: 64,
+            name: 'Date of Birth',
+            field: 'dateOfBirth',
+            description: 'The specific date of birth for an individual.',
+            dataType: 'date',
+            validationCriteria: '1910-01-01',
+            validationType: '>=',
+          },
+          {
+            id: 69,
+            name: 'In School',
+            field: 'inSchool',
+            description: 'Individual is currently in school.',
+            dataType: 'true-false',
+          },
+        ],
+      };
+      const mockProduct = [['1927-10-18', true]];
+      (complexCartesianProduct as jest.Mock).mockReturnValue(mockProduct);
+      const result = service.generatePossibleValues(input);
+      expect(result.length).toBe(10);
+      result.forEach((array) => {
+        expect(array[0]).toHaveProperty('dateOfBirth');
+      });
+    });
+  });
+
+  describe('generateCombinations', () => {
+    it('should generate valid combinations from input fields', () => {
+      const data = {
+        inputs: [{ field: 'field1', type: 'number-input', validationType: '[num]', validationCriteria: '1,10' }],
+      };
+      const mockProduct = [[7], [8], [9]];
+      (complexCartesianProduct as jest.Mock).mockReturnValue(mockProduct);
+      const result = service.generateCombinations(data, {}, 3);
+      result.forEach((item) => {
+        expect(item).toHaveProperty('field1');
+        expect(item.field1).toBeGreaterThanOrEqual(1);
+        expect(item.field1).toBeLessThanOrEqual(10);
+      });
+    });
+
+    it('should generate combinations for multiple simple inputs', () => {
+      const data = {
+        inputs: [
+          { field: 'field1', type: 'number-input', validationType: '[num]', validationCriteria: '1,10' },
+          { field: 'field2', type: 'text-input', validationCriteria: 'a,b,c', validationType: '[=text]' },
+        ],
+      };
+      const mockProduct = [
+        [7, 'a'],
+        [8, 'b'],
+        [9, 'c'],
+      ];
+      (complexCartesianProduct as jest.Mock).mockReturnValue(mockProduct);
+      const result = service.generateCombinations(data, undefined);
+      // expect(result.length).toBe(3);
+      result.forEach((item) => {
+        expect(item).toHaveProperty('field1');
+        expect(item).toHaveProperty('field2');
+        expect(item.field1).toBeGreaterThanOrEqual(1);
+        expect(item.field1).toBeLessThanOrEqual(10);
+        expect(['a', 'b', 'c']).toContain(item.field2);
+      });
+    });
+
+    it('should handle nested object fields', () => {
+      const data = {
+        inputs: [
+          {
+            id: 8,
+            name: 'Dependents List',
+            field: 'dependentsList',
+            description: 'A list of dependent active on a case with their relevant properties.',
+            type: 'object-array',
+            validationCriteria: undefined,
+            validationType: undefined,
+            childFields: [
+              {
+                id: 64,
+                name: 'Date of Birth',
+                field: 'dateOfBirth',
+                description: 'The specific date of birth for an individual.',
+                dataType: 'date',
+                validationCriteria: '1910-01-01',
+                validationType: '>=',
+              },
+              {
+                id: 69,
+                name: 'In School',
+                field: 'inSchool',
+                description: 'Individual is currently in school.',
+                dataType: 'true-false',
+              },
+            ],
+          },
+        ],
+      };
+      jest.spyOn(service, 'generatePossibleValues').mockImplementation((input) => {
+        if (input.type === 'object-array') {
+          return [[{ dateOfBirth: '1927-10-18', inSchool: true }], [{ dateOfBirth: '2020-01-24', inSchool: false }]];
+        }
+        return [];
+      });
+
+      (complexCartesianProduct as jest.Mock).mockReturnValueOnce([
+        [[{ dateOfBirth: '1927-10-18', inSchool: true }]],
+        [[{ dateOfBirth: '2020-01-24', inSchool: false }]],
+      ]);
+
+      const result = service.generateCombinations(data, {}, 1);
+
+      expect(result.length).toBe(1);
+      result.forEach((item) => {
+        expect(item).toHaveProperty('dependentsList');
+        expect(Array.isArray(item.dependentsList)).toBe(true);
+        expect(item.dependentsList.length).toBe(1);
+        expect(item.dependentsList[0]).toHaveProperty('dateOfBirth');
+        expect(item.dependentsList[0]).toHaveProperty('inSchool');
+        expect(['1927-10-18', '2020-01-24']).toContain(item.dependentsList[0].dateOfBirth);
+        expect([true, false]).toContain(item.dependentsList[0].inSchool);
+      });
+    });
+
+    it('should generate combinations for nested object fields', () => {
+      const data = {
+        inputs: [
+          {
+            field: 'nested',
+            type: 'object-array',
+            childFields: [
+              { field: 'subfield1', dataType: 'number-input', validationType: '[num]', validationCriteria: '1,5' },
+              { field: 'subfield2', dataType: 'true-false' },
+            ],
+          },
+        ],
+      };
+      jest.spyOn(service, 'generatePossibleValues').mockImplementation((input) => {
+        if (input.type === 'object-array') {
+          return [
+            [{ subfield1: 3, subfield2: true }],
+            [
+              { subfield1: 4, subfield2: false },
+              { subfield1: 5, subfield2: true },
+            ],
+          ];
+        }
+        return [];
+      });
+      (complexCartesianProduct as jest.Mock).mockReturnValueOnce([
+        [[{ subfield1: 3, subfield2: true }]],
+        [[{ subfield1: 4, subfield2: false }]],
+        [[{ subfield1: 5, subfield2: true }]],
+      ]);
+      const result = service.generateCombinations(data, undefined, 2);
+      expect(result.length).toBe(2);
+      result.forEach((item) => {
+        expect(item).toHaveProperty('nested');
+        expect(Array.isArray(item.nested)).toBe(true);
+        item.nested.forEach((nestedItem: any) => {
+          expect(nestedItem).toHaveProperty('subfield1');
+          expect(nestedItem).toHaveProperty('subfield2');
+          expect(nestedItem.subfield1).toBeGreaterThanOrEqual(1);
+          expect(nestedItem.subfield1).toBeLessThanOrEqual(5);
+          expect(typeof nestedItem.subfield2).toBe('boolean');
+        });
+      });
+    });
+  });
+
+  describe('generateObjectsFromCombinations', () => {
+    it('should map field combinations to objects correctly', () => {
+      const fields = ['field1', 'field2.subfield'];
+      const combinations = [
+        [1, 'a'],
+        [2, 'b'],
+      ];
+      const result = service.generateObjectsFromCombinations(fields, combinations);
+      result.forEach((item) => {
+        expect(item).toHaveProperty('field1');
+        expect(item.field1).toBeGreaterThanOrEqual(1);
+        expect(item.field1).toBeLessThanOrEqual(10);
+        expect(item.field2).toHaveProperty('subfield');
+        expect(item.field2.subfield).toMatch(/a|b/);
+      });
+    });
+
+    it('should handle empty combinations', () => {
+      const fields = [];
+      const combinations = [];
+      const result = service.generateObjectsFromCombinations(fields, combinations);
+      expect(result).toEqual([]);
+    });
+
+    it('should generate objects from simple combinations', () => {
+      const fields = ['field1', 'field2'];
+      const combinations = [
+        [1, 'a'],
+        [2, 'b'],
+        [3, 'c'],
+      ];
+      const result = service.generateObjectsFromCombinations(fields, combinations);
+      result.forEach((item) => {
+        expect(item).toHaveProperty('field1');
+        expect(item).toHaveProperty('field2');
+        expect(item.field1).toBeGreaterThanOrEqual(1);
+        expect(item.field1).toBeLessThanOrEqual(3);
+        expect(item.field2).toMatch(/a|b|c/);
+      });
+    });
+
+    it('should generate objects from nested combinations', () => {
+      const fields = ['field1', 'nested.subfield1', 'nested.subfield2'];
+      const combinations = [
+        [1, 'a', true],
+        [2, 'b', false],
+        [3, 'c', true],
+      ];
+      const result = service.generateObjectsFromCombinations(fields, combinations);
+      result.forEach((item) => {
+        expect(item).toHaveProperty('field1');
+        expect(item.field1).toBeGreaterThanOrEqual(1);
+        expect(item.field1).toBeLessThanOrEqual(3);
+        expect(item).toHaveProperty('nested');
+        expect(item.nested).toHaveProperty('subfield1');
+        expect(item.nested).toHaveProperty('subfield2');
+        expect(item.nested.subfield1).toMatch(/a|b|c/);
+        expect(item.nested.subfield2).toBeDefined();
+      });
+    });
+  });
+
+  describe('generateTestScenarios', () => {
+    it('should generate scenarios based on rule content and schema', async () => {
+      const filepath = 'test.json';
+      const ruleContent = { nodes: [], edges: [] };
+
+      jest.spyOn(decisionsService, 'runDecision').mockResolvedValue({
+        performance: '0.7',
+        result: {
+          someOutput: 'result',
+        },
+        trace: {},
+      });
+
+      const result = await service.generateTestScenarios(filepath, ruleContent);
+      expect(Object.keys(result).length).toBeGreaterThan(0);
+      Object.values(result).forEach((scenario) => {
+        expect(scenario).toHaveProperty('inputs');
+        expect(scenario).toHaveProperty('outputs');
+      });
+    });
+
+    it('should handle errors during scenario generation', async () => {
+      jest.spyOn(decisionsService, 'runDecision').mockRejectedValue(new Error('Test error'));
+      const result = await service.generateTestScenarios('test.json', { nodes: [], edges: [] });
+      expect(Object.keys(result).length).toBeGreaterThan(0);
+      expect(result.testCase1.error).toBe('Test error');
     });
   });
 });
