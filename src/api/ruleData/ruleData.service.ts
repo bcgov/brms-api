@@ -18,6 +18,15 @@ export class RuleDataService {
     private documentsService: DocumentsService,
   ) {}
 
+  async onModuleInit() {
+    console.info('Syncing existing rules with any updates to the rules repository');
+    const existingRules = await this.getAllRuleData();
+    const { data: existingRuleData } = existingRules;
+    this.updateCategories(existingRuleData);
+    this.updateInReviewStatus(existingRuleData);
+    this.addUnsyncedFiles(existingRuleData);
+  }
+
   private updateCategories(ruleData: RuleData[]) {
     const filePathsArray = ruleData.map((filePath) => filePath.filepath);
     const splitFilePaths = filePathsArray.map((filepath) => {
@@ -28,14 +37,6 @@ export class RuleDataService {
     this.categories = categorySet.map((category: string) => ({ text: category, value: category }));
   }
 
-  async onModuleInit() {
-    console.info('Syncing existing rules with any updates to the rules repository');
-    const existingRules = await this.getAllRuleData();
-    const { data: existingRuleData } = existingRules;
-    this.updateCategories(existingRuleData);
-    this.updateInReviewStatus(existingRuleData);
-    this.addUnsyncedFiles(existingRuleData);
-  }
   async getAllRuleData(
     params: PaginationDto = { page: 1, pageSize: 5000 },
   ): Promise<{ data: RuleData[]; total: number; categories: Array<CategoryObject> }> {
