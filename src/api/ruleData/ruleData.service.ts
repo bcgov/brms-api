@@ -53,6 +53,18 @@ export class RuleDataService {
     }
   }
 
+  async getRuleDataByFilepath(filepath: string): Promise<RuleData> {
+    try {
+      const ruleData = await this.ruleDataModel.findOne({ filepath }).exec();
+      if (!ruleData) {
+        throw new Error('Rule data not found');
+      }
+      return ruleData;
+    } catch (error) {
+      throw new Error(`Error getting all rule data for ${filepath}: ${error.message}`);
+    }
+  }
+
   async _addOrUpdateDraft(ruleData: Partial<RuleData>): Promise<Partial<RuleData>> {
     // If there is a rule draft, update that document specifically
     // This is necessary because we don't store the draft on the ruleData object directly
@@ -116,16 +128,24 @@ export class RuleDataService {
    * Remove current reviewBranch if it no longer exists (aka review branch has been merged in and removed)
    */
   async updateInReviewStatus(existingRules: RuleData[]) {
-    // Get current branches from github
-    const branchesResponse = await axios.get('https://api.github.com/repos/bcgov/brms-rules/branches');
-    const currentBranches = branchesResponse?.data.map(({ name }) => name);
-    // Remove current reviewBranch if it no longer exists
-    if (currentBranches) {
-      existingRules.forEach(({ _id, reviewBranch }) => {
-        if (reviewBranch && !currentBranches.includes(reviewBranch)) {
-          this.updateRuleData(_id, { reviewBranch: null });
-        }
-      });
+    try {
+      // Get current branches from github
+      const headers: Record<string, string> = {};
+      if (process.env.GITHUB_TOKEN) {
+        headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+      }
+      const branchesResponse = await axios.get('https://api.github.com/repos/bcgov/brms-rules/branches', { headers });
+      const currentBranches = branchesResponse?.data.map(({ name }) => name);
+      // Remove current reviewBranch if it no longer exists
+      if (currentBranches) {
+        existingRules.forEach(({ _id, reviewBranch }) => {
+          if (reviewBranch && !currentBranches.includes(reviewBranch)) {
+            this.updateRuleData(_id, { reviewBranch: null });
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error updating review status:', error.message);
     }
   }
 
