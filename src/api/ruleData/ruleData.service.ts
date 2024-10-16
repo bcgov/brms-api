@@ -7,9 +7,11 @@ import { DocumentsService } from '../documents/documents.service';
 import { RuleData, RuleDataDocument } from './ruleData.schema';
 import { RuleDraft, RuleDraftDocument } from './ruleDraft.schema';
 import { deriveNameFromFilepath } from '../../utils/helpers';
+import { CategoryObject, PaginationDto } from './dto/pagination.dto';
 
 @Injectable()
 export class RuleDataService {
+  private categories: Array<CategoryObject> = [];
   constructor(
     @InjectModel(RuleData.name) private ruleDataModel: Model<RuleDataDocument>,
     @InjectModel(RuleDraft.name) private ruleDraftModel: Model<RuleDraftDocument>,
@@ -19,14 +21,80 @@ export class RuleDataService {
   async onModuleInit() {
     console.info('Syncing existing rules with any updates to the rules repository');
     const existingRules = await this.getAllRuleData();
-    this.updateInReviewStatus(existingRules);
-    this.addUnsyncedFiles(existingRules);
+    const { data: existingRuleData } = existingRules;
+    this.updateCategories(existingRuleData);
+    this.updateInReviewStatus(existingRuleData);
+    this.addUnsyncedFiles(existingRuleData);
   }
 
-  async getAllRuleData(): Promise<RuleData[]> {
+  private updateCategories(ruleData: RuleData[]) {
+    const filePathsArray = ruleData.map((filePath) => filePath.filepath);
+    const splitFilePaths = filePathsArray.map((filepath) => {
+      const parts = filepath.split('/');
+      return parts.slice(0, -1);
+    });
+    const categorySet = [...new Set(splitFilePaths.flat())].sort((a, b) => a.localeCompare(b));
+    this.categories = categorySet.map((category: string) => ({ text: category, value: category }));
+  }
+
+  async getAllRuleData(
+    params: PaginationDto = { page: 1, pageSize: 5000 },
+  ): Promise<{ data: RuleData[]; total: number; categories: Array<CategoryObject> }> {
     try {
-      const ruleDataList = await this.ruleDataModel.find().exec();
-      return ruleDataList;
+      const { page, pageSize, sortField, sortOrder, filters, searchTerm } = params || {};
+      const queryConditions: any[] = [];
+
+      // search
+      if (searchTerm) {
+        queryConditions.push({
+          $or: [{ title: { $regex: searchTerm, $options: 'i' } }, { filepath: { $regex: searchTerm, $options: 'i' } }],
+        });
+      }
+
+      // filters
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value) {
+            if (key === 'filepath') {
+              if (Array.isArray(value) && value.length > 0) {
+                queryConditions.push({
+                  $or: value.map((filter: string) => ({
+                    filepath: {
+                      $regex: new RegExp(`(^${filter}/|/${filter}/)`, 'i'),
+                    },
+                  })),
+                });
+              }
+            } else if (Array.isArray(value)) {
+              queryConditions.push({ [key]: { $in: value } });
+            } else {
+              queryConditions.push({ [key]: value });
+            }
+          }
+        });
+      }
+
+      // Construct the final query using $and
+      const query = queryConditions.length > 0 ? { $and: queryConditions } : {};
+
+      // Prepare sort options
+      const sortOptions: any = {};
+      if (sortField && sortOrder) {
+        sortOptions[sortField] = sortOrder === 'ascend' ? 1 : -1;
+      }
+
+      // Get total count of documents matching the query
+      const total = await this.ruleDataModel.countDocuments(query);
+      // Execute the query with pagination and sorting
+      const data = await this.ruleDataModel
+        .find(query)
+        .sort(sortOptions)
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .lean()
+        .exec();
+
+      return { data, total, categories: this.categories };
     } catch (error) {
       throw new Error(`Error getting all rule data: ${error.message}`);
     }
@@ -75,6 +143,8 @@ export class RuleDataService {
       ruleData = await this._addOrUpdateDraft(ruleData);
       const newRuleData = new this.ruleDataModel(ruleData);
       const response = await newRuleData.save();
+      const existingRules = await this.getAllRuleData();
+      this.updateCategories(existingRules.data);
       return response;
     } catch (error) {
       console.error(error.message);
@@ -106,6 +176,9 @@ export class RuleDataService {
       if (!deletedRuleData) {
         throw new Error('Rule data not found');
       }
+      const existingRules = await this.getAllRuleData();
+      this.updateCategories(existingRules.data);
+
       return deletedRuleData;
     } catch (error) {
       throw new Error(`Failed to delete rule data: ${error.message}`);
