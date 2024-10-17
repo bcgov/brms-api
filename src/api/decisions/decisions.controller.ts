@@ -1,6 +1,7 @@
 import { Controller, Post, Query, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { DecisionsService } from './decisions.service';
 import { EvaluateDecisionDto, EvaluateDecisionWithContentDto } from './dto/evaluate-decision.dto';
+import { ValidationError } from './validations/validationError.service';
 
 @Controller('api/decisions')
 export class DecisionsController {
@@ -11,7 +12,11 @@ export class DecisionsController {
     try {
       return await this.decisionsService.runDecisionByContent(ruleContent, context, { trace });
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (error instanceof ValidationError) {
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      } else {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
     }
   }
 
