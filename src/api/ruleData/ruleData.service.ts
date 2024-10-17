@@ -8,6 +8,8 @@ import { RuleData, RuleDataDocument } from './ruleData.schema';
 import { RuleDraft, RuleDraftDocument } from './ruleDraft.schema';
 import { deriveNameFromFilepath } from '../../utils/helpers';
 
+const GITHUB_RULES_REPO = process.env.GITHUB_RULES_REPO || 'https://api.github.com/repos/bcgov/brms-rules';
+
 @Injectable()
 export class RuleDataService {
   constructor(
@@ -134,7 +136,7 @@ export class RuleDataService {
       if (process.env.GITHUB_TOKEN) {
         headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
       }
-      const branchesResponse = await axios.get('https://api.github.com/repos/bcgov/brms-rules/branches', { headers });
+      const branchesResponse = await axios.get(`${GITHUB_RULES_REPO}/branches`, { headers });
       const currentBranches = branchesResponse?.data.map(({ name }) => name);
       // Remove current reviewBranch if it no longer exists
       if (currentBranches) {

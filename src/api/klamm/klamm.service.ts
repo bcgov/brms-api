@@ -10,7 +10,7 @@ import { RuleData } from '../ruleData/ruleData.schema';
 import { DocumentsService } from '../documents/documents.service';
 import { KlammSyncMetadata, KlammSyncMetadataDocument } from './klammSyncMetadata.schema';
 
-export const GITHUB_RULES_REPO = 'https://api.github.com/repos/bcgov/brms-rules';
+export const GITHUB_RULES_REPO = process.env.GITHUB_RULES_REPO || 'https://api.github.com/repos/bcgov/brms-rules';
 
 export class InvalidFieldRequest extends Error {
   constructor(message: string) {
@@ -85,6 +85,7 @@ export class KlammService {
   }
 
   private async _syncRules(updatedFiles: string[]): Promise<void> {
+    const errors: string[] = [];
     for (const ruleFilepath of updatedFiles) {
       try {
         const rule = await this.ruleDataService.getRuleDataByFilepath(ruleFilepath);
@@ -96,8 +97,11 @@ export class KlammService {
         }
       } catch (error) {
         console.error(`Failed to sync rule from file ${ruleFilepath}:`, error.message);
-        throw new Error(`Failed to sync rule from file ${ruleFilepath}`);
+        errors.push(`Failed to sync rule from file ${ruleFilepath}: ${error.message}`);
       }
+    }
+    if (errors.length > 0) {
+      throw new Error(`Errors occurred during rule sync: ${errors.join('; ')}`);
     }
   }
 
