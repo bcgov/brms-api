@@ -8,8 +8,18 @@ export class ValidationService {
       return;
     }
 
+    const errors: string[] = [];
+
     for (const field of ruleContent.fields) {
-      this.validateField(field, context);
+      try {
+        this.validateField(field, context);
+      } catch (e) {
+        errors.push(e.message);
+      }
+    }
+
+    if (errors.length > 0) {
+      throw new ValidationError(`${errors.join('; ')}`);
     }
   }
 
@@ -19,7 +29,7 @@ export class ValidationService {
     }
 
     if (!(field.field in context)) {
-        return;
+      return;
     }
 
     const input = context[field.field];
