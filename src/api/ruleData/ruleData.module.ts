@@ -15,5 +15,6 @@ import { DocumentsService } from '../documents/documents.service';
   ],
   controllers: [RuleDataController],
   providers: [RuleDataService, DocumentsService],
+  exports: [RuleDataService],
 })
 export class RuleDataModule {}

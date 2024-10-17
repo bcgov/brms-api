@@ -149,6 +149,11 @@ describe('RuleDataService', () => {
     expect(await service.getRuleData(mockRuleData._id)).toEqual(mockRuleData);
   });
 
+  it('should get data for a rule by filepath', async () => {
+    MockRuleDataModel.findOne = jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(mockRuleData) });
+    expect(await service.getRuleDataByFilepath(mockRuleData.filepath)).toEqual(mockRuleData);
+  });
+
   it('should create rule data', async () => {
     expect(await service.createRuleData(mockRuleData)).toEqual(mockRuleData);
   });

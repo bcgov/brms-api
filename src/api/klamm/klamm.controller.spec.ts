@@ -13,8 +13,8 @@ describe('KlammController', () => {
         {
           provide: KlammService,
           useValue: {
-            getBREFields: jest.fn(() => Promise.resolve('expected result')),
-            getBREFieldFromName: jest.fn((fieldName) => Promise.resolve(`result for ${fieldName}`)), // Mock implementation
+            getKlammBREFields: jest.fn(() => Promise.resolve('expected result')),
+            getKlammBREFieldFromName: jest.fn((fieldName) => Promise.resolve(`result for ${fieldName}`)), // Mock implementation
           },
         },
       ],
@@ -25,14 +25,14 @@ describe('KlammController', () => {
   });
 
   it('should call getBREFields and return expected result', async () => {
-    expect(await controller.getBREFields('test')).toBe('expected result');
-    expect(service.getBREFields).toHaveBeenCalledTimes(1);
+    expect(await controller.getKlammBREFields('test')).toBe('expected result');
+    expect(service.getKlammBREFields).toHaveBeenCalledTimes(1);
   });
 
-  it('should call getBREFieldFromName with fieldName and return expected result', async () => {
+  it('should call getKlammFieldFromName with fieldName and return expected result', async () => {
     const fieldName = 'testField';
-    expect(await controller.getBREFieldFromName(fieldName)).toBe(`result for ${fieldName}`);
-    expect(service.getBREFieldFromName).toHaveBeenCalledWith(fieldName);
-    expect(service.getBREFieldFromName).toHaveBeenCalledTimes(1);
+    expect(await controller.getKlammBREFieldFromName(fieldName)).toBe(`result for ${fieldName}`);
+    expect(service.getKlammBREFieldFromName).toHaveBeenCalledWith(fieldName);
+    expect(service.getKlammBREFieldFromName).toHaveBeenCalledTimes(1);
   });
 });
