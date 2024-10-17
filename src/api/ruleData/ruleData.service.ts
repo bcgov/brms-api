@@ -126,9 +126,6 @@ export class RuleDataService {
   async getRuleDataByFilepath(filepath: string): Promise<RuleData> {
     try {
       const ruleData = await this.ruleDataModel.findOne({ filepath }).exec();
-      if (!ruleData) {
-        throw new Error('Rule data not found');
-      }
       return ruleData;
     } catch (error) {
       throw new Error(`Error getting all rule data for ${filepath}: ${error.message}`);

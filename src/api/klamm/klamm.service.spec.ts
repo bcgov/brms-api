@@ -37,7 +37,9 @@ describe('KlammService', () => {
   });
 
   it('should initialize module correctly', async () => {
-    jest.spyOn(service as any, '_getUpdatedFilesFromGithub').mockResolvedValue(['file1.js']);
+    jest
+      .spyOn(service as any, '_getUpdatedFilesFromGithub')
+      .mockResolvedValue({ updatedFilesSinceLastDeploy: ['file1.js'], lastCommitAsyncTimestamp: 0 });
     jest.spyOn(service as any, '_syncRules').mockResolvedValue(undefined);
     jest.spyOn(service as any, '_updateLastSyncTimestamp').mockResolvedValue(undefined);
 
@@ -87,7 +89,10 @@ describe('KlammService', () => {
   it('should get updated files from GitHub correctly', async () => {
     const mockFiles = ['file1.js', 'file2.js'];
     const mockCommits = [{ url: 'commit1' }, { url: 'commit2' }];
-    const mockCommitDetails = { files: [{ filename: 'rules/file1.js' }, { filename: 'rules/file2.js' }] };
+    const mockCommitDetails = {
+      files: [{ filename: 'rules/file1.js' }, { filename: 'rules/file2.js' }],
+      commit: { author: { date: 1234567790 } },
+    };
     jest.spyOn(service as any, '_getLastSyncTimestamp').mockResolvedValue(1234567890);
     jest
       .spyOn(service.axiosGithubInstance, 'get')
@@ -101,7 +106,7 @@ describe('KlammService', () => {
     expect(service.axiosGithubInstance.get).toHaveBeenCalledWith(
       `${GITHUB_RULES_REPO}/commits?since=${new Date(1234567890).toISOString().split('.')[0]}Z&sha=${process.env.GITHUB_RULES_BRANCH}`,
     );
-    expect(result).toEqual(mockFiles);
+    expect(result.updatedFilesSinceLastDeploy).toEqual(mockFiles);
   });
 
   it('should handle error in _getUpdatedFilesFromGithub', async () => {
@@ -143,12 +148,13 @@ describe('KlammService', () => {
     const mockRule = { name: 'rule1', filepath: 'file1.js' } as RuleData;
     const mockInputsOutputs = { inputs: [], resultOutputs: [] };
     jest.spyOn(ruleMappingService, 'inputOutputSchemaFile').mockResolvedValue(mockInputsOutputs);
-    jest.spyOn(service as any, '_getFieldsFromIds').mockResolvedValue([]);
+    jest.spyOn(service as any, '_getAllKlammFields').mockResolvedValue([]);
+    jest.spyOn(service as any, '_getFieldsFromIds').mockReturnValue([]);
 
     const result = await service['_getInputOutputFieldsData'](mockRule);
 
     expect(ruleMappingService.inputOutputSchemaFile).toHaveBeenCalledWith(mockRule.filepath);
-    expect(service['_getFieldsFromIds']).toHaveBeenCalledWith([]);
+    expect(service['_getFieldsFromIds']).toHaveBeenCalledWith([], []);
     expect(result).toEqual({ inputs: [], outputs: [] });
   });
 
@@ -163,36 +169,16 @@ describe('KlammService', () => {
 
   it('should get fields from IDs correctly', async () => {
     const mockIds = [1, 2, 3];
-    jest.spyOn(service as any, '_fetchFieldById').mockResolvedValue({});
+    const mockFields = [
+      { id: 1, name: 'field1', label: 'Field 1', description: 'Description 1' },
+      { id: 2, name: 'field2', label: 'Field 2', description: 'Description 2' },
+      { id: 3, name: 'field3', label: 'Field 3', description: 'Description 3' },
+    ];
+    jest.spyOn(service as any, '_getAllKlammFields').mockResolvedValue(mockFields);
 
-    const result = await service['_getFieldsFromIds'](mockIds);
+    const result = service['_getFieldsFromIds'](mockFields, mockIds);
 
-    expect(service['_fetchFieldById']).toHaveBeenCalledTimes(mockIds.length);
-    expect(result).toEqual([{}, {}, {}]);
-  });
-
-  it('should handle error in _getFieldsFromIds', async () => {
-    const mockIds = [1, 2, 3];
-    jest.spyOn(service as any, '_fetchFieldById').mockRejectedValue(new Error('Error'));
-
-    await expect(service['_getFieldsFromIds'](mockIds)).rejects.toThrow('Error fetching fields by IDs: Error');
-  });
-
-  it('should fetch field by ID correctly', async () => {
-    const mockId = 1;
-    jest.spyOn(service.axiosKlammInstance, 'get').mockResolvedValue({ data: {} });
-
-    const result = await service['_fetchFieldById'](mockId);
-
-    expect(service.axiosKlammInstance.get).toHaveBeenCalledWith(`${process.env.KLAMM_API_URL}/api/brerules/${mockId}`);
-    expect(result).toEqual({});
-  });
-
-  it('should handle error in _fetchFieldById', async () => {
-    const mockId = 1;
-    jest.spyOn(service.axiosKlammInstance, 'get').mockRejectedValue(new Error('Error'));
-
-    await expect(service['_fetchFieldById'](mockId)).rejects.toThrow('Error fetching field with ID 1: Error');
+    expect(result).toEqual(mockFields);
   });
 
   it('should get child rules correctly', async () => {
@@ -299,11 +285,11 @@ describe('KlammService', () => {
   it('should update last sync timestamp correctly', async () => {
     jest.spyOn(klammSyncMetadata, 'findOneAndUpdate').mockResolvedValue(undefined);
 
-    await service['_updateLastSyncTimestamp']();
+    await service['_updateLastSyncTimestamp'](1234567890);
 
     expect(klammSyncMetadata.findOneAndUpdate).toHaveBeenCalledWith(
       { key: 'singleton' },
-      { lastSyncTimestamp: expect.any(Number) },
+      { lastSyncTimestamp: 1234567890 },
       { upsert: true, new: true },
     );
   });
@@ -311,7 +297,9 @@ describe('KlammService', () => {
   it('should handle error in _updateLastSyncTimestamp', async () => {
     jest.spyOn(klammSyncMetadata, 'findOneAndUpdate').mockRejectedValue(new Error('Error'));
 
-    await expect(service['_updateLastSyncTimestamp']()).rejects.toThrow('Failed to update last sync timestamp');
+    await expect(service['_updateLastSyncTimestamp'](1234567890)).rejects.toThrow(
+      'Failed to update last sync timestamp',
+    );
   });
 
   it('should get last sync timestamp correctly', async () => {

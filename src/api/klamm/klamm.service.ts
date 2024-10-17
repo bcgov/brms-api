@@ -43,11 +43,18 @@ export class KlammService {
   async onModuleInit() {
     try {
       console.info('Syncing existing rules with Klamm...');
-      const updatedFilesSinceLastDeploy = await this._getUpdatedFilesFromGithub();
-      console.info('Files updated since last deploy:', updatedFilesSinceLastDeploy);
-      await this._syncRules(updatedFilesSinceLastDeploy);
-      console.info('Completed syncing existing rules with Klamm');
-      await this._updateLastSyncTimestamp();
+      const { updatedFilesSinceLastDeploy, lastCommitAsyncTimestamp } = await this._getUpdatedFilesFromGithub();
+      if (lastCommitAsyncTimestamp != undefined) {
+        console.info(
+          `Files updated since last deploy up to ${new Date(lastCommitAsyncTimestamp)}:`,
+          updatedFilesSinceLastDeploy,
+        );
+        await this._syncRules(updatedFilesSinceLastDeploy);
+        console.info('Completed syncing existing rules with Klamm');
+        await this._updateLastSyncTimestamp(lastCommitAsyncTimestamp);
+      } else {
+        console.info('Klamm file syncing up to date');
+      }
     } catch (error) {
       console.error('Unable to sync latest updates to Klamm:', error.message);
     }
@@ -105,17 +112,22 @@ export class KlammService {
     }
   }
 
-  async _getUpdatedFilesFromGithub(): Promise<string[]> {
+  async _getUpdatedFilesFromGithub(): Promise<{
+    updatedFilesSinceLastDeploy: string[];
+    lastCommitAsyncTimestamp: number;
+  }> {
     try {
       // Get last updated time from from db
       const timestamp = await this._getLastSyncTimestamp();
       const date = new Date(timestamp);
       const formattedDate = date.toISOString().split('.')[0] + 'Z'; // Format required for github api
+      console.log(`Getting files from Github from ${formattedDate} onwards...`);
       // Fetch commits since the specified timestamp
       const commitsResponse = await this.axiosGithubInstance.get(
         `${GITHUB_RULES_REPO}/commits?since=${formattedDate}&sha=${process.env.GITHUB_RULES_BRANCH}`,
       );
-      const commits = commitsResponse.data;
+      const commits = commitsResponse.data.reverse();
+      let lastCommitAsyncTimestamp;
       // Fetch details for each commit to get the list of changed files
       const updatedFiles = new Set<string>();
       for (const commit of commits) {
@@ -128,8 +140,9 @@ export class KlammService {
             }
           }
         }
+        lastCommitAsyncTimestamp = new Date(commitDetails.commit.author.date).getTime() + 1000;
       }
-      return Array.from(updatedFiles);
+      return { updatedFilesSinceLastDeploy: Array.from(updatedFiles), lastCommitAsyncTimestamp };
     } catch (error) {
       console.error('Error fetching updated files from GitHub:', error);
       throw new Error('Error fetching updated files from GitHub');
@@ -163,8 +176,9 @@ export class KlammService {
       const { inputs, resultOutputs } = await this.ruleMappingService.inputOutputSchemaFile(rule.filepath);
       const inputIds = inputs.map(({ id }) => Number(id));
       const outputIds = resultOutputs.map(({ id }) => Number(id));
-      const inputResults = await this._getFieldsFromIds(inputIds);
-      const outputResults = await this._getFieldsFromIds(outputIds);
+      const klammFields: KlammField[] = await this._getAllKlammFields();
+      const inputResults = this._getFieldsFromIds(klammFields, inputIds);
+      const outputResults = this._getFieldsFromIds(klammFields, outputIds);
       return { inputs: inputResults, outputs: outputResults };
     } catch (error) {
       console.error(`Error getting input/output fields for rule ${rule.name}`, error.message);
@@ -172,28 +186,23 @@ export class KlammService {
     }
   }
 
-  async _getFieldsFromIds(ids: number[]): Promise<any[]> {
-    try {
-      const promises = ids.map((id) => this._fetchFieldById(id));
-      return await Promise.all(promises);
-    } catch (error) {
-      console.error(`Error fetching fields by IDs`, error.message);
-      throw new Error(`Error fetching fields by IDs: ${error.message}`);
-    }
+  _getFieldsFromIds(klammFields: KlammField[], ids: number[]): KlammField[] {
+    const fieldObjects: KlammField[] = [];
+    klammFields.forEach((fieldObject) => {
+      if (ids.includes(fieldObject.id)) {
+        fieldObjects.push(fieldObject);
+      }
+    });
+    return fieldObjects;
   }
 
-  private async _fetchFieldById(id: number): Promise<any> {
+  async _getAllKlammFields(): Promise<KlammField[]> {
     try {
-      const response = await this.axiosKlammInstance.get(`${process.env.KLAMM_API_URL}/api/brerules/${id}`);
-      return response.data;
+      const response = await this.axiosKlammInstance.get(`${process.env.KLAMM_API_URL}/api/brerules`);
+      return response.data.data;
     } catch (error) {
-      if (error.response && error.response.status === 404) {
-        console.warn(`Field with ID ${id} not found`);
-        return null;
-      } else {
-        console.error(`Error fetching field with ID ${id}`, error.message);
-        throw new Error(`Error fetching field with ID ${id}: ${error.message}`);
-      }
+      console.error('Error fetching fields from Klamm', error.message);
+      throw new Error(`Error fetching fields from Klamm: ${error.message}`);
     }
   }
 
@@ -253,12 +262,11 @@ export class KlammService {
     }
   }
 
-  async _updateLastSyncTimestamp(): Promise<void> {
+  async _updateLastSyncTimestamp(lastSyncTimestamp: number): Promise<void> {
     try {
-      const timestamp = Date.now();
       await this.klammSyncMetadata.findOneAndUpdate(
         { key: 'singleton' },
-        { lastSyncTimestamp: timestamp },
+        { lastSyncTimestamp },
         { upsert: true, new: true },
       );
     } catch (error) {
