@@ -119,11 +119,9 @@ export class ScenarioDataService {
     }
     const ruleSchema: RuleSchema = await this.ruleMappingService.inputOutputSchema(ruleContent);
     const results: { [scenarioId: string]: any } = {};
-
     for (const scenario of scenarios as ScenarioDataDocument[]) {
       const formattedVariablesObject = reduceToCleanObj(scenario?.variables, 'name', 'value');
       const formattedExpectedResultsObject = reduceToCleanObj(scenario?.expectedResults, 'name', 'value');
-
       try {
         const decisionResult = await this.decisionsService.runDecision(
           ruleContent,
@@ -150,7 +148,15 @@ export class ScenarioDataService {
         results[scenario.title.toString()] = scenarioResult;
       } catch (error) {
         console.error(`Error running decision for scenario ${scenario._id}: ${error.message}`);
-        results[scenario._id.toString()] = { error: error.message };
+        const scenarioResult = {
+          inputs: formattedVariablesObject,
+          outputs: null,
+          expectedResults: formattedExpectedResultsObject || {},
+          result: {},
+          resultMatch: false,
+          error: error.message,
+        };
+        results[scenario._id ? scenario._id.toString() : scenario?.title.toString()] = scenarioResult;
       }
     }
     return results;
@@ -176,6 +182,7 @@ export class ScenarioDataService {
       ...this.prefixKeys(keys.inputs, 'Input'),
       ...this.prefixKeys(keys.expectedResults, 'Expected Result'),
       ...this.prefixKeys(keys.result, 'Result'),
+      'Error?',
     ];
 
     const rows = Object.entries(ruleRunResults).map(([scenarioName, data]) => [
@@ -184,6 +191,7 @@ export class ScenarioDataService {
       ...this.mapFields(data.inputs, keys.inputs),
       ...this.mapFields(data.expectedResults, keys.expectedResults),
       ...this.mapFields(data.result, keys.result),
+      data.error ? this.escapeCSVField(data.error) : '',
     ]);
 
     return [headers, ...rows].map((row) => row.join(',')).join('\n');
@@ -504,7 +512,17 @@ export class ScenarioDataService {
         };
       } catch (error) {
         console.error(`Error running decision for scenario ${title}: ${error.message}`);
-        return { title, scenarioResult: { error: error.message } };
+        return {
+          title,
+          scenarioResult: {
+            inputs: formattedVariablesObject,
+            outputs: null,
+            expectedResults: formattedExpectedResultsObject || {},
+            result: {},
+            resultMatch: false,
+            error: error.message,
+          },
+        };
       }
     });
 
@@ -544,6 +562,7 @@ export class ScenarioDataService {
         ...this.prefixKeys(keys.inputs, 'Input'),
         ...this.prefixKeys(keys.expectedResults, 'Expected Result'),
         ...this.prefixKeys(keys.result, 'Result'),
+        'Error?',
       ];
 
       const rows = Object.entries(ruleRunResults).map(([scenarioName, data]) => [
@@ -552,6 +571,7 @@ export class ScenarioDataService {
         ...this.mapFields(data.inputs, keys.inputs),
         ...this.mapFields(data.expectedResults, keys.expectedResults),
         ...this.mapFields(data.result, keys.result),
+        data.error ? this.escapeCSVField(data.error) : '',
       ]);
 
       return [headers, ...rows].map((row) => row.join(',')).join('\n');

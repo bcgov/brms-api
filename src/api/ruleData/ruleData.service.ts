@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
@@ -136,6 +136,9 @@ export class RuleDataService {
     // If there is a rule draft, update that document specifically
     // This is necessary because we don't store the draft on the ruleData object directly
     // Instead it is stored elsewhere and linked to the ruleData via its id
+    if (ruleData.ruleDraft && typeof ruleData.ruleDraft === 'string') {
+      ruleData.ruleDraft = new Types.ObjectId(`${ruleData.ruleDraft}`);
+    }
     if (ruleData?.ruleDraft) {
       const newDraft = new this.ruleDraftModel(ruleData.ruleDraft);
       const savedDraft = await newDraft.save();

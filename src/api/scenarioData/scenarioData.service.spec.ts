@@ -421,7 +421,16 @@ describe('ScenarioDataService', () => {
 
       const results = await service.runDecisionsForScenarios(filepath, ruleContent);
       expect(results).toEqual({
-        [testObjectId.toString()]: { error: 'Decision execution error' },
+        [testObjectId.toString()]: {
+          expectedResults: {},
+          inputs: {
+            familyComposition: 'single',
+          },
+          outputs: null,
+          result: {},
+          resultMatch: false,
+          error: 'Decision execution error',
+        },
       });
     });
 
@@ -499,7 +508,7 @@ describe('ScenarioDataService', () => {
 
       const csvContent = await service.getCSVForRuleRun(filepath, ruleContent);
 
-      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren\nScenario 1,Fail,single,2\nScenario 2,Fail,couple,3`;
+      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren,Error?\nScenario 1,Fail,single,2,\nScenario 2,Fail,couple,3,`;
 
       expect(csvContent.trim()).toBe(expectedCsvContent.trim());
     });
@@ -524,7 +533,7 @@ describe('ScenarioDataService', () => {
 
       const csvContent = await service.getCSVForRuleRun(filepath, ruleContent);
 
-      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren\nScenario 1,Fail,single,\nScenario 2,Fail,couple,3`;
+      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren,Error?\nScenario 1,Fail,single,,\nScenario 2,Fail,couple,3,`;
 
       expect(csvContent.trim()).toBe(expectedCsvContent.trim());
     });
@@ -544,7 +553,7 @@ describe('ScenarioDataService', () => {
 
       const csvContent = await service.getCSVForRuleRun(filepath, ruleContent);
 
-      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren\nScenario 1,Fail,single,2`;
+      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: familyComposition,Input: numberOfChildren,Error?\nScenario 1,Fail,single,2,`;
 
       expect(csvContent.trim()).toBe(expectedCsvContent.trim());
     });
@@ -558,7 +567,7 @@ describe('ScenarioDataService', () => {
 
       const csvContent = await service.getCSVForRuleRun(filepath, ruleContent);
 
-      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail)`;
+      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Error?\n`;
 
       expect(csvContent.trim()).toBe(expectedCsvContent.trim());
     });
@@ -577,7 +586,7 @@ describe('ScenarioDataService', () => {
 
       const csvContent = await service.getCSVForRuleRun(filepath, ruleContent);
 
-      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail)\nScenario 1,Fail`;
+      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Error?\nScenario 1,Fail,`;
 
       expect(csvContent.trim()).toBe(expectedCsvContent.trim());
     });
@@ -597,7 +606,7 @@ describe('ScenarioDataService', () => {
 
       const csvContent = await service.getCSVForRuleRun(filepath, ruleContent);
 
-      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: input1,Input: input2\nScenario 1,Fail,"value, with, commas",value "with" quotes`;
+      const expectedCsvContent = `Scenario,Results Match Expected (Pass/Fail),Input: input1,Input: input2,Error?\nScenario 1,Fail,"value, with, commas",value "with" quotes,`;
 
       expect(csvContent.trim()).toBe(expectedCsvContent.trim());
     });
