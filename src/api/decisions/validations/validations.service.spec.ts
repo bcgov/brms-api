@@ -1,5 +1,5 @@
 import { ValidationService } from './validations.service';
-import { ValidationError } from '../validations/validationError.service';
+import { ValidationError } from './validation.error';
 
 describe('ValidationService', () => {
   let validator: ValidationService;

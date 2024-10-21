@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { RuleContent } from '../ruleMapping/ruleMapping.interface';
 import { readFileSafely, FileNotFoundError } from '../../utils/readFile';
 import { ValidationService } from './validations/validations.service';
-import { ValidationError } from './validations/validationError.service';
+import { ValidationError } from './validations/validation.error';
 
 @Injectable()
 export class DecisionsService {

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ValidationError } from '../validations/validationError.service';
+import { ValidationError } from './validation.error';
 
 @Injectable()
 export class ValidationService {

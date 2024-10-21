@@ -1,7 +1,7 @@
 import { Controller, Post, Query, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { DecisionsService } from './decisions.service';
 import { EvaluateDecisionDto, EvaluateDecisionWithContentDto } from './dto/evaluate-decision.dto';
-import { ValidationError } from './validations/validationError.service';
+import { ValidationError } from './validations/validation.error';
 
 @Controller('api/decisions')
 export class DecisionsController {
