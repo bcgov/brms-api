@@ -1,0 +1,101 @@
+# Default values for backup-storage for the BRM db.
+# Declare variables to be passed into the templates.
+
+image:
+  repository: bcgovimages/backup-container-mongo
+  pullPolicy: IfNotPresent
+  tag: latest
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+backupConfig: |-
+  mongo=brms-db:27017/brms-db
+
+  0 1 * * * default ./backup.sh -s
+  0 4 * * * default ./backup.sh -s -v all
+
+config: []
+
+persistence:
+  backup:
+    claimName: brms-db-backup
+    mountPath: /backups/
+  verification:
+    size: 1Gi
+    mountPath: /var/lib/mongodb/data
+    storageClassName: netapp-file-standard
+    storageAccessMode: ReadWriteOnce
+
+db:
+  secretName: brms-db
+  usernameKey: database-admin
+  passwordKey: database-admin-password
+
+env:
+  BACKUP_STRATEGY:
+    value: "rolling"
+    secure: false
+  BACKUP_DIR:
+    value: "/backups/"
+  BACKUP_CONF:
+    value: "/conf/backup.conf"
+  NUM_BACKUPS:
+    value: ""
+  DAILY_BACKUPS:
+    value: "12"
+  WEEKLY_BACKUPS:
+    value: "8"
+  MONTHLY_BACKUPS:
+    value: "6"
+  BACKUP_PERIOD:
+    value: ""
+  MONGODB_AUTHENTICATION_DATABASE:
+    value: "admin"
+  MSSQL_SA_PASSWORD:
+    value: ""
+    secure: true
+  TABLE_SCHEMA:
+    value: ""
+  FTP_URL:
+    value: ""
+    secure: true
+  FTP_USER:
+    value: ""
+    secure: true
+  FTP_PASSWORD:
+    value: ""
+    secure: true
+  WEBHOOK_URL:
+    value: ""
+    secure: true
+  ENVIRONMENT_NAME:
+    value: ""
+  ENVIRONMENT_FRIENDLY_NAME:
+    value: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+resources:
+  limits:
+    cpu: 375m
+    memory: 192Mi
+  requests:
+    cpu: 75m
+    memory: 96Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
