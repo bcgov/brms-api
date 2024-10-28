@@ -39,42 +39,6 @@ export class RuleMappingService {
             exception: isSimpleValue ? null : expr.value,
           };
         });
-      } else if (node.type === 'functionNode' && node?.content) {
-        if (node.content.source) {
-          if (node.content.source.length > 10000) {
-            throw new Error('Input too large');
-          }
-          return (node.content.source.split('\n') || []).reduce((acc: any[], line: string) => {
-            const keyword = fieldKey === 'inputs' ? '@param' : '@returns';
-            if (line.includes(keyword)) {
-              const item = line.split(keyword)[1]?.trim();
-              if (item) {
-                acc.push({
-                  key: item,
-                  field: item,
-                });
-              }
-            }
-            return acc;
-          }, []);
-        } else {
-          if (node.content.length > 10000) {
-            throw new Error('Input too large');
-          }
-          return (node.content.split('\n') || []).reduce((acc: any[], line: string) => {
-            const keyword = fieldKey === 'inputs' ? '@param' : '@returns';
-            if (line.includes(keyword)) {
-              const item = line.split(keyword)[1]?.trim();
-              if (item) {
-                acc.push({
-                  key: item,
-                  field: item,
-                });
-              }
-            }
-            return acc;
-          }, []);
-        }
       } else {
         return (node.content?.[fieldKey] || []).map((field: Field) => ({
           id: field.id,

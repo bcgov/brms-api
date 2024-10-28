@@ -19,10 +19,11 @@ describe('RuleDataController', () => {
   });
 
   it('should return all rules data', async () => {
-    const result: RuleData[] = [mockRuleData];
+    const ruleDataResult: RuleData[] = [mockRuleData];
+    const result = { data: ruleDataResult, total: 1, categories: [] };
     jest.spyOn(service, 'getAllRuleData').mockImplementation(() => Promise.resolve(result));
 
-    expect(await controller.getAllRulesData()).toBe(result);
+    expect(await controller.getAllRulesData()).toStrictEqual(result);
   });
 
   it('should return a rule draft for a given ruleId', async () => {

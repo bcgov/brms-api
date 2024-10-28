@@ -1,16 +1,20 @@
-import { Controller, Get, Param, Post, Body, Put, Delete, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Put, Delete, HttpException, HttpStatus, Query } from '@nestjs/common';
 import { RuleDataService } from './ruleData.service';
 import { RuleData } from './ruleData.schema';
 import { RuleDraft } from './ruleDraft.schema';
+import { CategoryObject, PaginationDto } from './dto/pagination.dto';
 
 @Controller('api/ruleData')
 export class RuleDataController {
   constructor(private readonly ruleDataService: RuleDataService) {}
 
   @Get('/list')
-  async getAllRulesData(): Promise<RuleData[]> {
+  async getAllRulesData(
+    @Query() query?: PaginationDto,
+  ): Promise<{ data: RuleData[]; total: number; categories: Array<CategoryObject> }> {
     try {
-      return await this.ruleDataService.getAllRuleData();
+      const { data, total, categories } = await this.ruleDataService.getAllRuleData(query);
+      return { data, total, categories };
     } catch (error) {
       throw new HttpException('Error getting list of rule data', HttpStatus.INTERNAL_SERVER_ERROR);
     }

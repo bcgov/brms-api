@@ -3,6 +3,8 @@ import { ZenEngine, ZenEvaluateOptions } from '@gorules/zen-engine';
 import { ConfigService } from '@nestjs/config';
 import { RuleContent } from '../ruleMapping/ruleMapping.interface';
 import { readFileSafely, FileNotFoundError } from '../../utils/readFile';
+import { ValidationService } from './validations/validations.service';
+import { ValidationError } from './validations/validation.error';
 
 @Injectable()
 export class DecisionsService {
@@ -16,12 +18,19 @@ export class DecisionsService {
   }
 
   async runDecisionByContent(ruleContent: RuleContent, context: object, options: ZenEvaluateOptions) {
+    const validator = new ValidationService();
+    const ruleInputs = ruleContent?.nodes?.filter((node) => node.type === 'inputNode')[0]?.content;
     try {
+      validator.validateInputs(ruleInputs, context);
       const decision = this.engine.createDecision(ruleContent);
       return await decision.evaluate(context, options);
     } catch (error) {
-      console.error(error.message);
-      throw new Error(`Failed to run decision: ${error.message}`);
+      if (error instanceof ValidationError) {
+        throw new ValidationError(`Invalid input: ${error.message}`);
+      } else {
+        console.error(error.message);
+        throw new Error(`Failed to run decision: ${error.message}`);
+      }
     }
   }
 

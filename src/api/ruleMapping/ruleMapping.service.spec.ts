@@ -170,35 +170,6 @@ describe('RuleMappingService', () => {
       });
     });
 
-    it('should handle functionNode correctly', async () => {
-      const nodes: Node[] = [
-        {
-          type: 'functionNode',
-          content: `
-            /**
-             * @param input1
-             * @param input2
-             * @returns output1
-             */
-          `,
-          id: 'testNode',
-        },
-      ];
-
-      const result = await service.extractFields(nodes, 'inputs');
-      expect(result).toEqual({
-        inputs: [
-          { key: 'input1', field: 'input1' },
-          { key: 'input2', field: 'input2' },
-        ],
-      });
-
-      const resultOutputs = await service.extractFields(nodes, 'outputs');
-      expect(resultOutputs).toEqual({
-        outputs: [{ key: 'output1', field: 'output1' }],
-      });
-    });
-
     it('should handle nodes with unknown type correctly', async () => {
       const nodes: Node[] = [
         {
