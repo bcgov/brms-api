@@ -61,10 +61,14 @@ export class ValidationService {
         }
         break;
       case 'date':
-        if ((typeof input !== 'string' && validationType !== '[=dates]') || isNaN(Date.parse(input))) {
+        if (validationType === '[=dates]') {
+          if (!Array.isArray(input) || !input.every((date) => !isNaN(Date.parse(date)))) {
+            throw new ValidationError(
+              `Input ${field.field} should be an array of valid date strings, but got ${JSON.stringify(input)}`,
+            );
+          }
+        } else if (typeof input !== 'string' || isNaN(Date.parse(input))) {
           throw new ValidationError(`Input ${field.field} should be a valid date string, but got ${input}`);
-        } else if (validationType === '[=dates]' && !Array.isArray(input)) {
-          throw new ValidationError(`Input ${field.field} should be an array of date strings, but got ${input}`);
         }
         break;
       case 'text-input':
@@ -79,6 +83,8 @@ export class ValidationService {
           throw new ValidationError(`Input ${field.field} should be a boolean, but got ${actualType}`);
         }
         break;
+      default:
+        throw new ValidationError(`Unsupported data type: ${dataType}`);
     }
   }
 

@@ -247,4 +247,141 @@ describe('RuleDataService', () => {
       expect(service['categories']).toEqual([]);
     });
   });
+
+  describe('updateCategories', () => {
+    it('should correctly update categories from filepaths', () => {
+      const testRules = [
+        { _id: 'testId1', name: 'title1', title: 'Title 1', filepath: 'category1/subcategory/file1.json' },
+        { _id: 'testId2', name: 'title2', title: 'Title 2', filepath: 'category1/file2.json' },
+        { _id: 'testId3', name: 'title3', title: 'Title 3', filepath: 'category2/file3.json' },
+      ];
+
+      service['updateCategories'](testRules);
+
+      expect(service['categories']).toEqual([
+        { text: 'category1', value: 'category1' },
+        { text: 'category2', value: 'category2' },
+        { text: 'subcategory', value: 'subcategory' },
+      ]);
+    });
+
+    it('should handle empty rule data', () => {
+      service['updateCategories']([]);
+      expect(service['categories']).toEqual([]);
+    });
+  });
+
+  describe('_addOrUpdateDraft', () => {
+    it('should handle undefined ruleDraft', async () => {
+      const testRuleData = {
+        _id: 'testId',
+      };
+
+      const result = await service['_addOrUpdateDraft'](testRuleData);
+      expect(result).toEqual(testRuleData);
+    });
+  });
+
+  describe('getAllRuleData with additional cases', () => {
+    it('should handle array filters correctly', async () => {
+      await service.getAllRuleData({
+        page: 1,
+        pageSize: 10,
+        filters: { status: ['active', 'pending'] },
+      });
+
+      expect(MockRuleDataModel.find).toHaveBeenCalledWith({
+        $and: [
+          {
+            status: { $in: ['active', 'pending'] },
+          },
+        ],
+      });
+    });
+
+    it('should handle single value filters', async () => {
+      await service.getAllRuleData({
+        page: 1,
+        pageSize: 10,
+        filters: { isPublished: true },
+      });
+
+      expect(MockRuleDataModel.find).toHaveBeenCalledWith({
+        $and: [
+          {
+            isPublished: true,
+          },
+        ],
+      });
+    });
+
+    it('should ignore null or undefined filter values', async () => {
+      await service.getAllRuleData({
+        page: 1,
+        pageSize: 10,
+        filters: { status: null, isPublished: undefined },
+      });
+
+      expect(MockRuleDataModel.find).toHaveBeenCalledWith({});
+    });
+  });
+
+  describe('getRuleDataWithDraft', () => {
+    it('should handle error when getting draft', async () => {
+      MockRuleDataModel.findById.mockImplementationOnce(() => ({
+        populate: jest.fn().mockImplementationOnce(() => ({
+          exec: jest.fn().mockRejectedValueOnce(new Error('Draft not found')),
+        })),
+      }));
+
+      await expect(service.getRuleDataWithDraft('testId')).rejects.toThrow(
+        'Error getting draft for testId: Draft not found',
+      );
+    });
+  });
+
+  describe('getRuleData', () => {
+    it('should throw error when rule data not found', async () => {
+      MockRuleDataModel.findOne = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(service.getRuleData('nonexistentId')).rejects.toThrow('Rule data not found');
+    });
+  });
+
+  describe('getRuleDataByFilepath', () => {
+    it('should handle errors when getting rule by filepath', async () => {
+      MockRuleDataModel.findOne = jest.fn().mockReturnValue({
+        exec: jest.fn().mockRejectedValue(new Error('Database error')),
+      });
+
+      await expect(service.getRuleDataByFilepath('test/path.json')).rejects.toThrow(
+        'Error getting all rule data for test/path.json: Database error',
+      );
+    });
+  });
+
+  describe('createRuleData', () => {
+    it('should generate new _id if not provided', async () => {
+      const testData = {
+        filepath: 'test/path.json',
+        title: 'Test Rule',
+      };
+
+      const result = await service.createRuleData(testData);
+      expect(result._id).toBeDefined();
+      expect(typeof result._id).toBe('string');
+    });
+
+    it('should derive name from filepath', async () => {
+      const testData = {
+        filepath: 'test/new-rule.json',
+        title: 'Test Rule',
+      };
+
+      const result = await service.createRuleData(testData);
+      expect(result.name).toBe('new-rule');
+    });
+  });
 });

@@ -1,6 +1,33 @@
 import { ValidationService } from './validations.service';
 import { ValidationError } from './validation.error';
 
+describe('ValidationError', () => {
+  it('should be an instance of ValidationError', () => {
+    const error = new ValidationError('Test message');
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error.name).toBe('ValidationError');
+  });
+
+  it('should have correct prototype', () => {
+    const error = new ValidationError('Test message');
+    expect(Object.getPrototypeOf(error)).toBe(ValidationError.prototype);
+  });
+
+  it('should return correct error code', () => {
+    const error = new ValidationError('Test message');
+    expect(error.getErrorCode()).toBe('VALIDATION_ERROR');
+  });
+
+  it('should return correct JSON representation', () => {
+    const error = new ValidationError('Test message');
+    expect(error.toJSON()).toEqual({
+      name: 'ValidationError',
+      message: 'Test message',
+      code: 'VALIDATION_ERROR',
+    });
+  });
+});
+
 describe('ValidationService', () => {
   let validator: ValidationService;
 
@@ -19,12 +46,77 @@ describe('ValidationService', () => {
       const context = { age: 25, name: 'John Doe' };
       expect(() => validator.validateInputs(ruleContent, context)).not.toThrow();
     });
+    it('should return early if ruleContent is not an object', () => {
+      const ruleContent = 'not an object';
+      const context = {};
+      expect(() => validator.validateInputs(ruleContent, context)).not.toThrow();
+    });
+
+    it('should return early if ruleContent.fields is not an array', () => {
+      const ruleContent = { fields: 'not an array' };
+      const context = {};
+      expect(() => validator.validateInputs(ruleContent, context)).not.toThrow();
+    });
+    it('should return early if ruleContent.fields is empty', () => {
+      const ruleContent = { fields: [] };
+      const context = {};
+      expect(() => validator.validateInputs(ruleContent, context)).not.toThrow();
+    });
+    it('should return early if context is empty', () => {
+      const ruleContent = { fields: [] };
+      const context = {};
+      expect(() => validator.validateInputs(ruleContent, context)).not.toThrow();
+    });
+    it('returns early ruleContent.fields is not an array of objects', () => {
+      const ruleContent = { fields: [{ field: 'age', type: 'number-input' }] };
+      const context = { age: 25 };
+      expect(() => validator.validateInputs(ruleContent, context)).not.toThrow();
+    });
+    it('returns blank if ruleContent.fields is an empty array', () => {
+      const ruleContent = { fields: [] };
+      const context = { age: 25 };
+      expect(() => validator.validateInputs(ruleContent, context)).not.toThrow();
+    });
+    it('returns early if field.field is not in context', () => {
+      const ruleContent = { fields: [{ field: 'age', type: 'number-input' }] };
+      const context = {};
+      expect(() => validator.validateInputs(ruleContent, context)).not.toThrow();
+    });
+    it('returns early if input is null or undefined', () => {
+      const ruleContent = { fields: [{ field: 'age', type: 'number-input' }] };
+      const context = { age: null };
+      expect(() => validator.validateInputs(ruleContent, context)).not.toThrow();
+      const context2 = { age: undefined };
+      expect(() => validator.validateInputs(ruleContent, context2)).not.toThrow();
+    });
   });
 
   describe('validateField', () => {
+    it('throws an error for missing field.field', () => {
+      const invalidField = { dataType: 'number-input' };
+      expect(() => validator['validateField'](invalidField, {})).toThrow(ValidationError);
+    });
+
+    it('throws an error for unsupported data type in validateType', () => {
+      const field = { field: 'testField', dataType: 'unsupported-type' };
+      const context = { testField: 'value' };
+      expect(() => validator['validateField'](field, context)).toThrow(ValidationError);
+    });
+
+    it('throws an error for mismatched input type in validateType', () => {
+      const field = { field: 'testField', dataType: 'number-input' };
+      const context = { testField: 'string' };
+      expect(() => validator['validateField'](field, context)).toThrow(ValidationError);
+    });
+
     it('should validate number input', () => {
       const field = { field: 'age', type: 'number-input' };
       const context = { age: 25 };
+      expect(() => validator['validateField'](field, context)).not.toThrow();
+    });
+    it('should validate number input with validationType of [=nums]', () => {
+      const field = { field: 'age', type: 'number-input', validationType: '[=nums]', validationCriteria: '[25, 26]' };
+      const context = { age: [25, 26] };
       expect(() => validator['validateField'](field, context)).not.toThrow();
     });
 
@@ -34,9 +126,31 @@ describe('ValidationService', () => {
       expect(() => validator['validateField'](field, context)).not.toThrow();
     });
 
+    it('should validate date input with validationType of [=dates]', () => {
+      const field = {
+        field: 'birthDate',
+        type: 'date',
+        validationType: '[=dates]',
+        validationCriteria: '[2000-01-01, 2000-01-02]',
+      };
+      const context = { birthDate: ['2000-01-01', '2000-01-02'] };
+      expect(() => validator['validateField'](field, context)).not.toThrow();
+    });
+
     it('should validate text input', () => {
       const field = { field: 'name', type: 'text-input' };
       const context = { name: 'John Doe' };
+      expect(() => validator['validateField'](field, context)).not.toThrow();
+    });
+
+    it('should validate text input with validationType of [=texts]', () => {
+      const field = {
+        field: 'name',
+        type: 'text-input',
+        validationType: '[=texts]',
+        validationCriteria: 'John Doe, Jane Doe',
+      };
+      const context = { name: ['John Doe', 'Jane Doe'] };
       expect(() => validator['validateField'](field, context)).not.toThrow();
     });
 
@@ -279,6 +393,20 @@ describe('ValidationService', () => {
       expect(() => validator['validateTextCriteria'](field, ['active', 'inactive', 'testing'])).toThrow(
         ValidationError,
       );
+    });
+  });
+
+  describe('ValidationService - Edge Cases in validateOutput', () => {
+    it('throws an error when output does not match outputSchema', () => {
+      const outputSchema = { field: 'output', dataType: 'number-input', validationType: '==', validationCriteria: '5' };
+      const invalidOutput = { output: 10 };
+      expect(() => validator.validateOutput(outputSchema, invalidOutput)).toThrow(ValidationError);
+    });
+
+    it('passes when output matches outputSchema', () => {
+      const outputSchema = { field: 'output', dataType: 'number-input', validationType: '==', validationCriteria: '5' };
+      const validOutput = 5;
+      expect(() => validator.validateOutput(outputSchema, validOutput)).not.toThrow();
     });
   });
 });

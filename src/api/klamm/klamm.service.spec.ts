@@ -364,4 +364,51 @@ describe('KlammService', () => {
 
     await expect(service.getKlammBREFieldFromName(fieldName)).rejects.toThrow('Field name does not exist');
   });
+  it('should initialize axiosGithubInstance with auth header when GITHUB_TOKEN is set', () => {
+    process.env.GITHUB_TOKEN = 'test-token';
+    const newService = new KlammService(ruleDataService, ruleMappingService, documentsService, klammSyncMetadata);
+    expect(newService.axiosGithubInstance.defaults.headers).toHaveProperty('Authorization', 'Bearer test-token');
+    delete process.env.GITHUB_TOKEN;
+  });
+  it('should handle case when no rule is found for changed file', async () => {
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(ruleDataService, 'getRuleDataByFilepath').mockResolvedValue(null);
+
+    await service['_syncRules'](['nonexistent-file.js']);
+
+    expect(consoleSpy).toHaveBeenCalledWith('No rule found for changed file: nonexistent-file.js');
+    consoleSpy.mockRestore();
+  });
+
+  describe('_getAllKlammFields', () => {
+    it('should handle error when fetching fields from Klamm', async () => {
+      jest.spyOn(service.axiosKlammInstance, 'get').mockRejectedValue(new Error('Network error'));
+
+      await expect(service['_getAllKlammFields']()).rejects.toThrow('Error fetching fields from Klamm: Network error');
+    });
+
+    it('should successfully fetch all Klamm fields', async () => {
+      const mockFields = [
+        { id: 1, name: 'field1' },
+        { id: 2, name: 'field2' },
+      ];
+      jest.spyOn(service.axiosKlammInstance, 'get').mockResolvedValue({
+        data: { data: mockFields },
+      });
+
+      const result = await service['_getAllKlammFields']();
+
+      expect(result).toEqual(mockFields);
+      expect(service.axiosKlammInstance.get).toHaveBeenCalledWith(`${process.env.KLAMM_API_URL}/api/brerules`);
+    });
+  });
+
+  it('should return 0 when no sync timestamp record exists', async () => {
+    jest.spyOn(klammSyncMetadata, 'findOne').mockResolvedValue(null);
+
+    const result = await service['_getLastSyncTimestamp']();
+
+    expect(result).toBe(0);
+    expect(klammSyncMetadata.findOne).toHaveBeenCalledWith({ key: 'singleton' });
+  });
 });
