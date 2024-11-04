@@ -22,7 +22,6 @@ export const readFileSafely = async (rulesDirectory: string, ruleFileName: strin
   const filePath = path.resolve(rulesDirectory, ruleFileName);
   // Check if the resolved path is within the intended directory
   if (!filePath.startsWith(path.resolve(rulesDirectory))) {
-    console.error('Path traversal detected');
     throw new FileNotFoundError('Path traversal detected');
   }
   // Check if the file is found

@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { ZenEngine, ZenEvaluateOptions } from '@gorules/zen-engine';
 import { ConfigService } from '@nestjs/config';
 import { RuleContent } from '../ruleMapping/ruleMapping.interface';
@@ -11,7 +11,10 @@ export class DecisionsService {
   engine: ZenEngine;
   rulesDirectory: string;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private readonly logger: Logger,
+  ) {
     this.rulesDirectory = this.configService.get<string>('RULES_DIRECTORY');
     const loader = async (key: string) => readFileSafely(this.rulesDirectory, key);
     this.engine = new ZenEngine({ loader });
@@ -28,7 +31,7 @@ export class DecisionsService {
       if (error instanceof ValidationError) {
         throw new ValidationError(`Invalid input: ${error.message}`);
       } else {
-        console.error(error.message);
+        this.logger.warn(error.message);
         throw new Error(`Failed to run decision: ${error.message}`);
       }
     }

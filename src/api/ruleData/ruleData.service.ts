@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb';
 import { Model, Types } from 'mongoose';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
 import { DocumentsService } from '../documents/documents.service';
@@ -18,10 +18,11 @@ export class RuleDataService {
     @InjectModel(RuleData.name) private ruleDataModel: Model<RuleDataDocument>,
     @InjectModel(RuleDraft.name) private ruleDraftModel: Model<RuleDraftDocument>,
     private documentsService: DocumentsService,
+    private readonly logger: Logger,
   ) {}
 
   async onModuleInit() {
-    console.info('Syncing existing rules with any updates to the rules repository');
+    this.logger.log('Syncing existing rules with any updates to the rules repository');
     const existingRules = await this.getAllRuleData();
     const { data: existingRuleData } = existingRules;
     this.updateCategories(existingRuleData);
@@ -161,7 +162,7 @@ export class RuleDataService {
       this.updateCategories(existingRules.data);
       return response;
     } catch (error) {
-      console.error(error.message);
+      this.logger.error(error.message);
       throw new Error(`Failed to add rule data: ${error.message}`);
     }
   }
@@ -179,7 +180,7 @@ export class RuleDataService {
       Object.assign(existingRuleData, updatedData);
       return await existingRuleData.save();
     } catch (error) {
-      console.error('Error updating rule', error.message);
+      this.logger.error('Error updating rule', error.message);
       throw new Error(`Failed to update rule data: ${error.message}`);
     }
   }
@@ -220,7 +221,7 @@ export class RuleDataService {
         });
       }
     } catch (error) {
-      console.error('Error updating review status:', error.message);
+      this.logger.error('Error updating review status:', error.message);
     }
   }
 

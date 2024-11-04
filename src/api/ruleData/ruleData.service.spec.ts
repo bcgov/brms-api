@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { DocumentsService } from '../documents/documents.service';
 import { RuleDataService } from './ruleData.service';
@@ -45,6 +46,7 @@ export const mockServiceProviders = [
       getAllJSONFiles: jest.fn().mockResolvedValue(['doc1.json', 'doc2.json']),
     },
   },
+  Logger,
 ];
 
 describe('RuleDataService', () => {
