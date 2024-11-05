@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ScenarioData, ScenarioDataDocument } from './scenarioData.schema';
@@ -26,6 +26,7 @@ export class ScenarioDataService {
     private ruleMappingService: RuleMappingService,
     private documentsService: DocumentsService,
     @InjectModel(ScenarioData.name) private scenarioDataModel: Model<ScenarioDataDocument>,
+    private readonly logger: Logger,
   ) {}
 
   async getAllScenarioData(): Promise<ScenarioData[]> {
@@ -55,7 +56,7 @@ export class ScenarioDataService {
       const response = await newScenarioData.save();
       return response;
     } catch (error) {
-      console.error('Error in createScenarioData:', error);
+      this.logger.error('Error in createScenarioData:', error);
       throw new Error(`Failed to add scenario data: ${error.message}`);
     }
   }
@@ -147,7 +148,7 @@ export class ScenarioDataService {
 
         results[scenario.title.toString()] = scenarioResult;
       } catch (error) {
-        console.error(`Error running decision for scenario ${scenario._id}: ${error.message}`);
+        this.logger.error(`Error running decision for scenario ${scenario._id}: ${error.message}`);
         const scenarioResult = {
           inputs: formattedVariablesObject,
           outputs: null,
@@ -511,7 +512,7 @@ export class ScenarioDataService {
           },
         };
       } catch (error) {
-        console.error(`Error running decision for scenario ${title}: ${error.message}`);
+        this.logger.error(`Error running decision for scenario ${title}: ${error.message}`);
         return {
           title,
           scenarioResult: {

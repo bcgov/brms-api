@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
 import { GithubAuthService } from './github-auth.service';
 import axios from 'axios';
 
@@ -10,7 +11,7 @@ describe('GithubAuthService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [GithubAuthService],
+      providers: [GithubAuthService, Logger],
     }).compile();
 
     service = module.get<GithubAuthService>(GithubAuthService);

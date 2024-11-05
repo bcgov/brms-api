@@ -1,9 +1,12 @@
-import { Controller, Get, Query, Redirect, Res, Post } from '@nestjs/common';
+import { Controller, Get, Query, Redirect, Res, Post, Logger } from '@nestjs/common';
 import { GithubAuthService } from './github-auth.service';
 
 @Controller('auth/github')
 export class GithubAuthController {
-  constructor(private readonly authService: GithubAuthService) {}
+  constructor(
+    private readonly authService: GithubAuthService,
+    private readonly logger: Logger,
+  ) {}
 
   /**
    * Redirect to github for oauth flow
