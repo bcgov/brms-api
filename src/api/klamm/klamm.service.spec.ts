@@ -367,18 +367,23 @@ describe('KlammService', () => {
   });
   it('should initialize axiosGithubInstance with auth header when GITHUB_TOKEN is set', () => {
     process.env.GITHUB_TOKEN = 'test-token';
-    const newService = new KlammService(ruleDataService, ruleMappingService, documentsService, klammSyncMetadata);
+    const newService = new KlammService(
+      ruleDataService,
+      ruleMappingService,
+      documentsService,
+      klammSyncMetadata,
+      new Logger(),
+    );
     expect(newService.axiosGithubInstance.defaults.headers).toHaveProperty('Authorization', 'Bearer test-token');
     delete process.env.GITHUB_TOKEN;
   });
   it('should handle case when no rule is found for changed file', async () => {
-    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const loggerSpy = jest.spyOn(service['logger'], 'warn');
     jest.spyOn(ruleDataService, 'getRuleDataByFilepath').mockResolvedValue(null);
 
     await service['_syncRules'](['nonexistent-file.js']);
 
-    expect(consoleSpy).toHaveBeenCalledWith('No rule found for changed file: nonexistent-file.js');
-    consoleSpy.mockRestore();
+    expect(loggerSpy).toHaveBeenCalledWith('No rule found for changed file: nonexistent-file.js');
   });
 
   describe('_getAllKlammFields', () => {
