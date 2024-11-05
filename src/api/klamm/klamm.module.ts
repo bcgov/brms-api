@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Logger } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { RuleDataModule } from '../ruleData/ruleData.module';
 import { RuleMappingModule } from '../ruleMapping/ruleMapping.module';
@@ -14,6 +14,6 @@ import { KlammService } from './klamm.service';
     MongooseModule.forFeature([{ name: KlammSyncMetadata.name, schema: KlammSyncMetadataSchema }]),
   ],
   controllers: [KlammController],
-  providers: [KlammService, DocumentsService],
+  providers: [KlammService, DocumentsService, Logger],
 })
 export class KlammModule {}

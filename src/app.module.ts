@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { GithubAuthModule } from './auth/github-auth/github-auth.module';
@@ -31,6 +31,6 @@ import { ScenarioDataService } from './api/scenarioData/scenarioData.service';
     KlammModule,
   ],
   controllers: [DecisionsController, DocumentsController, ScenarioDataController],
-  providers: [DecisionsService, DocumentsService, ScenarioDataService],
+  providers: [Logger, DecisionsService, DocumentsService, ScenarioDataService],
 })
 export class AppModule {}

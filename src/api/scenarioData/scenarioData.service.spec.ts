@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
 import { ScenarioDataService } from './scenarioData.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Types, Model } from 'mongoose';
@@ -69,6 +70,7 @@ describe('ScenarioDataService', () => {
             get: jest.fn().mockReturnValue('mocked_value'),
           },
         },
+        Logger,
       ],
     }).compile();
 

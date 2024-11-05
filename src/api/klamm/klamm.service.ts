@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import axios, { AxiosInstance } from 'axios';
@@ -29,6 +29,7 @@ export class KlammService {
     private readonly ruleMappingService: RuleMappingService,
     private readonly documentsService: DocumentsService,
     @InjectModel(KlammSyncMetadata.name) private klammSyncMetadata: Model<KlammSyncMetadataDocument>,
+    private readonly logger: Logger,
   ) {
     this.axiosKlammInstance = axios.create({
       headers: { Authorization: `Bearer ${process.env.KLAMM_API_AUTH_TOKEN}`, 'Content-Type': 'application/json' },
@@ -42,21 +43,21 @@ export class KlammService {
 
   async onModuleInit() {
     try {
-      console.info('Syncing existing rules with Klamm...');
+      this.logger.log('Syncing existing rules with Klamm...');
       const { updatedFilesSinceLastDeploy, lastCommitAsyncTimestamp } = await this._getUpdatedFilesFromGithub();
       if (lastCommitAsyncTimestamp != undefined) {
-        console.info(
+        this.logger.log(
           `Files updated since last deploy up to ${new Date(lastCommitAsyncTimestamp)}:`,
           updatedFilesSinceLastDeploy,
         );
         await this._syncRules(updatedFilesSinceLastDeploy);
-        console.info('Completed syncing existing rules with Klamm');
+        this.logger.log('Completed syncing existing rules with Klamm');
         await this._updateLastSyncTimestamp(lastCommitAsyncTimestamp);
       } else {
-        console.info('Klamm file syncing up to date');
+        this.logger.log('Klamm file syncing up to date');
       }
     } catch (error) {
-      console.error('Unable to sync latest updates to Klamm:', error.message);
+      this.logger.error('Unable to sync latest updates to Klamm:', error.message);
     }
   }
 
@@ -98,12 +99,12 @@ export class KlammService {
         const rule = await this.ruleDataService.getRuleDataByFilepath(ruleFilepath);
         if (rule) {
           await this._syncRuleWithKlamm(rule);
-          console.info(`Rule ${rule.name} synced`);
+          this.logger.log(`Rule ${rule.name} synced`);
         } else {
-          console.warn(`No rule found for changed file: ${ruleFilepath}`);
+          this.logger.warn(`No rule found for changed file: ${ruleFilepath}`);
         }
       } catch (error) {
-        console.error(`Failed to sync rule from file ${ruleFilepath}:`, error.message);
+        this.logger.error(`Failed to sync rule from file ${ruleFilepath}:`, error.message);
         errors.push(`Failed to sync rule from file ${ruleFilepath}: ${error.message}`);
       }
     }
@@ -121,7 +122,7 @@ export class KlammService {
       const timestamp = await this._getLastSyncTimestamp();
       const date = new Date(timestamp);
       const formattedDate = date.toISOString().split('.')[0] + 'Z'; // Format required for github api
-      console.log(`Getting files from Github from ${formattedDate} onwards...`);
+      this.logger.log(`Getting files from Github from ${formattedDate} onwards...`);
       // Fetch commits since the specified timestamp
       const commitsResponse = await this.axiosGithubInstance.get(
         `${GITHUB_RULES_REPO}/commits?since=${formattedDate}&sha=${process.env.GITHUB_RULES_BRANCH}`,
@@ -144,7 +145,7 @@ export class KlammService {
       }
       return { updatedFilesSinceLastDeploy: Array.from(updatedFiles), lastCommitAsyncTimestamp };
     } catch (error) {
-      console.error('Error fetching updated files from GitHub:', error);
+      this.logger.error('Error fetching updated files from GitHub:', error);
       throw new Error('Error fetching updated files from GitHub');
     }
   }
@@ -166,7 +167,7 @@ export class KlammService {
       // Add or update the rule in Klamm
       await this._addOrUpdateRuleInKlamm(payloadToAddOrUpdate);
     } catch (error) {
-      console.error(`Error syncing ${rule.name}`, error.message);
+      this.logger.error(`Error syncing ${rule.name}`, error.message);
       throw new Error(`Error syncing ${rule.name}`);
     }
   }
@@ -181,7 +182,7 @@ export class KlammService {
       const outputResults = this._getFieldsFromIds(klammFields, outputIds);
       return { inputs: inputResults, outputs: outputResults };
     } catch (error) {
-      console.error(`Error getting input/output fields for rule ${rule.name}`, error.message);
+      this.logger.error(`Error getting input/output fields for rule ${rule.name}`, error.message);
       throw new Error(`Error getting input/output fields for rule ${rule.name}`);
     }
   }
@@ -201,7 +202,7 @@ export class KlammService {
       const response = await this.axiosKlammInstance.get(`${process.env.KLAMM_API_URL}/api/brerules`);
       return response.data.data;
     } catch (error) {
-      console.error('Error fetching fields from Klamm', error.message);
+      this.logger.error('Error fetching fields from Klamm', error.message);
       throw new Error(`Error fetching fields from Klamm: ${error.message}`);
     }
   }
@@ -217,7 +218,7 @@ export class KlammService {
       const results = await Promise.all(promises);
       return results.map((response) => response);
     } catch (error) {
-      console.error(`Error gettting child rules for ${rule.name}:`, error.message);
+      this.logger.error(`Error gettting child rules for ${rule.name}:`, error.message);
       throw new Error(`Error gettting child rules for ${rule.name}`);
     }
   }
@@ -239,7 +240,7 @@ export class KlammService {
       });
       return data.data[0];
     } catch (error) {
-      console.error(`Error getting rule ${ruleName} from Klamm:`, error.message);
+      this.logger.error(`Error getting rule ${ruleName} from Klamm:`, error.message);
       throw new Error(`Error getting rule ${ruleName} from Klamm`);
     }
   }
@@ -248,7 +249,7 @@ export class KlammService {
     try {
       await this.axiosKlammInstance.post(`${process.env.KLAMM_API_URL}/api/brerules`, rulePayload);
     } catch (error) {
-      console.error('Error adding rule to Klamm:', error.message);
+      this.logger.error('Error adding rule to Klamm:', error.message);
       throw new Error('Error adding rule to Klamm');
     }
   }
@@ -257,7 +258,7 @@ export class KlammService {
     try {
       await this.axiosKlammInstance.put(`${process.env.KLAMM_API_URL}/api/brerules/${currentKlamRuleId}`, rulePayload);
     } catch (error) {
-      console.error(`Error updating rule ${currentKlamRuleId} in Klamm:`, error.message);
+      this.logger.error(`Error updating rule ${currentKlamRuleId} in Klamm:`, error.message);
       throw new Error(`Error updating rule ${currentKlamRuleId} in Klamm`);
     }
   }
@@ -270,7 +271,7 @@ export class KlammService {
         { upsert: true, new: true },
       );
     } catch (error) {
-      console.error('Failed to update last sync timestamp', error.message);
+      this.logger.error('Failed to update last sync timestamp', error.message);
       throw new Error('Failed to update last sync timestamp');
     }
   }
@@ -280,7 +281,7 @@ export class KlammService {
       const record = await this.klammSyncMetadata.findOne({ key: 'singleton' });
       return record ? record.lastSyncTimestamp : 0;
     } catch (error) {
-      console.error('Failed to get last sync timestamp:', error.message);
+      this.logger.error('Failed to get last sync timestamp:', error.message);
       throw new Error('Failed to get last sync timestamp');
     }
   }

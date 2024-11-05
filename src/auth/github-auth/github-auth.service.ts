@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 
 const GITHUB_OAUTH_URL = 'https://github.com/login/oauth';
@@ -7,6 +7,8 @@ const GITHUB_USER_URL = 'https://api.github.com/user';
 @Injectable()
 export class GithubAuthService {
   private readonly redirectUri = `${process.env.FRONTEND_URI}/auth/github/callback`;
+
+  constructor(private readonly logger: Logger) {}
 
   /**
    * Gnerates URL for GitHub oauth flow
@@ -59,7 +61,7 @@ export class GithubAuthService {
       });
       return response.data;
     } catch (error) {
-      console.error('Error fetching GitHub user:', error);
+      this.logger.error('Error fetching GitHub user:', error);
       throw new Error('Failed to fetch GitHub user information');
     }
   }

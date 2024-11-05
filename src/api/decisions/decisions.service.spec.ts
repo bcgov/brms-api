@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
 import { ZenEngine, ZenDecision, ZenEvaluateOptions } from '@gorules/zen-engine';
 import { DecisionsService } from './decisions.service';
 import { ValidationService } from './validations/validations.service';
@@ -28,7 +29,13 @@ describe('DecisionsService', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ConfigService, DecisionsService, ValidationService, { provide: ZenEngine, useValue: mockEngine }],
+      providers: [
+        ConfigService,
+        DecisionsService,
+        ValidationService,
+        { provide: ZenEngine, useValue: mockEngine },
+        Logger,
+      ],
     }).compile();
 
     service = module.get<DecisionsService>(DecisionsService);

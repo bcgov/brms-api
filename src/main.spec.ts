@@ -17,6 +17,6 @@ jest.mock('@nestjs/core', () => {
 describe('main.ts', () => {
   it('should bootstrap the application', async () => {
     await require('./main');
-    expect(NestFactory.create).toHaveBeenCalledWith(AppModule);
+    expect(NestFactory.create).toHaveBeenCalledWith(AppModule, expect.any(Object));
   });
 });

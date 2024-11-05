@@ -1,4 +1,5 @@
 import { Model } from 'mongoose';
+import { Logger } from '@nestjs/common';
 import { KlammService, GITHUB_RULES_REPO } from './klamm.service';
 import { RuleDataService } from '../ruleData/ruleData.service';
 import { RuleMappingService } from '../ruleMapping/ruleMapping.service';
@@ -29,7 +30,7 @@ describe('KlammService', () => {
       findOne: jest.fn(),
     } as unknown as Model<KlammSyncMetadataDocument>;
 
-    service = new KlammService(ruleDataService, ruleMappingService, documentsService, klammSyncMetadata);
+    service = new KlammService(ruleDataService, ruleMappingService, documentsService, klammSyncMetadata, new Logger());
   });
 
   afterEach(() => {
