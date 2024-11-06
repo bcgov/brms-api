@@ -121,6 +121,26 @@ describe('ScenarioDataService', () => {
       expect(MockScenarioDataModel.findOne).toHaveBeenCalledWith({ _id: scenarioId });
     });
 
+    it('should return scenarios by rule ID', async () => {
+      const mockScenarios = [mockScenarioData];
+      MockScenarioDataModel.find = jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockScenarios),
+      });
+
+      const result = await service.getScenariosByRuleId('testRuleId');
+      expect(result).toEqual(mockScenarios);
+    });
+
+    it('should handle errors when getting scenarios by rule ID', async () => {
+      MockScenarioDataModel.find = jest.fn().mockReturnValue({
+        exec: jest.fn().mockRejectedValue(new Error('DB Error')),
+      });
+
+      await expect(service.getScenariosByRuleId('testRuleId')).rejects.toThrow(
+        'Error getting scenarios by rule ID: DB Error',
+      );
+    });
+
     it('should throw an error if scenario data is not found', async () => {
       const scenarioId = testObjectId.toString();
       MockScenarioDataModel.findOne = jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
@@ -789,6 +809,71 @@ describe('ScenarioDataService', () => {
         expect(array[0]).toHaveProperty('dateOfBirth');
       });
     });
+
+    it('should handle object-array type', () => {
+      const input = {
+        type: 'object-array',
+        childFields: [{ field: 'testField', type: 'text-input' }],
+      };
+      const result = service.generatePossibleValues(input);
+      expect(Array.isArray(result)).toBeTruthy();
+      expect(result.length).toBeGreaterThan(0);
+    });
+
+    it('should handle number-input type with different validation types', () => {
+      const testCases = [
+        { validationType: '>=', validationCriteria: '0,10' },
+        { validationType: '<=', validationCriteria: '0,10' },
+        { validationType: '>', validationCriteria: '0,10' },
+        { validationType: '<', validationCriteria: '0,10' },
+        { validationType: '(num)', validationCriteria: '0,10' },
+        { validationType: '[num]', validationCriteria: '0,10' },
+        { validationType: '[=num]', validationCriteria: '1,2,3' },
+        { validationType: '[=nums]', validationCriteria: '1,2,3' },
+      ];
+
+      testCases.forEach(({ validationType, validationCriteria }) => {
+        const input = {
+          type: 'number-input',
+          validationType,
+          validationCriteria,
+        };
+        const result = service.generatePossibleValues(input);
+        expect(Array.isArray(result)).toBeTruthy();
+      });
+    });
+
+    it('should handle date type with different validation types', () => {
+      const testCases = [
+        { validationType: '>=', validationCriteria: '2023-01-01,2023-12-31' },
+        { validationType: '<=', validationCriteria: '2023-01-01,2023-12-31' },
+        { validationType: '>', validationCriteria: '2023-01-01,2023-12-31' },
+        { validationType: '<', validationCriteria: '2023-01-01,2023-12-31' },
+        { validationType: '(date)', validationCriteria: '2023-01-01,2023-12-31' },
+        { validationType: '[date]', validationCriteria: '2023-01-01,2023-12-31' },
+        { validationType: '[=date]', validationCriteria: '2023-01-01,2023-12-31' },
+        { validationType: '[=dates]', validationCriteria: '2023-01-01,2023-12-31' },
+      ];
+
+      testCases.forEach(({ validationType, validationCriteria }) => {
+        const input = {
+          type: 'date',
+          validationType,
+          validationCriteria,
+        };
+        const result = service.generatePossibleValues(input);
+        expect(Array.isArray(result)).toBeTruthy();
+      });
+    });
+
+    it('should handle true-false type', () => {
+      const input = { type: 'true-false' };
+      const result = service.generatePossibleValues(input);
+      expect(Array.isArray(result)).toBeTruthy();
+      expect(result.length).toBe(2);
+      expect(result).toContain(true);
+      expect(result).toContain(false);
+    });
   });
 
   describe('generateCombinations', () => {
@@ -820,7 +905,6 @@ describe('ScenarioDataService', () => {
       ];
       (complexCartesianProduct as jest.Mock).mockReturnValue(mockProduct);
       const result = service.generateCombinations(data, undefined);
-      // expect(result.length).toBe(3);
       result.forEach((item) => {
         expect(item).toHaveProperty('field1');
         expect(item).toHaveProperty('field2');
@@ -1022,6 +1106,37 @@ describe('ScenarioDataService', () => {
       const result = await service.generateTestScenarios('test.json', { nodes: [], edges: [] });
       expect(Object.keys(result).length).toBeGreaterThan(0);
       expect(result.testCase1.error).toBe('Test error');
+    });
+  });
+
+  describe('generateTestCSVScenarios', () => {
+    const mockRuleContent = { nodes: [], edges: [] };
+    const mockSimulationContext = {};
+
+    it('should generate CSV scenarios successfully', async () => {
+      jest.spyOn(service, 'generateTestScenarios').mockResolvedValue({
+        testCase1: {
+          inputs: { field1: 'value1' },
+          outputs: { field2: 'value2' },
+          expectedResults: {},
+          result: {},
+          resultMatch: true,
+        },
+      });
+
+      const result = await service.generateTestCSVScenarios('test.json', mockRuleContent, mockSimulationContext);
+
+      expect(typeof result).toBe('string');
+      expect(result).toContain('Scenario');
+      expect(result).toContain('Results Match Expected (Pass/Fail)');
+    });
+
+    it('should handle errors in CSV generation', async () => {
+      jest.spyOn(service, 'generateTestScenarios').mockRejectedValue(new Error('Test error'));
+
+      await expect(
+        service.generateTestCSVScenarios('test.json', mockRuleContent, mockSimulationContext),
+      ).rejects.toThrow('Error in generating test scenarios CSV: Test error');
     });
   });
 });

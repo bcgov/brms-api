@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpException } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { DecisionsController } from './decisions.controller';
 import { DecisionsService } from './decisions.service';
 import { EvaluateDecisionDto, EvaluateDecisionWithContentDto } from './dto/evaluate-decision.dto';
+import { ValidationError } from './validations/validation.error';
 
 describe('DecisionsController', () => {
   let controller: DecisionsController;
@@ -44,6 +45,20 @@ describe('DecisionsController', () => {
     };
     (service.runDecisionByContent as jest.Mock).mockRejectedValue(new Error('Error'));
     await expect(controller.evaluateDecisionByContent(dto)).rejects.toThrow(HttpException);
+  });
+
+  it('should throw a ValidationError when runDecision fails', async () => {
+    const dto: EvaluateDecisionWithContentDto = {
+      ruleContent: { nodes: [], edges: [] },
+      context: { value: 'context' },
+      trace: false,
+    };
+    (service.runDecisionByContent as jest.Mock).mockRejectedValue(new ValidationError('Error'));
+
+    await expect(controller.evaluateDecisionByContent(dto)).rejects.toThrow(HttpException);
+    await expect(controller.evaluateDecisionByContent(dto)).rejects.toThrow(
+      new HttpException('Error', HttpStatus.BAD_REQUEST),
+    );
   });
 
   it('should call runDecisionByFile with correct parameters', async () => {
