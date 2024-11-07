@@ -83,6 +83,11 @@ export class ValidationService {
           throw new ValidationError(`Input ${field.field} should be a boolean, but got ${actualType}`);
         }
         break;
+      case 'object-array':
+        if (!Array.isArray(input) || !input.every((obj) => typeof obj === 'object')) {
+          throw new ValidationError(`Input ${field.field} should be an array of objects, but got ${actualType}`);
+        }
+        break;
       default:
         throw new ValidationError(`Unsupported data type: ${dataType}`);
     }
