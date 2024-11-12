@@ -259,7 +259,6 @@ export class KlammService {
       await this.axiosKlammInstance.put(`${process.env.KLAMM_API_URL}/api/brerules/${currentKlamRuleId}`, rulePayload);
     } catch (error) {
       this.logger.error(`Error updating rule ${currentKlamRuleId} in Klamm:`, error.message);
-      throw new Error(`Error updating rule ${currentKlamRuleId} in Klamm`);
     }
   }
 
