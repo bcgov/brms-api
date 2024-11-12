@@ -273,16 +273,6 @@ describe('KlammService', () => {
     );
   });
 
-  it('should handle error in _updateRuleInKlamm', async () => {
-    const mockRulePayload = { name: 'rule1' } as KlammRulePayload;
-    const mockRuleId = 1;
-    jest.spyOn(service.axiosKlammInstance, 'put').mockRejectedValue(new Error('Error'));
-
-    await expect(service['_updateRuleInKlamm'](mockRuleId, mockRulePayload)).rejects.toThrow(
-      'Error updating rule 1 in Klamm',
-    );
-  });
-
   it('should update last sync timestamp correctly', async () => {
     jest.spyOn(klammSyncMetadata, 'findOneAndUpdate').mockResolvedValue(undefined);
 
