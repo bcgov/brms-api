@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: brms-api
+  name: brm-backend
   labels:
-    app.kubernetes.io/name: brms-api
+    app.kubernetes.io/name: brm-backend
 spec:
   selector:
-    app.kubernetes.io/name: brms-api
+    app.kubernetes.io/name: brm-backend
   ports:
     - protocol: TCP
       port: 3000

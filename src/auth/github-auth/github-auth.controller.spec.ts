@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
 import { GithubAuthController } from './github-auth.controller';
 import { GithubAuthService } from './github-auth.service';
 import { Response } from 'express';
@@ -19,6 +20,7 @@ describe('GithubAuthController', () => {
             getGithubUser: jest.fn(),
           },
         },
+        Logger,
       ],
     }).compile();
 

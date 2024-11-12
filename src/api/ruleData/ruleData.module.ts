@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { RuleData, RuleDataSchema } from './ruleData.schema';
 import { RuleDraft, RuleDraftSchema } from './ruleDraft.schema';
@@ -14,7 +14,7 @@ import { DocumentsService } from '../documents/documents.service';
     ]),
   ],
   controllers: [RuleDataController],
-  providers: [RuleDataService, DocumentsService],
+  providers: [RuleDataService, DocumentsService, Logger],
   exports: [RuleDataService],
 })
 export class RuleDataModule {}

@@ -1,6 +1,6 @@
-# BRMS API/Backend
+# BRM (Business Rules Management) Backend
 
-This project is the API/Backend for the SDPR Business Rules Engine (BRE) and Business Rules Engine Management System (BRMS). It will act primarly as the backend for the [frontend simulator](https://github.com/bcgov/brms-simulator-frontend).
+This project is the Backend for the SDPR Business Rules Engine (BRE) and [BRM App](https://github.com/bcgov/brm-app).
 
 ## Local Development Setup
 
