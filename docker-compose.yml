@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: brm-mongodb
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: brms-db
+    volumes:
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    restart: on-failure
