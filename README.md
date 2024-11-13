@@ -6,13 +6,32 @@ This project is the Backend for the SDPR Business Rules Engine (BRE) and [BRM Ap
 
 ### Running MongoDB Locally
 
-A local MongoDB instance is required for the project to run properly. You'll have to set this up first and create a database for it. Make note of the URL.
+A local MongoDB instance is required for the project to run properly. You'll have to set this up first and create a database for it.
+
+## Setting up MongoDB
+
+To set up MongoDB and populate it with initial data, follow these steps:
+
+1. Ensure you have Docker and Docker Compose installed on your machine.
+2. Run the following command to start the MongoDB container:
+
+   ```sh
+   docker-compose up -d
+   ```
+
+### Including Rules from the Rules Repository
+
+To get access to rules locally on your machine simply clone the repo at https://github.com/bcgov/brms-rules into your project. This project is set to grab rules from `brms-rules/rules`, which is the default location of rules if that project is cloned into this one.
+
+```bash
+git clone https://github.com/bcgov/brms-rules.git
+```
 
 ### Setting Environment Variables
 
 Before running your application locally, you'll need some environment variables. You can create a `.env` file to do so. Set the following variables:
 
-- MONGODB_URL: The URL for connecting to the MongoDB instance you created in the previous step. Set it to something like mongodb://localhost/nest.
+- MONGODB_URL: The URL for connecting to the MongoDB instance you created in the previous step. Should be mongodb://localhost:27017/brms-db.
 - FRONTEND_URI: The URI for the frontend application. Set it to http://localhost:8080.
 - GITHUB_RULES_BRANCH: Specifies which branch Klamm is syncing with
 - GITHUB_TOKEN: Optional github token to mitigate issues with rate limiting
@@ -20,10 +39,6 @@ Before running your application locally, you'll need some environment variables.
 - GITHUB_APP_CLIENT_SECRET
 - KLAMM_API_URL: The base URL of your Klamm API
 - KLAMM_API_AUTH_TOKEN: The Klamm API auth token
-
-### Including Rules from the Rules Repository
-
-To get access to rules locally on your machine simply clone the repo at https://github.com/bcgov/brms-rules into your project. This project is set to grab rules from `brms-rules/rules`, which is the default location of rules if that project is cloned into this one.
 
 ### Running the Application
 
