@@ -12,6 +12,7 @@ import { DocumentsService } from './api/documents/documents.service';
 import { ScenarioData, ScenarioDataSchema } from './api/scenarioData/scenarioData.schema';
 import { ScenarioDataController } from './api/scenarioData/scenarioData.controller';
 import { ScenarioDataService } from './api/scenarioData/scenarioData.service';
+import { ICMIntegrationModule } from './api/icmIntegration/icmIntegration.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ScenarioDataService } from './api/scenarioData/scenarioData.service';
     RuleDataModule,
     RuleMappingModule,
     KlammModule,
+    ICMIntegrationModule,
   ],
   controllers: [DecisionsController, DocumentsController, ScenarioDataController],
   providers: [Logger, DecisionsService, DocumentsService, ScenarioDataService],
