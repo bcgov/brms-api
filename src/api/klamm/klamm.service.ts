@@ -73,6 +73,15 @@ export class KlammService {
     }
   }
 
+  async getKlammBRERules(): Promise<string[]> {
+    try {
+      const { data } = await this.axiosKlammInstance.get(`${process.env.KLAMM_API_URL}/api/brerules`);
+      return data;
+    } catch (err) {
+      throw new HttpException('Error fetching from Klamm', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   async getKlammBREFieldFromName(fieldName: string): Promise<KlammField[]> {
     try {
       const sanitizedFieldName = encodeURIComponent(fieldName.trim());

@@ -11,6 +11,11 @@ export class KlammController {
     return await this.klammService.getKlammBREFields(searchText);
   }
 
+  @Get('/brerules')
+  async getKlammBRERules() {
+    return await this.klammService.getKlammBRERules();
+  }
+
   @Get('/brefield/:fieldName')
   async getKlammBREFieldFromName(@Param('fieldName') fieldName: string): Promise<KlammField[]> {
     return await this.klammService.getKlammBREFieldFromName(fieldName);
