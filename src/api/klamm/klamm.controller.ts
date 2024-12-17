@@ -13,7 +13,7 @@ export class KlammController {
 
   @Get('/brerules')
   async getKlammBRERules() {
-    return await this.klammService.getKlammBRERules();
+    return await this.klammService._getAllKlammFields();
   }
 
   @Get('/brefield/:fieldName')

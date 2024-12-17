@@ -349,22 +349,6 @@ describe('KlammService', () => {
     await expect(service.getKlammBREFieldFromName(fieldName)).rejects.toThrow('Error fetching from Klamm');
   });
 
-  it('should get Klamm BRE rules correctly', async () => {
-    const mockData = ['rule1', 'rule2'];
-    jest.spyOn(service.axiosKlammInstance, 'get').mockResolvedValue({ data: mockData });
-
-    const result = await service.getKlammBRERules();
-
-    expect(service.axiosKlammInstance.get).toHaveBeenCalledWith(`${process.env.KLAMM_API_URL}/api/brerules`);
-    expect(result).toEqual(mockData);
-  });
-
-  it('should handle error in getKlammBRERules', async () => {
-    jest.spyOn(service.axiosKlammInstance, 'get').mockRejectedValue(new Error('Error'));
-
-    await expect(service.getKlammBRERules()).rejects.toThrow('Error fetching from Klamm');
-  });
-
   it('should throw InvalidFieldRequest error if field name does not exist', async () => {
     const fieldName = 'field1';
     jest.spyOn(service.axiosKlammInstance, 'get').mockResolvedValue({ data: { data: [] } });
