@@ -101,20 +101,17 @@ export class RuleMappingService {
   // inputs that are only transformed are still included as unique as marked as exception
   async extractUniqueInputs(nodes: Node[]): Promise<{ uniqueInputs: any[] }> {
     const { inputs, outputs } = await this.extractInputsAndOutputs(nodes);
-    const outputFields = new Set(
-      outputs
-        // check for exceptions where input is transformed and exclude from output fields
-        .filter((outputField) =>
-          outputField.exception
-            ? outputField.exception.includes(outputField.key)
-              ? outputField.exception === outputField.key
-              : true
-            : true,
-        )
-        .map((outputField) => outputField.field),
-    );
-    const uniqueInputFields = this.findUniqueFields(inputs, outputFields);
+    const nonUniqueFields = new Set(outputs.filter((output) => !output.exception).map((output) => output.field));
 
+    outputs
+      .filter((output) => output.exception)
+      .forEach((output) => {
+        if (output.field === output.key || inputs.some((input) => input.field === output.field)) {
+          nonUniqueFields.add(output.field);
+        }
+      });
+
+    const uniqueInputFields = this.findUniqueFields(inputs, nonUniqueFields);
     return {
       uniqueInputs: Object.values(uniqueInputFields),
     };
