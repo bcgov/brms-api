@@ -15,6 +15,7 @@ describe('KlammController', () => {
           useValue: {
             getKlammBREFields: jest.fn(() => Promise.resolve('expected result')),
             getKlammBREFieldFromName: jest.fn((fieldName) => Promise.resolve(`result for ${fieldName}`)), // Mock implementation
+            _getAllKlammFields: jest.fn(() => Promise.resolve('rules result')),
           },
         },
       ],
@@ -34,5 +35,10 @@ describe('KlammController', () => {
     expect(await controller.getKlammBREFieldFromName(fieldName)).toBe(`result for ${fieldName}`);
     expect(service.getKlammBREFieldFromName).toHaveBeenCalledWith(fieldName);
     expect(service.getKlammBREFieldFromName).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call _getAllKlammFields and return expected result', async () => {
+    expect(await controller.getKlammBRERules()).toBe('rules result');
+    expect(service._getAllKlammFields).toHaveBeenCalledTimes(1);
   });
 });
