@@ -268,12 +268,7 @@ export class ScenarioDataService {
   }
 
   private cleanValue(value: string): string {
-    return (
-      value
-        ?.trim()
-        ?.replace(/[\[\]()]/g, '')
-        ?.trim() ?? ''
-    );
+    return value?.trim()?.replace(/[\[\]()]/g, '') ?? '';
   }
 
   generatePossibleValues(input: any, defaultValue?: any): any[] {
@@ -303,7 +298,6 @@ export class ScenarioDataService {
       case 'number-input':
         const numberValues = validationCriteria?.split(',').map((val: string) => this.cleanValue(val));
         const minValue = (numberValues && parseInt(numberValues[0], 10)) || 0;
-        console.log(numberValues, 'number values');
         const maxValue =
           numberValues && numberValues[numberValues?.length - 1] !== minValue.toString()
             ? numberValues[numberValues?.length - 1]
@@ -339,13 +333,11 @@ export class ScenarioDataService {
         const dateValues = validationCriteria
           ?.split(',')
           .map((val: string) => parseValue(this.cleanValue(val)).getTime());
-        console.log(dateValues, 'these are date values', validationCriteria);
         const minDate = (dateValues && dateValues[0]) || new Date().getTime();
         const maxDate =
           dateValues && dateValues[dateValues?.length - 1] !== minDate
             ? dateValues[dateValues?.length - 1]
             : new Date().setFullYear(new Date().getFullYear() + 1);
-        console.log(minDate, maxDate, 'dates');
         const generateRandomDates = (count: number) =>
           Array.from({ length: count }, () =>
             new Date(minDate + Math.random() * (maxDate - minDate)).toISOString().slice(0, 10),

@@ -183,10 +183,7 @@ export class ValidationService {
   private validateDateCriteria(field: any, input: string | string[]): void {
     const { validationCriteria, validationType } = field;
     const parseValue = (value: string) => {
-      const cleanValue = value
-        ?.trim()
-        ?.replace(/[\[\]()]/g, '')
-        ?.trim();
+      const cleanValue = value?.trim()?.replace(/[\[\]()]/g, '');
       return cleanValue?.toLowerCase() === 'today' ? new Date() : new Date(cleanValue);
     };
 
@@ -194,7 +191,7 @@ export class ValidationService {
       ? validationCriteria
           .replace(/[\[\]]/g, '')
           .split(',')
-          .map((val: string) => parseValue(val.trim()).getTime())
+          .map((val: string) => parseValue(val).getTime())
       : [];
 
     const dateValidationValue = parseValue(validationCriteria).getTime();
@@ -280,10 +277,8 @@ export class ValidationService {
   private normalizeText(text: string): string {
     return text
       ?.trim()
-      ?.replace(/[\[\]()]/g, '')
-      ?.replace(/[''"]/g, '')
-      ?.replace(/\s+/g, ' ')
-      ?.trim();
+      ?.replace(/[\[\]()'"''""]/g, '')
+      ?.replace(/\s+/g, ' ');
   }
 
   private validateTextCriteria(field: any, input: string | string[]): void {
